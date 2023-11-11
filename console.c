@@ -8,7 +8,7 @@
 #define INDEX_SIZE 256
 
 static char current_char;
-static uint8_t index = 0;
+static unsigned index = 0;
 static char input_array[INDEX_SIZE];
 
 // TODO: make it impossible to backspace off the line
@@ -36,11 +36,12 @@ void parseArray() {
     print("Parsing Array...\r\n");
     char* str;
     int numArgs = 0;
+    char* koala = input_array;
     do {
 	    // grab the first command
         printArray();
         print ("Debug 2\r\n");
-        str = strsep((char**)(input_array), " ");
+        str = strsep(&koala, " ");
         numArgs++;
         print("DEBUG!\r\n");
     }
