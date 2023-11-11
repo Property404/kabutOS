@@ -1,5 +1,6 @@
 #include "string.h"
 #include <stdbool.h>
+#include "uart.h"
 
 void* memset(void* dest, int byte, size_t length) {
     uint8_t* destination = (uint8_t*)dest;
@@ -83,10 +84,25 @@ void* string_to_pointer(const char* str) {
 
 
 char* strsep(char** __restrict__ stringp, const char* __restrict__ delim) {
+    print("debug -1 \r\n");
+    if (stringp == NULL) {
+	    print("stringp is Null :O\n");
+	    return NULL;
+    }
     char* ptr = *stringp;
-    if (ptr == NULL || *ptr == '\0')
+    if (ptr == NULL) {
+	    print("Ptr is Null :O\n");
+	    return NULL;
+    }
+    if (*ptr == '\0') {
+	    print("*Ptr is Null :O\n");
+	    return NULL;
+    }
+    if (ptr == NULL || *ptr == '\0') {
         return NULL;
+    }
 
+    print ("strsep debug0 ");
     // Don't worry about being in a delim
     while (string_has(delim, *ptr)) {
         ptr++;
@@ -95,7 +111,7 @@ char* strsep(char** __restrict__ stringp, const char* __restrict__ delim) {
     }
     *stringp = ptr;
 
-
+    print ("strsep debug1 ");
     while (true) {
         if (string_has(delim, *ptr)) {
             char* rval = *stringp;
