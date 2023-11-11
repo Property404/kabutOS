@@ -1,15 +1,17 @@
 #include <stdint.h>
 #include "console.h"
 #include "uart.h"
+#include "functions.h"
+#include "string.h"
+#include "stdio.h"
+
+#define INDEX_SIZE 256
 
 static char current_char;
-static uint8_t index;
-static const uint8_t INDEX_SIZE = 64;
-static char input_array[64];
+static uint8_t index = 0;
+static char input_array[INDEX_SIZE];
 
 // TODO: make it impossible to backspace off the line
-
-// TODO, put while loop for console here 
 
 // sets the first element to 0
 // this will stop the array from being printed
@@ -24,14 +26,29 @@ void printArray() {
 }
 
 void resetArray() {
-        input_array[index] = '\0';
+    input_array[index] = '\0';
 	printArray();
 	clearArray();
 	index = 0;
 }
 
-char* getArray() {
-    // TODO get array after user enters?
+void parseArray() {
+    print("Parsing Array...\r\n");
+    char* str;
+    int numArgs = 0;
+    do {
+	    // grab the first command
+        printArray();
+        print ("Debug 2\r\n");
+        str = strsep((char**)(input_array), " ");
+        numArgs++;
+        print("DEBUG!\r\n");
+    }
+    while(str != NULL);
+
+    print("Num of arguments: ");
+    printf("%x", numArgs);
+    print("\r\n");
 }
 
 void storeArray(unsigned char c) {
@@ -39,7 +56,8 @@ void storeArray(unsigned char c) {
 
         // check for ENTER key
         if (current_char == '\r') {
-                resetArray();
+            parseArray();
+            resetArray();
         }
 
         // max size of the array.
