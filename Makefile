@@ -16,7 +16,7 @@ EXECUTABLE_NAME=kernel
 CFLAGS=-Wall -Wextra -mcmodel=medany -ffreestanding $(DEFINES) $(EXTRA_CFLAGS)
 LDFLAGS=-T linker.ld -g -nostdlib
 ASFLAGS=-g3
-QEMU_FLAGS=-kernel $(EXECUTABLE_NAME).bin -serial mon:stdio -nographic
+QEMU_FLAGS=-kernel $(EXECUTABLE_NAME).elf -serial mon:stdio -nographic
 
 ASM_SOURCES=$(wildcard *.S)
 C_SOURCES=$(wildcard *.c) $(wildcard drivers/*.c)\
