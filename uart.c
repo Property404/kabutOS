@@ -30,9 +30,10 @@ char getchar() {
 }
 
 bool char_available() {
-    if (uart->lsr != 0)
+    if (uart->lsr & 0x01)
+    {
         return true;
-    uart->lsr = 0;
+    }
     return false;
 }
 
