@@ -1,0 +1,41 @@
+# Ignore everything by default
+*
+
+# Directories
+!**/
+
+# Git
+!.gitignore
+
+# Linker
+!*.ld
+
+# C
+!*.c
+!*.h
+
+# C++
+!*.cpp
+!*.hxx
+!*.cxx
+
+# GitHub workflows
+!*.yaml
+!*.yml
+
+# Assembly
+!*.asm
+!*.S
+
+# Text and Documentation
+!*.txt
+!*.md
+!reference/*.pdf
+
+# Rust
+!*.rs
+!*.toml
+!Cargo.lock
+
+# Exclude build directories
+target/
