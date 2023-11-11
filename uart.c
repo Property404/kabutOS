@@ -1,7 +1,7 @@
 #include "uart.h"
 #include <stdbool.h>
 #include <stdint.h>
-struct Pl011 {
+struct Ns16550a {
     uint8_t    dr;        /* 0x00 Data register */
     uint8_t ier;//1
     uint8_t fifo;//2
@@ -9,10 +9,10 @@ struct Pl011 {
     uint8_t _reserved;//4
     uint8_t lsr;//5
 } __attribute__((packed));
-typedef struct Pl011 Pl011;
+typedef struct Ns16550a Ns16550a;
 
 
-volatile Pl011 * uart = (void*)0x10000000;
+static volatile Ns16550a * const uart = (void*)0x10000000;
 
 void uart_init() {
     uart->lcr = 0x3;
