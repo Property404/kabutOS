@@ -1,5 +1,6 @@
 .section .init
  
+# Disable compression
 .option norvc
  
 .type start, @function
@@ -8,6 +9,14 @@ start:
 	.cfi_startproc
  
 .option push
+# Disables relaxation. The RISC-V assembler and linker opportunistically relax some code sequences, but sometimes this behavior is not desirable.
+#  Linker relaxation is the process of finding shorted opcodes for jumps to addresses nearby.
+#
+# For example, an instruction set might define two jump operations. One with a 32 bits offset, and one with an 8 bits offset. Most likely the compiler will generate conservative code, so always 32 bits branches. During the relaxation phase, the code is scanned for possible replacements of the 32 bits jump by an 8 bit jump.
+#
+# Possible issues that might occur during this phase:
+#    alignment of code. Code that was previously aligned might be shifted.
+#    Linker relaxations might cause the opposite effect on jumps whose distance increases due to relaxation. This occurs when jumping over a memory whole between sections.
 .option norelax
 	la gp, global_pointer
 .option pop
