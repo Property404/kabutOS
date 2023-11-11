@@ -13,7 +13,7 @@ OBJCOPY=$(CROSS_COMPILE)objcopy
 QEMU=qemu-system-riscv64
 EXECUTABLE_NAME=kernel
 
-CFLAGS=-Wall -Wextra -mcmodel=medany -ffreestanding $(DEFINES) $(EXTRA_CFLAGS)
+CFLAGS=-Wall -Wextra -g3 -mcmodel=medany -ffreestanding $(DEFINES) $(EXTRA_CFLAGS)
 LDFLAGS=-T linker.ld -g -nostdlib
 ASFLAGS=-g3
 QEMU_FLAGS=-kernel $(EXECUTABLE_NAME).elf -serial mon:stdio -nographic

@@ -25,3 +25,18 @@ make
 ```bash
 make virt
 ```
+
+## Debugging
+
+```
+make virt-debug
+
+# In another terminal
+arm-none-eabi-gdb kernel.elf
+> target remote localhost:1234
+
+# GDB commands
+si # Step by instruction
+s  # step
+until <linenumber> # Run until line number
+```
