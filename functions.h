@@ -6,5 +6,3 @@ struct function_pointers {
     char* commandName;
     int (*fnptr)(int, char**);
 };
-
-int sys_demo(int, char**);

@@ -20,4 +20,4 @@ char* strsep(char** __restrict__ stringp, const char* __restrict__ delim);
 bool string_has(const char* string, char character);
 
 void* string_to_pointer(const char* str);
-uint32_t string_to_u32(const char* str);
+uint64_t string_to_u64(const char* str);
