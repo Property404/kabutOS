@@ -1,25 +1,14 @@
 #include <stdint.h>
 #include <stddef.h>
-
-unsigned char * uart = (unsigned char *)0x10000000;
-void putchar(char c) {
-	*uart = c;
-	return;
-}
-
-void print(const char * str) {
-	while(*str != '\0') {
-		putchar(*str);
-		str++;
-	}
-	return;
-}
+#include "uart.h"
 
 void kmain(void) {
 	print("Hello world!\r\n");
+    uart_init();
 	while(1) {
-		// Read input from the UART
-		putchar(*uart);
+        if (char_available()) {
+            putchar(getchar());
+        }
 	}
 	return;
 }
