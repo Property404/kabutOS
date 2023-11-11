@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "uart.h"
+#include "console.h"
 
 void kmain(void) {
     uart_init();
