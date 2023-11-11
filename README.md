@@ -36,7 +36,9 @@ arm-none-eabi-gdb kernel.elf
 > target remote localhost:1234
 
 # GDB commands
-si # Step by instruction
-s  # step
-until <linenumber> # Run until line number
+si/stepi # Step by instruction
+s/step  # step
+n/next  # Next line
+break <label> # Break at label
+continue # continue until breakpoint
 ```
