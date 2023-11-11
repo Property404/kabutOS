@@ -1,4 +1,0 @@
-riscv64-elf-gcc -Wall -Wextra -c -mcmodel=medany kernel.c -o kernel.o -ffreestanding
-riscv64-elf-gcc -Wall -Wextra -c -mcmodel=medany uart.c -o uart.o -ffreestanding
-riscv64-elf-as -c entry.S -o entry.o
-riscv64-elf-ld -T linker.ld -nostdlib uart.o kernel.o entry.o -o kernel.elf
