@@ -1,7 +1,6 @@
 #include <stdint.h>
 #include "console.h"
 #include "readline.h"
-#include "uart.h"
 #include "functions.h"
 #include "string.h"
 #include "stdio.h"

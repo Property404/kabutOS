@@ -8,5 +8,3 @@ void putchar(char c);
 char getchar();
 
 bool char_available();
-
-void print(const char * str);

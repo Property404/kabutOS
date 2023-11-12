@@ -2,11 +2,12 @@
 #include <stddef.h>
 #include "uart.h"
 #include "console.h"
+#include "stdio.h"
 
 void kmain(void) {
     uart_init();
 
-    print("Starting console...\r\n");
+    puts("Starting console...\r\n");
     while(1) {
         run_console();
     }
