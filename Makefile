@@ -7,7 +7,6 @@ endif
 
 AS=$(CROSS_COMPILE)as
 CC=$(CROSS_COMPILE)gcc
-CXX=$(CROSS_COMPILE)g++
 LD=$(CROSS_COMPILE)ld
 OBJCOPY=$(CROSS_COMPILE)objcopy
 QEMU=qemu-system-riscv64
