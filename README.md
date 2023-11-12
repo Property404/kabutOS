@@ -9,6 +9,7 @@ sudo apt install \
     gcc-riscv64-unknown-elf \
     binutils-riscv64-unknown-elf \
     qemu-system-riscv64 \
+    gdb-multiarch \
     make
 ```
 
@@ -32,7 +33,7 @@ make virt
 make virt-debug
 
 # In another terminal
-arm-none-eabi-gdb kernel.elf
+gdb-multiarch kernel.elf
 > target remote localhost:1234
 
 # GDB commands
