@@ -43,6 +43,7 @@
 !*.rs
 !*.toml
 !Cargo.lock
+!config
 
 # Exclude build directories
 target/

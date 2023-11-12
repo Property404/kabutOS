@@ -13,25 +13,29 @@ OBJCOPY=$(CROSS_COMPILE)objcopy
 QEMU=qemu-system-riscv64
 EXECUTABLE_NAME=kernel
 
-CFLAGS=-Wall -Wextra -g3 -mcmodel=medany -ffreestanding $(DEFINES) $(EXTRA_CFLAGS)
+COMMON_GCC_FLAGS=-march=rv64imac_zicsr -mabi=lp64
+CFLAGS=-Wall -Wextra -g3 -mcmodel=medany -ffreestanding $(DEFINES) $(EXTRA_CFLAGS) $(COMMON_GCC_FLAGS)
 LDFLAGS=-T linker.ld -g -nostdlib
-ASFLAGS=-g3
+ASFLAGS=-g3 $(COMMON_GCC_FLAGS)
 QEMU_FLAGS=-kernel $(EXECUTABLE_NAME).elf -serial mon:stdio -nographic
 
 ASM_SOURCES=$(wildcard *.S)
 C_SOURCES=$(wildcard *.c) $(wildcard drivers/*.c)\
 	$(wildcard drivers/text/*.c) $(wildcard drivers/timer/*.c)
-OBJECTS=$(C_SOURCES:.c=.o) $(ASM_SOURCES:.S=.o)
+OBJECTS=$(C_SOURCES:.c=.o) $(ASM_SOURCES:.S=.o) krabby/target/riscv64imac-unknown-none-elf/debug/libkrabby.a
 
 ifeq ($(findstring -debug,$(MAKECMDGOALS)),-debug)
 	QEMU_FLAGS+=-S -s
 endif
 
 all: $(EXECUTABLE_NAME).elf
-$(EXECUTABLE_NAME).elf: *.h $(OBJECTS)
+$(EXECUTABLE_NAME).elf: *.h $(OBJECTS) krabbylib
 	$(LD) $(LDFLAGS) $(OBJECTS) -o $(EXECUTABLE_NAME).elf
 $(EXECUTABLE_NAME).bin: $(EXECUTABLE_NAME).elf
 	$(OBJCOPY) -O binary $< $@
+
+krabbylib:
+	cd krabby && cargo build
 
 lint:
 	cpplint $$(find . -name "*.cc" -or -name "*.h")

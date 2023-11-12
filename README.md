@@ -2,18 +2,36 @@
 
 RISCV kernel.
 
-## Install Required Dependencies (Ubuntu)
+## Install Required Dependencies (Debian 12)
+
+Install Distrobox:
 
 ```bash
-sudo apt install \
-    gcc-riscv64-unknown-elf \
-    binutils-riscv64-unknown-elf \
-    qemu-system-riscv64 \
-    gdb-multiarch \
-    make
+# Fedora
+sudo dnf install distrobox
+
+# Ubuntu/Debian
+sudo apt install distrobox
 ```
 
-Fedora does not have the right toolchain, but you can use Ubuntu via `distrobox`
+Install Debian 12 with distrobox:
+
+```bash
+distrobox-create --name kdev --image debian:12
+distrobox enter kdev
+```
+
+Install `rustup` if not already installed:
+
+```bash
+curl --proto '=https' --tlsv1.3 -sSf https://sh.rustup.rs | sh
+```
+
+Install dependencies
+
+```bash
+./install-dependencies
+```
 
 ## Building
 
