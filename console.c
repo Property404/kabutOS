@@ -1,42 +1,15 @@
 #include <stdint.h>
 #include "console.h"
+#include "readline.h"
 #include "uart.h"
 #include "functions.h"
 #include "string.h"
 #include "stdio.h"
 #include <stdbool.h>
 
-#define INDEX_SIZE 256
-
-static char current_char;
-static unsigned index = 0;
-static char input_array[INDEX_SIZE];
-
-// TODO: make it impossible to backspace off the line
-
-// sets the first element to 0
-// this will stop the array from being printed
-void clearArray() {
-        input_array[0] = '\0';
-        return;
-}
-
-void printArray() {
-        print(input_array);
-	print("\r\n");
-}
-
-void resetArray() {
-    input_array[index] = '\0';
-	printArray();
-	clearArray();
-	index = 0;
-}
-
 // TODO, use array of arguments and pass that
 // aaray of char ptrs
-
-void parseArray() {
+void parseArray(char* input_array) {
     // return on empty enter press
     if (input_array[0] == '\0') {
         return;
@@ -59,8 +32,7 @@ void parseArray() {
 
     // DEBUG
     // TODO, we should pass this out
-    print("Num of arguments: ");
-    printf("%x", numArgs);
+    printf("[DEBUG] Num of arguments: %x\n", numArgs);
 
     // the value of input_array we're left with
     // points to just the first word
@@ -73,38 +45,10 @@ void parseArray() {
     // function lookup table
 }
 
-void storeArray(unsigned char c) {
-	current_char = c;
-
-        // check for ENTER key
-        if (current_char == '\r') {
-            // TODO: because we parse the array
-            // before we print it, we end up 
-            // printing just the first word
-            // which is unintuitive
-            // but i'm leaving this as is while we
-            // get console.c function call working :)
-            parseArray();
-            resetArray();
-            return;
-        }
-
-        // max size of the array.
-        if (index >= INDEX_SIZE) {
-            print("Array maxed out. Oops!\r\n");
-		    resetArray();
-            return;
-        }
-
-        input_array[index] = current_char;
-        index++;
-        return;
-}
 
 void run_console() {
-    if (char_available()) {
-         const char c = getchar();
-         putchar(c);
-         storeArray(c);
-    }
+     static char input_array[256];
+     const int numbytes = readline(input_array, 256);
+     printf("[DEBUG]%02x|%s|\n", numbytes, input_array);
+     parseArray(input_array);
 }
