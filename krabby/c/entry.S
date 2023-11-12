@@ -22,7 +22,7 @@ start:
 .option pop
 
 	/* Reset satp */
-	csrw satp, zero
+	//csrw satp, zero
 
 	/* Setup stack */
 	la sp, stack_top
@@ -36,7 +36,7 @@ bss_clear:
 	bltu t5, t6, bss_clear
 
 	la t0, kmain
-	csrw mepc, t0
+	//csrw mepc, t0
 
 	/* Jump to kernel! */
 	tail kmain

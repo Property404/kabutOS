@@ -1,6 +1,6 @@
 fn main() {
     cc::Build::new()
-        .file("c/foo.c")
+        .file("c/entry.S")
         .file("c/console.c")
         .file("c/demo.c")
         .file("c/dump.c")
