@@ -13,6 +13,9 @@ static char nextchar() {
 }
 
 static void skip(const char* array, size_t n) {
+    if (array == NULL) {
+        kpanic("EINVAL: Array==NULL");
+    }
     for (size_t i=0; i < n; i++) {
         putchar(array[i]);
     }
@@ -20,7 +23,7 @@ static void skip(const char* array, size_t n) {
 
 size_t readline(char* array, size_t max_size) {
     if (array == NULL) {
-        kpanic("Array is NULL!");
+        kpanic("EINVAL: Array is NULL!");
     }
 
     size_t ptr = 0;

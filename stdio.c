@@ -3,6 +3,7 @@
 #include <stdarg.h>
 
 #include "uart.h"
+#include "panic.h"
 #include "string.h"
 
 bool testchar(void) {
@@ -90,9 +91,7 @@ static const char* get_first_match(
 // See: https://en.wikipedia.org/wiki/Printf_format_string#Format_placeholder_specification
 static int parse_placeholder(const char* fmt, FormatPlaceholder* placeholder) {
     if (fmt == NULL || placeholder == NULL) {
-        // PANIC
-        puts("PANIC: Null args");
-        while (true);
+        kpanic("EINVAL: null args");
     }
 
     // These HAVE to end with an extra '\0'
@@ -133,6 +132,9 @@ static int parse_placeholder(const char* fmt, FormatPlaceholder* placeholder) {
 
 
 int vprintf(const char* fmt, va_list args) {
+    if (fmt == NULL) {
+        kpanic("EINVAL: fmt == NULL");
+    }
     while (*fmt != 0) {
         if (*fmt == '%') {
             fmt++;
@@ -193,6 +195,9 @@ int vprintf(const char* fmt, va_list args) {
 }
 
 int printf(const char* fmt, ...) {
+    if (fmt == NULL) {
+        kpanic("EINVAL: null args");
+    }
     va_list args;
     va_start(args, fmt);
     vprintf(fmt, args);
