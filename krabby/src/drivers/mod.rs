@@ -1,5 +1,15 @@
+pub mod ns16550;
+use ns16550::Ns16550Driver;
+
+pub struct Drivers {
+    pub uart: Option<Ns16550Driver>,
+}
+
+pub static mut DRIVERS: Drivers = Drivers { uart: None };
+
 pub trait UartDriver {
     fn next_byte(&self) -> u8;
+    fn byte_available(&self) -> bool;
     fn send_byte(&self, byte: u8);
 
     // Todo: Query next byte if incomplete UTF-8

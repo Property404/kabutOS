@@ -1,8 +1,7 @@
 #![no_std]
 use core::panic::PanicInfo;
-pub mod driver;
-pub mod helpers;
-pub mod uart;
+pub mod c_functions;
+pub mod drivers;
 
 #[no_mangle]
 pub fn snorkel() -> i32 {
