@@ -13,7 +13,7 @@ pub fn kmain() {
     unsafe { DRIVERS.uart = Some(uart_driver) };
 
     let mut serial = Serial::new();
-    write!(serial, "Welcome to KabutOS!!!\n").unwrap();
+    writeln!(serial, "Welcome to KabutOS!!!").unwrap();
 
     loop {
         unsafe {

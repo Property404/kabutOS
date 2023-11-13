@@ -29,4 +29,7 @@ jobs:
         run: cargo build
 
       - name: Clippy
-        run: cargo clippy
+        run: cargo clippy -- -D warnings
+
+      - name: Lint
+        run: cargo fmt --check
