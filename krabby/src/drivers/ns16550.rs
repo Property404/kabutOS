@@ -1,3 +1,4 @@
+//! Ns16550 Driver
 use crate::c_functions::{read_unaligned_volatile_u8, write_unaligned_volatile_u8};
 use crate::drivers::UartDriver;
 
@@ -10,12 +11,16 @@ enum RegisterOffsets {
     LineStatusRegister = 0x05,
 }
 
+/// UART driver for the [Ns16550](https://en.wikipedia.org/wiki/NS16550A)
+///
+/// See manual here: <https://uart16550.readthedocs.io/_/downloads/en/latest/pdf/>
 pub struct Ns16550Driver {
     base_address: *mut u8,
 }
 unsafe impl Sync for Ns16550Driver {}
 
 impl Ns16550Driver {
+    /// Initialize the driver
     pub fn new(base_address: *mut u8) -> Self {
         unsafe {
             write_unaligned_volatile_u8(
