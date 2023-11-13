@@ -23,7 +23,7 @@ jobs:
         run: rustup target add riscv64imac-unknown-none-elf
 
       - name: Install Dependencies
-        run: ./install-dependencies --ci
+        run: ./install-dependencies.sh --ci
 
       - name: Build
         run: cargo build
