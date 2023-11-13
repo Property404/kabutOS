@@ -5,7 +5,6 @@ fn main() {
         .file("c/dump.c")
         .file("c/entry.S")
         .file("c/functions.c")
-        .file("c/kernel.c")
         .file("c/panic.c")
         .file("c/readline.c")
         .file("c/rust_helpers.c")

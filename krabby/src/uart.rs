@@ -33,16 +33,16 @@ impl Ns16550Driver {
         }
         Self { base_address }
     }
+
+    unsafe fn read(&self, offset: RegisterOffsets) -> u8 {
+        read_unaligned_volatile_u8(self.base_address.wrapping_add(offset as usize))
+    }
 }
 
 impl UartDriver for Ns16550Driver {
     fn next_byte(&self) -> u8 {
-        unsafe {
-            read_unaligned_volatile_u8(
-                self.base_address
-                    .wrapping_add(RegisterOffsets::Data as usize),
-            )
-        }
+        while unsafe { self.read(RegisterOffsets::LineStatusRegister) & 0x01 == 0 } {}
+        unsafe { self.read(RegisterOffsets::Data) }
     }
 
     fn send_byte(&self, byte: u8) {
@@ -57,19 +57,7 @@ impl UartDriver for Ns16550Driver {
 }
 
 const DR_REGISTER: *mut u8 = 0x10000000 as *mut u8;
-const IER_REGISTER: *mut u8 = 0x10000001 as *mut u8;
-const FIFO_REGISTER: *mut u8 = 0x10000002 as *mut u8;
-const LCR_REGISTER: *mut u8 = 0x10000003 as *mut u8;
 const LSR_REGISTER: *mut u8 = 0x10000005 as *mut u8;
-
-#[no_mangle]
-pub fn uart_init() {
-    unsafe {
-        write_unaligned_volatile_u8(LCR_REGISTER, 0x3);
-        write_unaligned_volatile_u8(FIFO_REGISTER, 0x1);
-        write_unaligned_volatile_u8(IER_REGISTER, 0x1);
-    }
-}
 
 #[no_mangle]
 pub fn putchar(c: c_char) -> c_int {

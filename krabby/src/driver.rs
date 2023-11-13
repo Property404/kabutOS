@@ -16,4 +16,10 @@ pub trait UartDriver {
             self.send_byte(*byte)
         }
     }
+
+    fn send_str(&self, s: &str) {
+        for c in s.chars() {
+            self.send_char(c);
+        }
+    }
 }
