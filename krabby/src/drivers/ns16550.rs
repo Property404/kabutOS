@@ -11,7 +11,7 @@ enum RegisterOffsets {
 }
 
 pub struct Ns16550Driver {
-    base_address: *const u8,
+    base_address: *mut u8,
 }
 unsafe impl Sync for Ns16550Driver {}
 
@@ -52,7 +52,8 @@ impl UartDriver for Ns16550Driver {
     fn send_byte(&self, byte: u8) {
         unsafe {
             write_unaligned_volatile_u8(
-                (self.base_address as *mut u8).wrapping_add(RegisterOffsets::Data as usize),
+                self.base_address
+                    .wrapping_add(RegisterOffsets::Data as usize),
                 byte,
             );
         }
