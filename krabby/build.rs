@@ -14,4 +14,8 @@ fn main() {
         .file("c/uart.c")
         .flag("-ffreestanding")
         .compile("foo");
+    println!("cargo:rustc-link-arg=-g");
+    println!("cargo:rustc-link-arg=-T");
+    println!("cargo:rustc-link-arg=../linker.ld");
+    println!("cargo:rustc-link-arg=-nostdlib");
 }
