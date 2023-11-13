@@ -36,19 +36,19 @@ Install dependencies
 ## Building
 
 ```bash
-make
+cargo build
 ```
 
 ## Running on QEMU
 
 ```bash
-make virt
+cargo run
 ```
 
 ## Debugging
 
 ```
-make virt-debug
+cargo run -- -S -s
 
 # In another terminal
 gdb-multiarch kernel.elf
