@@ -19,6 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Rust Target
+        run: rustup target add riscv64imac-unknown-none-elf
+
       - name: Install Dependencies
         run: sudo apt install {gcc,binutils}-riscv64-unknown-elf make
 
