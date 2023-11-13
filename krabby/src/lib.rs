@@ -1,5 +1,6 @@
 #![no_std]
 use core::panic::PanicInfo;
+mod driver;
 mod helpers;
 mod uart;
 
