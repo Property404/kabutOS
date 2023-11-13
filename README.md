@@ -2,32 +2,10 @@
 
 RISCV kernel.
 
-## Install Required Dependencies (Debian 12)
+## Installing Dependencies
 
-Install Distrobox:
-
-```bash
-# Fedora
-sudo dnf install distrobox
-
-# Ubuntu/Debian
-sudo apt install distrobox
-```
-
-Install Debian 12 with distrobox:
-
-```bash
-distrobox-create --name kdev --image debian:12
-distrobox enter kdev
-```
-
-Install `rustup` if not already installed:
-
-```bash
-curl --proto '=https' --tlsv1.3 -sSf https://sh.rustup.rs | sh
-```
-
-Install dependencies
+Note: This requires Ubuntu or Debian. If you're on another distro, or the
+script does not work, check out the [Setting up Distrobox] section
 
 ```bash
 ./install-dependencies
@@ -62,4 +40,25 @@ s/step  # step
 n/next  # Next line
 break <label> # Break at label
 continue # continue until breakpoint
+```
+
+## Setting up Distrobox
+
+This not required for all distros, but is required for development on Fedora
+
+Install Distrobox:
+
+```bash
+# Fedora
+sudo dnf install distrobox
+
+# Ubuntu/Debian
+sudo apt install distrobox
+```
+
+Install Debian 12 with distrobox:
+
+```bash
+distrobox-create --name kdev --image debian:12
+distrobox enter kdev
 ```
