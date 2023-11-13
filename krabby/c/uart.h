@@ -3,7 +3,7 @@
 
 void uart_init(void);
 
-void putchar(char c);
+int putchar(char c);
 
 char getchar();
 
