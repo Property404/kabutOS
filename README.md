@@ -45,6 +45,8 @@ cargo build
 cargo run
 ```
 
+To exit QEMU, type `Ctrl-A` then `X`
+
 ## Debugging
 
 ```
