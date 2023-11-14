@@ -13,7 +13,7 @@ void parseArray(char* input_array) {
     if (input_array[0] == '\0') {
         return;
     }
-    
+
     // TODO: fix this issue so I can set to 0
     int numArgs = -1;
     char* str;
@@ -39,8 +39,8 @@ void parseArray(char* input_array) {
     // so we don't need to copy the command
     // instead we can just investigate the
     // value of that word
-    // so we can add a command here to 
-    // parseCommand, which will use the 
+    // so we can add a command here to
+    // parseCommand, which will use the
     // function lookup table
 }
 

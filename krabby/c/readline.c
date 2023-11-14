@@ -81,7 +81,7 @@ size_t readline(char* array, size_t max_size) {
                 break;
             default:
                 // Insert
-                if (c >= 0x20 && c < 0x7F && length < max_size) { 
+                if (c >= 0x20 && c < 0x7F && length < max_size) {
                     for (size_t i=length;i>ptr;i--) {
                         array[i] = array[i-1];
                     }

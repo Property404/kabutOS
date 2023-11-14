@@ -16,4 +16,3 @@ void resetArray();
 
 // store user input into array
 void storeArray(unsigned char c);
-

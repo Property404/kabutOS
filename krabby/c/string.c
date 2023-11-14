@@ -112,4 +112,3 @@ char* strsep(char** __restrict__ stringp, const char* __restrict__ delim) {
         }
     }
 }
-
