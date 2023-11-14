@@ -1,4 +1,4 @@
-//! KabuntOS kernel library
+//! KabutOS kernel library
 #![no_std]
 #![warn(missing_docs)]
 use core::panic::PanicInfo;
