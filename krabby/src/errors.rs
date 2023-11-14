@@ -8,6 +8,14 @@ pub enum KernelError {
     InvalidArguments = 1,
     /// Driver is uninitialized
     DriverUninitialized,
+    /// Converted from [core::fmt::Error]
+    FmtError,
+}
+
+impl From<core::fmt::Error> for KernelError {
+    fn from(_error: core::fmt::Error) -> Self {
+        KernelError::FmtError
+    }
 }
 
 /// Result type for use in this crate

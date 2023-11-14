@@ -6,6 +6,7 @@ use owo_colors::OwoColorize;
 pub mod c_functions;
 pub mod drivers;
 pub mod errors;
+pub mod functions;
 pub mod readline;
 pub mod serial;
 

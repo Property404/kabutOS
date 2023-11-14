@@ -1,5 +1,8 @@
 //! C function imports and exports
-use crate::drivers::{UartDriver, DRIVERS};
+use crate::{
+    drivers::{UartDriver, DRIVERS},
+    functions,
+};
 use core::ffi::{c_char, c_int};
 
 extern "C" {
@@ -11,10 +14,24 @@ extern "C" {
     pub fn run_console();
 }
 
+/// C API version of [functions::dump_memory]
+///
+/// # Safety
+/// All addresses between `ptr` and `ptr+size`, inclusive, must be valid
 #[no_mangle]
+pub unsafe fn dump_memory(ptr: *const u8, size: usize) -> c_int {
+    if functions::dump_memory(ptr, size).is_err() {
+        // Returning -1 is the standard way C returns errors
+        -1
+    } else {
+        0
+    }
+}
+
 /// Kernel equivalent of `putchar`(3)
 /// Pull a character from serial
-pub fn putchar(c: c_char) -> c_int {
+#[no_mangle]
+fn putchar(c: c_char) -> c_int {
     unsafe {
         if let Some(uart) = &DRIVERS.uart {
             uart.send_byte(c as u8);
@@ -23,10 +40,10 @@ pub fn putchar(c: c_char) -> c_int {
     0
 }
 
-#[no_mangle]
 /// Kernel equivalent of `getchar`(3)
 /// Send a character to serial
 /// Please make sure a character is actually available by checking [char_available]
+#[no_mangle]
 pub fn getchar() -> c_char {
     if let Some(uart) = unsafe { &DRIVERS.uart } {
         return uart.next_byte() as c_char;
@@ -35,8 +52,8 @@ pub fn getchar() -> c_char {
     0x3F as c_char
 }
 
-#[no_mangle]
 /// Check if a character is currently available to be read from serial
+#[no_mangle]
 pub fn char_available() -> bool {
     if let Some(uart) = unsafe { &DRIVERS.uart } {
         return uart.byte_available();

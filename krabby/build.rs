@@ -2,7 +2,6 @@ fn main() {
     cc::Build::new()
         .file("c/console.c")
         .file("c/demo.c")
-        .file("c/dump.c")
         .file("c/entry.S")
         .file("c/functions.c")
         .file("c/panic.c")
