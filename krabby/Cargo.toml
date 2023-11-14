@@ -9,6 +9,7 @@ crate-type = ["staticlib","lib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+owo-colors = "3.5.0"
 
 [build-dependencies]
 cc = "1.0.84"
