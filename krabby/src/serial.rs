@@ -1,5 +1,8 @@
 //! Home of the `Serial` object - used to write to serial
-use crate::drivers::{UartDriver, DRIVERS};
+use crate::{
+    drivers::{UartDriver, DRIVERS},
+    errors::{KernelError, KernelResult},
+};
 use core::fmt::{Error, Write};
 
 /// A cheap structure used to write to serial.
@@ -18,6 +21,15 @@ impl Serial {
     /// Construct a new `Serial` object. Very cheap.
     pub const fn new() -> Self {
         Self {}
+    }
+
+    /// Read next character
+    pub fn next_char(&self) -> KernelResult<char> {
+        if let Some(uart) = unsafe { &DRIVERS.uart } {
+            Ok(uart.next_char())
+        } else {
+            Err(KernelError::DriverUninitialized)
+        }
     }
 }
 

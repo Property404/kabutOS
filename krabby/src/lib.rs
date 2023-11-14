@@ -5,6 +5,7 @@ use core::panic::PanicInfo;
 use owo_colors::OwoColorize;
 pub mod c_functions;
 pub mod drivers;
+pub mod errors;
 pub mod serial;
 
 use core::fmt::Write;
