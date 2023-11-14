@@ -2,6 +2,7 @@
 use core::result::Result;
 
 /// Error type for use in the Kernel
+#[derive(Debug)]
 pub enum KernelError {
     /// Argument is invalid
     InvalidArguments = 1,
