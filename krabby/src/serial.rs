@@ -11,7 +11,7 @@ use core::fmt::{Error, Write};
 ///
 /// writeln!(Serial::new(), "Hello World!");
 /// ```
-#[derive(Default)]
+#[derive(Copy, Clone, Default, Debug)]
 pub struct Serial {}
 
 impl Serial {

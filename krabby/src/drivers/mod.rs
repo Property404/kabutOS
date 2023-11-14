@@ -3,6 +3,7 @@ pub mod ns16550;
 use ns16550::Ns16550Driver;
 
 /// Collection of initialized drivers
+#[derive(Debug)]
 pub struct Drivers {
     /// The UART driver
     // TODO: make this dynamic

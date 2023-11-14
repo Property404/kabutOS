@@ -2,7 +2,6 @@
 use crate::c_functions::{read_unaligned_volatile_u8, write_unaligned_volatile_u8};
 use crate::drivers::UartDriver;
 
-#[repr(usize)]
 enum RegisterOffsets {
     Data = 0x00,
     InterruptEnable = 0x01,
@@ -14,6 +13,7 @@ enum RegisterOffsets {
 /// UART driver for the [Ns16550](https://en.wikipedia.org/wiki/NS16550A)
 ///
 /// See manual here: <https://uart16550.readthedocs.io/_/downloads/en/latest/pdf/>
+#[derive(Debug)]
 pub struct Ns16550Driver {
     base_address: *mut u8,
 }
