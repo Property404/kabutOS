@@ -20,7 +20,7 @@ extern "C" {
 /// All addresses between `ptr` and `ptr+size`, inclusive, must be valid
 #[no_mangle]
 pub unsafe fn dump_memory(ptr: *const u8, size: usize) -> c_int {
-    if functions::dump_memory(ptr, size).is_err() {
+    if unsafe { functions::dump_memory(ptr, size) }.is_err() {
         // Returning -1 is the standard way C returns errors
         -1
     } else {
@@ -31,7 +31,7 @@ pub unsafe fn dump_memory(ptr: *const u8, size: usize) -> c_int {
 /// Kernel equivalent of `putchar`(3)
 /// Pull a character from serial
 #[no_mangle]
-fn putchar(c: c_char) -> c_int {
+pub fn putchar(c: c_char) -> c_int {
     unsafe {
         if let Some(uart) = &DRIVERS.uart {
             uart.send_byte(c as u8);

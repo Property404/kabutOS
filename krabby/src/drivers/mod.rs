@@ -32,8 +32,7 @@ pub trait UartDriver {
             // Rust works in UTF-8 (unlike C, which generally works in ASCII), so we have to convert a Rust
             // `char` to a sequence of c `chars`(which are just bytes)
             let mut bytes = [0; 4];
-            c.encode_utf8(&mut bytes);
-            for byte in &bytes[0..c.len_utf8()] {
+            for byte in c.encode_utf8(&mut bytes).as_bytes() {
                 self.send_byte(*byte)
             }
         }

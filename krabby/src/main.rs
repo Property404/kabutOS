@@ -7,7 +7,7 @@ use krabby::{
 };
 
 #[no_mangle]
-pub fn kmain() {
+unsafe fn kmain() {
     // Initialize drivers
     let uart_driver = Ns16550Driver::new(0x10000000 as *mut u8);
     unsafe { DRIVERS.uart = Some(uart_driver) };

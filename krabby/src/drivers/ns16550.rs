@@ -40,7 +40,7 @@ impl Ns16550Driver {
     }
 
     unsafe fn read(&self, offset: RegisterOffsets) -> u8 {
-        read_unaligned_volatile_u8(self.base_address.wrapping_add(offset as usize))
+        unsafe { read_unaligned_volatile_u8(self.base_address.wrapping_add(offset as usize)) }
     }
 }
 

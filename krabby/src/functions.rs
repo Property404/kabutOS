@@ -28,7 +28,7 @@ pub unsafe fn dump_memory(mut ptr: *const u8, mut size: usize) -> KernelResult<(
 
         // Show bytes in ASCII
         for minor in 0..WIDTH {
-            let c: u8 = *(ptr.wrapping_add(minor));
+            let c: u8 = unsafe { *(ptr.wrapping_add(minor)) };
             write!(
                 serial,
                 "{}",
