@@ -1,5 +1,5 @@
 // This is a build script - it runs before any Rust code is compiled
-use std::collections::HashSet;
+use std::{env,collections::HashSet};
 
 fn main() {
     // Get list of target features
@@ -12,7 +12,11 @@ fn main() {
     //
     //  You can see more at <https://en.wikipedia.org/wiki/RISC-V#ISA_base_and_extensions>, but I
     //  think these are the only ones we can detect with `CARGO_CFG_TARGET_FEATURE`
-    let target_features = std::env::var("CARGO_CFG_TARGET_FEATURE").unwrap();
+    let target_features = env::var("CARGO_CFG_TARGET_FEATURE").unwrap_or_else(|_|{
+        // TODO: Figure out why target-features is empty in stable (1.74)
+        println!("cargo:warning=Could not determine target features - maybe use Rust 1.75");
+        String::from("a,c,m")
+    });
     let target_features: HashSet<&str> = target_features.split(',').collect();
 
     // Compile C code
