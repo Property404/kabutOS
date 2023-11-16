@@ -3,3 +3,7 @@ resolver = "2"
 members = [
     "krabby"
 ]
+
+[profile.release]
+lto = "thin"
+strip = true
