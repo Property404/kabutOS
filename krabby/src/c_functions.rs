@@ -49,7 +49,7 @@ pub fn getchar() -> c_char {
         return uart.next_byte() as c_char;
     }
     // Send a question mark - what else would we do if the uart is not initialized?
-    0x3F as c_char
+    '?' as c_char
 }
 
 /// Check if a character is currently available to be read from serial
