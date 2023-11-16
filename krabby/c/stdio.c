@@ -18,18 +18,6 @@ int puts(const char* buffer) {
     return i;
 }
 
-void nputs(const char* buffer, size_t len) {
-    for (size_t i = 0; i < len; i++) {
-        char c = buffer[i];
-        if (c == '\0') {
-            c = '.';
-        } else if (c < 0x20 || c > 0x7f) {
-            c = '?';
-        }
-        putchar(c);
-    }
-}
-
 static void puthex(uintptr_t val, bool upper, int width, char pad_character) {
     const char* hex_digits = upper?
         "0123456789ABCDEF":"0123456789abcdef";
