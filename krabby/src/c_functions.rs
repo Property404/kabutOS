@@ -54,7 +54,7 @@ pub fn getchar() -> c_char {
 
 /// Check if a character is currently available to be read from serial
 #[no_mangle]
-pub fn char_available() -> bool {
+pub fn testchar() -> bool {
     if let Some(uart) = unsafe { &DRIVERS.uart } {
         return uart.byte_available();
     }

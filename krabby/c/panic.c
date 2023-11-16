@@ -1,6 +1,5 @@
 #include "panic.h"
 #include "stdio.h"
-#include "uart.h"
 #include <stddef.h>
 
 void halt() {

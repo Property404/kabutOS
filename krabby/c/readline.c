@@ -1,14 +1,13 @@
 #include <stdint.h>
 #include "panic.h"
 #include "console.h"
-#include "uart.h"
 #include "functions.h"
 #include "string.h"
 #include "stdio.h"
 #include <stdbool.h>
 
 static char nextchar() {
-    while (!char_available());
+    while (!testchar());
     return getchar();
 }
 

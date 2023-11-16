@@ -2,13 +2,9 @@
 #include <stdint.h>
 #include <stdarg.h>
 
-#include "uart.h"
 #include "panic.h"
+#include "stdio.h"
 #include "string.h"
-
-bool testchar(void) {
-    return char_available();
-}
 
 int puts(const char* buffer) {
     if (buffer == NULL) {
