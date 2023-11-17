@@ -11,8 +11,10 @@ pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str>
     let mut serial = Serial::new();
 
     // This points to the current *byte* in the array, which may or may be different from the
-    // current *character* since *characters* are variable length
+    // current *character* since UTF-8 *characters* are variable length
     let mut byte_ptr = 0;
+    // Current length in bytes
+    let mut byte_length = 0;
 
     write!(serial, "{prompt}")?;
     loop {
@@ -20,7 +22,7 @@ pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str>
             // <Enter> is pressed. Print a new line and return
             '\r' => {
                 writeln!(serial)?;
-                return Ok(core::str::from_utf8(&buffer[0..byte_ptr])?);
+                return Ok(core::str::from_utf8(&buffer[0..byte_length])?);
             }
 
             // <BackSpace> is pressed. Delete last character.
@@ -29,10 +31,12 @@ pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str>
                 while byte_ptr > 0 && ParsedByte::try_from(buffer[byte_ptr - 1])?.is_continuation()
                 {
                     byte_ptr -= 1;
+                    byte_length -= 1;
                 }
                 // Delete start byte
                 if byte_ptr > 0 {
                     byte_ptr -= 1;
+                    byte_length -= 1;
                 }
             }
 
@@ -45,13 +49,17 @@ pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str>
                 if byte_ptr + c.len_utf8() < buffer.len() {
                     c.encode_utf8(&mut buffer[byte_ptr..]);
                     byte_ptr += c.len_utf8();
+                    byte_length += c.len_utf8();
                 }
             }
         }
 
         write!(
             serial,
-            "{CLEAR_LINE}\r{prompt}{}",
+            "{CLEAR_LINE}\r{prompt}{}\r{prompt}{}",
+            // Write whole line
+            str::from_utf8(&buffer[0..byte_length])?,
+            // Then place cursor at `byte_ptr`
             str::from_utf8(&buffer[0..byte_ptr])?
         )?;
     }
