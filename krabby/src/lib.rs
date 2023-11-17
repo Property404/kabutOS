@@ -7,6 +7,7 @@
 // being aware of it. I'm told this will be a hard error in a future version of Rust
 #![deny(unsafe_op_in_unsafe_fn)]
 
+pub mod ansi_codes;
 pub mod c_functions;
 pub mod drivers;
 pub mod errors;

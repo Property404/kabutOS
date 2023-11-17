@@ -1,5 +1,6 @@
 //! Error and Result type for use in this crate
 use core::{fmt::Error as FmtError, result::Result, str::Utf8Error};
+use utf8_parser::Utf8ParserError;
 
 /// Error type for use in the Kernel
 #[derive(Debug)]
@@ -12,11 +13,19 @@ pub enum KernelError {
     FmtError(FmtError),
     /// Converted from [core::str::Utf8Error]
     Utf8Error(Utf8Error),
+    /// Converted from [utf8_parser::Utf8ParserError]
+    Utf8ParserError(Utf8ParserError),
 }
 
 impl From<Utf8Error> for KernelError {
     fn from(error: Utf8Error) -> Self {
         KernelError::Utf8Error(error)
+    }
+}
+
+impl From<Utf8ParserError> for KernelError {
+    fn from(error: Utf8ParserError) -> Self {
+        KernelError::Utf8ParserError(error)
     }
 }
 
