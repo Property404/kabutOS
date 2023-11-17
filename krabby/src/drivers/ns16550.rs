@@ -22,21 +22,21 @@ unsafe impl Sync for Ns16550Driver {}
 impl Ns16550Driver {
     /// Initialize the driver
     pub fn new(base_address: *mut u8) -> Self {
+        let driver = Self { base_address };
+
         unsafe {
-            write_unaligned_volatile_u8(
-                base_address.wrapping_add(RegisterOffsets::LineControlRegister as usize),
-                0x03,
-            );
-            write_unaligned_volatile_u8(
-                base_address.wrapping_add(RegisterOffsets::FifoControl as usize),
-                0x01,
-            );
-            write_unaligned_volatile_u8(
-                base_address.wrapping_add(RegisterOffsets::InterruptEnable as usize),
-                0x01,
-            );
+            driver.write(RegisterOffsets::LineControlRegister, 0x03);
+            driver.write(RegisterOffsets::FifoControl, 0x01);
+            driver.write(RegisterOffsets::InterruptEnable, 0x01);
         }
-        Self { base_address }
+
+        driver
+    }
+
+    unsafe fn write(&self, offset: RegisterOffsets, value: u8) {
+        unsafe {
+            write_unaligned_volatile_u8(self.base_address.wrapping_add(offset as usize), value)
+        }
     }
 
     unsafe fn read(&self, offset: RegisterOffsets) -> u8 {
@@ -56,11 +56,7 @@ impl UartDriver for Ns16550Driver {
 
     fn send_byte(&self, byte: u8) {
         unsafe {
-            write_unaligned_volatile_u8(
-                self.base_address
-                    .wrapping_add(RegisterOffsets::Data as usize),
-                byte,
-            );
+            self.write(RegisterOffsets::Data, byte);
         }
     }
 }
