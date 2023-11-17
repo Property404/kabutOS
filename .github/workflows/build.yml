@@ -30,3 +30,6 @@ jobs:
 
       - name: Lint
         run: cargo fmt --check
+
+      - name: Check docs
+        run: RUSTDOCFLAGS="-D warnings" cargo doc --no-deps
