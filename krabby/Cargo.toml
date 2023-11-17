@@ -8,6 +8,7 @@ rust-version = "1.74"
 
 [dependencies]
 owo-colors = "3.5.0"
+utf8-parser = { git = "https://github.com/Property404/utf8-parser", tag = "0.0.0" }
 
 [build-dependencies]
 cc = "1.0.84"

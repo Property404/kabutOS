@@ -1,6 +1,7 @@
 //! Drivers and driver accessories
 pub mod ns16550;
 use ns16550::Ns16550Driver;
+use utf8_parser::Utf8Parser;
 
 /// Collection of initialized drivers
 #[derive(Debug)]
@@ -25,9 +26,15 @@ pub trait UartDriver {
     fn byte_available(&self) -> bool;
 
     /// Read the next character from the UART
-    // Todo: Query next byte if incomplete UTF-8
     fn next_char(&self) -> char {
-        self.next_byte() as char
+        let mut parser = Utf8Parser::default();
+        loop {
+            // UTF-8 decoding errors are currently ignored here
+            // Maybe we want to return the error?
+            if let Ok(Some(c)) = parser.push(self.next_byte()) {
+                return c;
+            }
+        }
     }
 
     /// Send a string to the UART

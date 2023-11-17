@@ -17,6 +17,7 @@ version = "0.0.0"
 dependencies = [
  "cc",
  "owo-colors",
+ "utf8-parser",
 ]
 
 [[package]]
@@ -30,3 +31,8 @@ name = "owo-colors"
 version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
+
+[[package]]
+name = "utf8-parser"
+version = "0.0.0"
+source = "git+https://github.com/Property404/utf8-parser?tag=0.0.0#6021b2a4edac0a4386c0e956bbc338b585a1dbcc"
