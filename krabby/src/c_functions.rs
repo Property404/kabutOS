@@ -42,7 +42,7 @@ pub fn putchar(c: c_char) -> c_int {
 
 /// Kernel equivalent of `getchar`(3)
 /// Send a character to serial
-/// Please make sure a character is actually available by checking [char_available]
+/// Please make sure a character is actually available by checking [testchar]
 #[no_mangle]
 pub fn getchar() -> c_char {
     if let Some(uart) = unsafe { &DRIVERS.uart } {
