@@ -36,6 +36,9 @@ Help:
         packages+=" gdb-multiarch "
     fi
 
+    # shellcheck disable=SC2086
+    sudo apt install ${packages}
+
     # Install RustUp if needed
     if ! command -v rustup > /dev/null; then
         curl --proto '=https' --tlsv1.3 -sSf https://sh.rustup.rs | sh
@@ -44,9 +47,6 @@ Help:
     # Install Rust Targets
     rustup target add riscv{32,64}imac-unknown-none-elf
     rustup target add riscv64gc-unknown-none-elf
-
-    # shellcheck disable=SC2086
-    sudo apt install ${packages}
 }
 
 main "${@}"
