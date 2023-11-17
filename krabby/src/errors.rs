@@ -1,29 +1,28 @@
 //! Error and Result type for use in this crate
-use core::result::Result;
-use core::str::Utf8Error;
+use core::{fmt::Error as FmtError, result::Result, str::Utf8Error};
 
 /// Error type for use in the Kernel
 #[derive(Debug)]
 pub enum KernelError {
     /// Argument is invalid
-    InvalidArguments = 1,
+    InvalidArguments,
     /// Driver is uninitialized
     DriverUninitialized,
     /// Converted from [core::fmt::Error]
-    FmtError = 100,
+    FmtError(FmtError),
     /// Converted from [core::str::Utf8Error]
-    Utf8Error,
+    Utf8Error(Utf8Error),
 }
 
 impl From<Utf8Error> for KernelError {
-    fn from(_error: Utf8Error) -> Self {
-        KernelError::Utf8Error
+    fn from(error: Utf8Error) -> Self {
+        KernelError::Utf8Error(error)
     }
 }
 
-impl From<core::fmt::Error> for KernelError {
-    fn from(_error: core::fmt::Error) -> Self {
-        KernelError::FmtError
+impl From<FmtError> for KernelError {
+    fn from(error: FmtError) -> Self {
+        KernelError::FmtError(error)
     }
 }
 
