@@ -1,4 +1,5 @@
 //! Drivers and driver accessories
+use crate::errors::KernelResult;
 pub mod ns16550;
 use ns16550::Ns16550Driver;
 use utf8_parser::Utf8Parser;
@@ -14,8 +15,19 @@ pub struct Drivers {
 /// Global object that keeps track of initialized drivers
 pub static mut DRIVERS: Drivers = Drivers { uart: None };
 
+/// Generic driver supertrait
+pub trait Driver: Sized {}
+
+/// Driver for a "disk.' This can be NOR flash, an SSD, a hard drive, or just RAM.
+pub trait DiskDriver: Driver {
+    /// Read one byte from `address`
+    fn read8(&self, address: usize) -> KernelResult<u8>;
+    /// Write one byte to `address`
+    fn write8(&self, address: usize, value: u8) -> KernelResult<()>;
+}
+
 /// A UART/serial driver
-pub trait UartDriver {
+pub trait UartDriver: Driver {
     /// Read the next byte out of the UART
     fn next_byte(&self) -> u8;
 

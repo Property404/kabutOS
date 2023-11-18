@@ -1,6 +1,6 @@
 //! Ns16550 Driver
 use crate::c_functions::{read_unaligned_volatile_u8, write_unaligned_volatile_u8};
-use crate::drivers::UartDriver;
+use crate::drivers::{Driver, UartDriver};
 
 enum RegisterOffsets {
     Data = 0x00,
@@ -43,6 +43,8 @@ impl Ns16550Driver {
         unsafe { read_unaligned_volatile_u8(self.base_address.wrapping_add(offset as usize)) }
     }
 }
+
+impl Driver for Ns16550Driver {}
 
 impl UartDriver for Ns16550Driver {
     fn next_byte(&self) -> u8 {
