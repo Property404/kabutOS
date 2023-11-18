@@ -252,20 +252,12 @@ impl<'a> LineEditState<'a> {
     /// Returns `Ok(true)` if a character was deleted
     /// Returns `Ok(false)` if there was nothing to delete
     pub fn delete_current(&mut self) -> Result<bool, LineEditError> {
-        if self.byte_ptr >= self.byte_length {
-            return Ok(false);
-        }
-
         // Determine current character length
-        let mut parser = Utf8Parser::default();
-        let mut charlen = 0;
-        while parser.push(self.buffer[self.byte_ptr + charlen])?.is_none() {
-            charlen += 1;
-            if self.byte_ptr + charlen > self.byte_length {
-                Err(LineEditError::Generic("UTF-8 character overrun"))?;
-            }
-        }
-        charlen += 1;
+        let charlen = match self.current_char()? {
+            Some(c) => c.len_utf8(),
+            None => return Ok(false),
+        };
+        debug_assert!(self.byte_ptr < self.byte_length);
 
         // Shift everything left
         for i in self.byte_ptr..self.byte_length - charlen {
@@ -292,23 +284,6 @@ impl<'a> LineEditState<'a> {
         }
 
         Ok(true)
-
-        /*
-        // Rewind to UTF-8 start byte
-        while self.byte_ptr > 0
-            && ParsedByte::try_from(self.buffer[self.byte_ptr - 1])?.is_continuation()
-        {
-            self.byte_ptr -= 1;
-            self.byte_length -= 1;
-        }
-        // Delete start byte
-        if self.byte_ptr > 0 {
-            self.byte_ptr -= 1;
-            self.byte_length -= 1;
-            return Ok(true);
-        }
-        Ok(false)
-        */
     }
 }
 
