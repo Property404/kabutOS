@@ -1,5 +1,6 @@
 //! Error and Result type for use in this crate
 use core::{fmt::Error as FmtError, result::Result, str::Utf8Error};
+use embedded_line_edit::LineEditError;
 use utf8_parser::Utf8ParserError;
 
 /// Error type for use in the Kernel
@@ -15,6 +16,15 @@ pub enum KernelError {
     Utf8Error(Utf8Error),
     /// Converted from [utf8_parser::Utf8ParserError]
     Utf8ParserError(Utf8ParserError),
+
+    /// Converted from [embedded_line_edit::LineEditError]
+    LineEditError(LineEditError),
+}
+
+impl From<LineEditError> for KernelError {
+    fn from(error: LineEditError) -> Self {
+        KernelError::LineEditError(error)
+    }
 }
 
 impl From<Utf8Error> for KernelError {

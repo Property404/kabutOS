@@ -1,0 +1,11 @@
+[package]
+name = "embedded-line-edit"
+version = "0.1.0"
+edition = "2021"
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
+
+[dependencies]
+utf8-parser = { git = "https://github.com/Property404/utf8-parser", tag = "0.0.0", version = "0.0.0" }

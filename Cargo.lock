@@ -12,10 +12,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "embedded-line-edit"
+version = "0.1.0"
+dependencies = [
+ "utf8-parser",
+]
+
+[[package]]
 name = "krabby"
 version = "0.0.0"
 dependencies = [
  "cc",
+ "embedded-line-edit",
  "owo-colors",
  "utf8-parser",
 ]
