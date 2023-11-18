@@ -70,7 +70,7 @@ pub fn testchar() -> bool {
 #[no_mangle]
 pub unsafe fn readline(array: *mut u8, max_size: usize) -> usize {
     let bytes: &mut [u8] = unsafe { core::slice::from_raw_parts_mut(array, max_size) };
-    let val = crate::readline::get_line("\x1b[35m>>>\x1b[0m ", bytes).unwrap();
+    let val = crate::readline::get_line("➔  ", bytes).unwrap();
     let size = val.len();
     bytes[size] = 0;
     size

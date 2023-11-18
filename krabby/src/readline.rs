@@ -2,6 +2,7 @@
 use crate::{ansi_codes::CLEAR_LINE, errors::KernelResult, serial::Serial};
 use core::{fmt::Write, str};
 use embedded_line_edit::LineEditState;
+use owo_colors::OwoColorize;
 
 const DELETE: char = '\x7F';
 const BACKSPACE: char = '\x08';
@@ -15,9 +16,9 @@ const CONTROL_F: char = '\x06';
 /// Read line of user input
 pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str> {
     let mut serial = Serial::new();
-
     let mut buffer = LineEditState::from_buffer(buffer);
 
+    let prompt = prompt.purple();
     write!(serial, "{prompt}")?;
     loop {
         match serial.next_char()? {
