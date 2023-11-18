@@ -7,7 +7,7 @@ rust-version = "1.74"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-embedded-line-edit = { version = "0.1.0", path = "../embedded-line-edit" }
+embedded-line-edit = { version = "0.0.0", path = "../embedded-line-edit" }
 owo-colors = "3.5.0"
 utf8-parser = { git = "https://github.com/Property404/utf8-parser", tag = "0.0.0" }
 
