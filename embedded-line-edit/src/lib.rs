@@ -108,6 +108,55 @@ impl<'a> LineEditState<'a> {
         self.byte_ptr = self.byte_length;
     }
 
+    fn current_char(&self) -> Result<Option<char>, LineEditError> {
+        let mut parser = Utf8Parser::default();
+        let mut charlen = 0;
+        debug_assert!(self.byte_ptr <= self.byte_length);
+        if self.byte_ptr == self.byte_length {
+            return Ok(None);
+        }
+
+        loop {
+            if let Some(c) = parser.push(self.buffer[self.byte_ptr + charlen])? {
+                return Ok(Some(c));
+            }
+
+            charlen += 1;
+            if self.byte_ptr + charlen > self.byte_length {
+                Err(LineEditError::Generic("UTF-8 character overrun"))?;
+            }
+        }
+    }
+
+    /// Set insertion point past the end of the current word
+    /// (or next word if not on a word)
+    /// This should be equivalent to alt+f in GNU Readline
+    pub fn move_past_end_of_word(&mut self) -> Result<(), LineEditError> {
+        // Move to start of next word
+        loop {
+            match self.current_char()? {
+                Some(c) if c.is_whitespace() => {
+                    self.shift_right(1)?;
+                }
+                Some(_) => {
+                    break;
+                }
+                None => return Ok(()),
+            }
+        }
+
+        // Move to end of current word
+        loop {
+            match self.current_char()? {
+                Some(c) if c.is_whitespace() => return Ok(()),
+                Some(_) => {
+                    self.shift_right(1)?;
+                }
+                None => return Ok(()),
+            }
+        }
+    }
+
     /// Shift insertion point left by `n` characters
     /// This is an O(n) operation
     ///
@@ -322,6 +371,28 @@ mod tests {
         assert!(state.insert('4'));
         assert!(!state.insert('5'));
         assert_eq!(state.as_str()?, "1234");
+        Ok(())
+    }
+
+    #[test]
+    fn move_past_next_word() -> Result<(), LineEditError> {
+        let mut buffer = [0u8; 256];
+        let mut state = LineEditState::from_buffer(&mut buffer);
+        state.insert_many("The quick    brown\tfax    ".chars());
+        state.move_to_start();
+        assert_eq!(state.as_partial_str()?, "");
+        state.move_past_end_of_word()?;
+        assert_eq!(state.as_partial_str()?, "The");
+        state.move_past_end_of_word()?;
+        assert_eq!(state.as_partial_str()?, "The quick");
+        state.move_past_end_of_word()?;
+        assert_eq!(state.as_partial_str()?, "The quick    brown");
+        state.move_past_end_of_word()?;
+        assert_eq!(state.as_partial_str()?, "The quick    brown\tfax");
+        state.move_past_end_of_word()?;
+        assert_eq!(state.as_partial_str()?, "The quick    brown\tfax    ");
+        state.move_past_end_of_word()?;
+        assert_eq!(state.as_partial_str()?, "The quick    brown\tfax    ");
         Ok(())
     }
 }
