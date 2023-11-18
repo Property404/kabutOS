@@ -1,5 +1,9 @@
 //! GNU Readline-like functionality
-use crate::{ansi_codes::CLEAR_LINE, errors::KernelResult, serial::Serial};
+use crate::{
+    ansi_codes::{CLEAR_LINE, CLEAR_SCREEN},
+    errors::KernelResult,
+    serial::Serial,
+};
 use core::{fmt::Write, str};
 use embedded_line_edit::LineEditState;
 use owo_colors::OwoColorize;
@@ -12,6 +16,7 @@ const CONTROL_B: char = '\x02';
 const CONTROL_D: char = '\x04';
 const CONTROL_E: char = '\x05';
 const CONTROL_F: char = '\x06';
+const CONTROL_L: char = '\x0c';
 
 /// Read line of user input
 pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str> {
@@ -51,6 +56,10 @@ pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str>
 
             CONTROL_F => {
                 buffer.shift_right(1)?;
+            }
+
+            CONTROL_L => {
+                write!(serial, "{CLEAR_SCREEN}")?;
             }
 
             // Arrow keys
