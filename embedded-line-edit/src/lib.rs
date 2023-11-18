@@ -128,6 +128,45 @@ impl<'a> LineEditState<'a> {
         }
     }
 
+    /// Set insertion point to the last start-of-word
+    /// This should be equivalent to alt+b in GNU Readline
+    pub fn move_to_prev_start_of_word(&mut self) -> Result<(), LineEditError> {
+        // We may be already at a start-of-word, so move back
+        self.shift_left(1)?;
+
+        // Cycle through whitespace
+        loop {
+            match self.current_char()? {
+                Some(c) if c.is_whitespace() => {
+                    self.shift_left(1)?;
+                }
+                Some(_) => {
+                    break;
+                }
+                None => return Ok(()),
+            }
+        }
+
+        // Cycle through non-whitespace
+        while self.byte_ptr > 0 {
+            match self.current_char()? {
+                Some(c) if !c.is_whitespace() => {
+                    self.shift_left(1)?;
+                }
+                Some(_) => {
+                    // We moved past the start-of-word, move back and return
+                    self.shift_right(1)?;
+                    return Ok(());
+                }
+                // This should be unreachable
+                None => return Ok(()),
+            }
+        }
+
+        // First character
+        Ok(())
+    }
+
     /// Set insertion point past the end of the current word
     /// (or next word if not on a word)
     /// This should be equivalent to alt+f in GNU Readline
@@ -368,6 +407,16 @@ mod tests {
         assert_eq!(state.as_partial_str()?, "The quick    brown\tfax    ");
         state.move_past_end_of_word()?;
         assert_eq!(state.as_partial_str()?, "The quick    brown\tfax    ");
+        state.move_to_prev_start_of_word()?;
+        assert_eq!(state.as_partial_str()?, "The quick    brown\t");
+        state.move_to_prev_start_of_word()?;
+        assert_eq!(state.as_partial_str()?, "The quick    ");
+        state.move_to_prev_start_of_word()?;
+        assert_eq!(state.as_partial_str()?, "The ");
+        state.move_to_prev_start_of_word()?;
+        assert_eq!(state.as_partial_str()?, "");
+        state.move_to_prev_start_of_word()?;
+        assert_eq!(state.as_partial_str()?, "");
         Ok(())
     }
 }

@@ -78,10 +78,13 @@ pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str>
                             _ => {}
                         };
                     }
+                    // Alt-b: <ESC>b
+                    'b' => {
+                        buffer.move_to_prev_start_of_word()?;
+                    }
                     // Alt-f: <ESC>f
                     'f' => {
-                        // TODO: Make this go to next word
-                        buffer.shift_right(1)?;
+                        buffer.move_past_end_of_word()?;
                     }
                     _ => {}
                 }
