@@ -60,3 +60,18 @@ pub fn testchar() -> bool {
     }
     false
 }
+
+/// C wrapper of readline functionality
+/// Note that C will not handle unicode characters correctly, so this is quite unsafe
+///
+/// # Safety
+/// `array` must be mutable memory, and `max_size` must be accurate
+/// The caller must handle unicode correctly (which it won't, lol)
+#[no_mangle]
+pub unsafe fn readline(array: *mut u8, max_size: usize) -> usize {
+    let bytes: &mut [u8] = unsafe { core::slice::from_raw_parts_mut(array, max_size) };
+    let val = crate::readline::get_line("\x1b[35m>>>\x1b[0m ", bytes).unwrap();
+    let size = val.len();
+    bytes[size] = 0;
+    size
+}

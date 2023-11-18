@@ -27,7 +27,6 @@ fn main() {
         .file("c/entry.S")
         .file("c/functions.c")
         .file("c/panic.c")
-        .file("c/readline.c")
         .file("c/rust_helpers.c")
         .file("c/stdio.c")
         .file("c/string.c")

@@ -8,7 +8,7 @@ const BACKSPACE: char = '\x08';
 const ESCAPE: char = '\x1b';
 const CONTROL_A: char = '\x01';
 const CONTROL_B: char = '\x02';
-const CONTROL_D: char = '\x03';
+const CONTROL_D: char = '\x04';
 const CONTROL_E: char = '\x05';
 const CONTROL_F: char = '\x06';
 
