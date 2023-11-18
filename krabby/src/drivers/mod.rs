@@ -29,9 +29,10 @@ pub trait UartDriver {
     fn next_char(&self) -> char {
         let mut parser = Utf8Parser::default();
         loop {
-            // UTF-8 decoding errors are currently ignored here
-            // Maybe we want to return the error?
-            if let Ok(Some(c)) = parser.push(self.next_byte()) {
+            if let Some(c) = parser
+                .push(self.next_byte())
+                .unwrap_or(Some(char::REPLACEMENT_CHARACTER))
+            {
                 return c;
             }
         }
