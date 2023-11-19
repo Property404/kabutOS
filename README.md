@@ -31,7 +31,7 @@ To exit QEMU, type `Ctrl-A` then `X`
 cargo run -- -S -s
 
 # In another terminal
-gdb-multiarch kernel.elf
+gdb-multiarch target/riscv64imac-unknown-none-elf/debug/krabby
 > target remote localhost:1234
 
 # GDB commands
