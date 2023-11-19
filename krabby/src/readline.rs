@@ -1,8 +1,8 @@
 //! GNU Readline-like functionality
 use crate::{
     ansi_codes::{CLEAR_LINE, CLEAR_SCREEN},
-    errors::KernelResult,
     serial::Serial,
+    KernelResult,
 };
 use core::{fmt::Write, str};
 use embedded_line_edit::LineEditState;

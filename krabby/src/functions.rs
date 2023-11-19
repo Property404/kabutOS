@@ -1,5 +1,5 @@
 //! Functions meant to be called from `console()`
-use crate::{errors::KernelResult, serial::Serial};
+use crate::{serial::Serial, KernelResult};
 use core::fmt::Write;
 use owo_colors::{OwoColorize, Style};
 

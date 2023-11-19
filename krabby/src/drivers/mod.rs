@@ -1,5 +1,5 @@
 //! Drivers and driver accessories
-use crate::errors::KernelResult;
+use crate::KernelResult;
 pub mod ns16550;
 use ns16550::Ns16550Driver;
 use utf8_parser::Utf8Parser;
