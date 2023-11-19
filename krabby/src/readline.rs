@@ -13,6 +13,7 @@ const BACKSPACE: char = '\x08';
 const ESCAPE: char = '\x1b';
 const CONTROL_A: char = '\x01';
 const CONTROL_B: char = '\x02';
+const CONTROL_C: char = '\x03';
 const CONTROL_D: char = '\x04';
 const CONTROL_E: char = '\x05';
 const CONTROL_F: char = '\x06';
@@ -52,6 +53,12 @@ pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str>
             CONTROL_B => {
                 buffer.shift_left(1)?;
                 shift_only = true;
+            }
+
+            // Cancel
+            CONTROL_C => {
+                writeln!(serial)?;
+                return Ok("");
             }
 
             CONTROL_D => {
