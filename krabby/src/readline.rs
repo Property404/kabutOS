@@ -98,7 +98,15 @@ pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str>
 
             // Character is entered - Echo and place on buffer
             c => {
-                buffer.insert(c);
+                if buffer.insert(c) {
+                    // This should be a bit more efficient than a complete redraw
+                    let tail = buffer.tail()?;
+                    write!(serial, "{c}{tail}")?;
+                    for _ in 0..tail.len() {
+                        write!(serial, "\x08")?;
+                    }
+                }
+                continue;
             }
         }
 
@@ -108,7 +116,7 @@ pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str>
             // Write whole line
             buffer.as_str()?,
             // Then place cursor at `byte_ptr`
-            buffer.as_partial_str()?
+            buffer.head()?
         )?;
     }
 }
