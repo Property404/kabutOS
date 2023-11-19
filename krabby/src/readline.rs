@@ -26,6 +26,10 @@ pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str>
     let prompt = prompt.purple();
     write!(serial, "{prompt}")?;
     loop {
+        // For optimization purposes
+        // Set to true if we're only moving the cursor
+        let mut shift_only = false;
+
         match serial.next_char()? {
             // <Enter> is pressed. Print a new line and return
             '\r' => {
@@ -40,10 +44,12 @@ pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str>
 
             CONTROL_A => {
                 buffer.move_to_start();
+                shift_only = true;
             }
 
             CONTROL_B => {
                 buffer.shift_left(1)?;
+                shift_only = true;
             }
 
             CONTROL_D => {
@@ -52,10 +58,12 @@ pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str>
 
             CONTROL_E => {
                 buffer.move_to_end();
+                shift_only = true;
             }
 
             CONTROL_F => {
                 buffer.shift_right(1)?;
+                shift_only = true;
             }
 
             CONTROL_L => {
@@ -70,23 +78,29 @@ pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str>
                             // Left arrow key: <ESC>[D
                             'D' => {
                                 buffer.shift_left(1)?;
+                                shift_only = true;
                             }
                             // Right arrow key: <ESC>[C
                             'C' => {
                                 buffer.shift_right(1)?;
+                                shift_only = true;
                             }
-                            _ => {}
+                            _ => continue,
                         };
                     }
                     // Alt-b: <ESC>b
                     'b' => {
                         buffer.move_to_prev_start_of_word()?;
+                        shift_only = true;
                     }
                     // Alt-f: <ESC>f
                     'f' => {
                         buffer.move_past_end_of_word()?;
+                        shift_only = true;
                     }
-                    _ => {}
+                    _ => {
+                        continue;
+                    }
                 }
             }
 
@@ -110,13 +124,18 @@ pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str>
             }
         }
 
-        write!(
-            serial,
-            "{CLEAR_LINE}\r{prompt}{}\r{prompt}{}",
-            // Write whole line
-            buffer.as_str()?,
-            // Then place cursor at `byte_ptr`
-            buffer.head()?
-        )?;
+        if shift_only {
+            // Just place the cursor correctly
+            write!(serial, "\r{prompt}{}", buffer.head()?)?;
+        } else {
+            write!(
+                serial,
+                "{CLEAR_LINE}\r{prompt}{}\r{prompt}{}",
+                // Write whole line
+                buffer.as_str()?,
+                // Then place cursor at `byte_ptr`
+                buffer.head()?
+            )?;
+        }
     }
 }
