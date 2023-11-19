@@ -401,29 +401,29 @@ mod tests {
         let mut state = LineEditState::from_buffer(&mut buffer);
         state.insert_many("The quick    brown\tfax    ".chars());
         state.move_to_start();
-        assert_eq!(state.as_partial_str()?, "");
+        assert_eq!(state.head()?, "");
         state.move_past_end_of_word()?;
-        assert_eq!(state.as_partial_str()?, "The");
+        assert_eq!(state.head()?, "The");
         state.move_past_end_of_word()?;
-        assert_eq!(state.as_partial_str()?, "The quick");
+        assert_eq!(state.head()?, "The quick");
         state.move_past_end_of_word()?;
-        assert_eq!(state.as_partial_str()?, "The quick    brown");
+        assert_eq!(state.head()?, "The quick    brown");
         state.move_past_end_of_word()?;
-        assert_eq!(state.as_partial_str()?, "The quick    brown\tfax");
+        assert_eq!(state.head()?, "The quick    brown\tfax");
         state.move_past_end_of_word()?;
-        assert_eq!(state.as_partial_str()?, "The quick    brown\tfax    ");
+        assert_eq!(state.head()?, "The quick    brown\tfax    ");
         state.move_past_end_of_word()?;
-        assert_eq!(state.as_partial_str()?, "The quick    brown\tfax    ");
+        assert_eq!(state.head()?, "The quick    brown\tfax    ");
         state.move_to_prev_start_of_word()?;
-        assert_eq!(state.as_partial_str()?, "The quick    brown\t");
+        assert_eq!(state.head()?, "The quick    brown\t");
         state.move_to_prev_start_of_word()?;
-        assert_eq!(state.as_partial_str()?, "The quick    ");
+        assert_eq!(state.head()?, "The quick    ");
         state.move_to_prev_start_of_word()?;
-        assert_eq!(state.as_partial_str()?, "The ");
+        assert_eq!(state.head()?, "The ");
         state.move_to_prev_start_of_word()?;
-        assert_eq!(state.as_partial_str()?, "");
+        assert_eq!(state.head()?, "");
         state.move_to_prev_start_of_word()?;
-        assert_eq!(state.as_partial_str()?, "");
+        assert_eq!(state.head()?, "");
         Ok(())
     }
 }
