@@ -67,8 +67,15 @@ impl<'a> LineEditState<'a> {
     }
 
     /// Get inner buffer up to insertion point as `&str`
-    pub fn as_partial_str(&self) -> Result<&str, LineEditError> {
+    pub fn head(&self) -> Result<&str, LineEditError> {
         Ok(str::from_utf8(&self.buffer[0..self.byte_ptr])?)
+    }
+
+    /// Get inner buffer from insertion point to end as `&str`
+    pub fn tail(&self) -> Result<&str, LineEditError> {
+        Ok(str::from_utf8(
+            &self.buffer[self.byte_ptr..self.byte_length],
+        )?)
     }
 
     /// Get inner buffer as `&str`
