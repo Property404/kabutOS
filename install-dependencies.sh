@@ -42,6 +42,8 @@ Help:
     # Install RustUp if needed
     if ! command -v rustup > /dev/null; then
         curl --proto '=https' --tlsv1.3 -sSf https://sh.rustup.rs | sh
+        export PATH="${PATH}:${HOME}/.cargo/bin"
+        rustup default beta
     fi
 
     # Install Rust Targets
