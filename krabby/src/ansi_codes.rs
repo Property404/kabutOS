@@ -14,10 +14,14 @@ pub mod colors {
     pub const RESET: &str = "\x1b[0m";
     /// Red
     pub const RED: &str = "\x1b[31m";
-    /// Blue
-    pub const BLUE: &str = "\x1b[32m";
     /// Green
-    pub const GREEN: &str = "\x1b[33m";
+    pub const GREEN: &str = "\x1b[32m";
+    /// Yellow
+    pub const YELLOW: &str = "\x1b[33m";
+    /// Blue
+    pub const BLUE: &str = "\x1b[34m";
     /// Purple
     pub const PURPLE: &str = "\x1b[35m";
+    /// Cyan
+    pub const CYAN: &str = "\x1b[36m";
 }
