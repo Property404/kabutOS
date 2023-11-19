@@ -23,7 +23,8 @@ pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str>
     let mut serial = Serial::new();
     let mut buffer = LineEditState::from_buffer(buffer);
 
-    let prompt = prompt.purple();
+    let prompt = prompt.cyan();
+    let prompt = prompt.bold();
     write!(serial, "{prompt}")?;
     loop {
         // For optimization purposes
