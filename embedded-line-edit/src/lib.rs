@@ -53,7 +53,11 @@ pub struct LineEditState<'a> {
 
 impl<'a> LineEditState<'a> {
     /// Construct a new [LineEditState]
+    ///
+    /// # Panics
+    /// Panics if buffer is zero sized
     pub fn from_buffer(buffer: &'a mut [u8]) -> Self {
+        assert!(!buffer.is_empty());
         Self {
             buffer,
             byte_ptr: 0,
@@ -135,6 +139,15 @@ impl<'a> LineEditState<'a> {
         }
     }
 
+    fn prev_char(&mut self) -> Result<Option<char>, LineEditError> {
+        if self.shift_left(1)? == 0 {
+            return Ok(None);
+        }
+        let c = self.current_char()?;
+        self.shift_right(1)?;
+        Ok(c)
+    }
+
     /// Set insertion point to the last start-of-word
     /// This should be equivalent to alt+b in GNU Readline
     pub fn move_to_prev_start_of_word(&mut self) -> Result<(), LineEditError> {
@@ -172,6 +185,45 @@ impl<'a> LineEditState<'a> {
 
         // First character
         Ok(())
+    }
+
+    /// Kill the previous word and return a reference to it
+    /// This should be equivalent to ctrl+w in GNU Readline
+    pub fn kill_prev_word(&mut self) -> Result<&str, LineEditError> {
+        let mut bytes_deleted = 0;
+
+        let mut deleted_whitespace = false;
+        loop {
+            let Some(c) = self.prev_char()? else {
+                break;
+            };
+
+            if c.is_whitespace() {
+                if deleted_whitespace {
+                    break;
+                }
+            } else {
+                deleted_whitespace = true;
+            }
+
+            // Delete it
+            assert_eq!(
+                self.delete_prev()?
+                    .expect("BUG: Found char but could not delete"),
+                c
+            );
+
+            // Place at end of buffer so we can return it
+            let clen = c.len_utf8();
+            debug_assert!(clen > 0);
+            let index = self.buffer.len() - bytes_deleted - clen;
+            c.encode_utf8(&mut self.buffer[index..]);
+            bytes_deleted += clen;
+        }
+
+        Ok(str::from_utf8(
+            &self.buffer[self.buffer.len() - bytes_deleted..],
+        )?)
     }
 
     /// Set insertion point past the end of the current word
@@ -295,14 +347,15 @@ impl<'a> LineEditState<'a> {
 
     /// Delete character at insertion point
     ///
-    /// Returns `Ok(true)` if a character was deleted
-    /// Returns `Ok(false)` if there was nothing to delete
-    pub fn delete_current(&mut self) -> Result<bool, LineEditError> {
+    /// Returns the character if it was deleted
+    /// Returns `Ok(None)` if there was nothing to delete
+    pub fn delete_current(&mut self) -> Result<Option<char>, LineEditError> {
         // Determine current character length
-        let charlen = match self.current_char()? {
-            Some(c) => c.len_utf8(),
-            None => return Ok(false),
+        let c = match self.current_char()? {
+            Some(c) => c,
+            None => return Ok(None),
         };
+        let charlen = c.len_utf8();
         debug_assert!(self.byte_ptr < self.byte_length);
 
         // Shift everything left
@@ -311,25 +364,19 @@ impl<'a> LineEditState<'a> {
         }
         self.byte_length -= charlen;
 
-        Ok(true)
+        Ok(Some(c))
     }
 
     /// Delete character before insertion point
     ///
-    /// Returns `Ok(true)` if a character was deleted
-    /// Returns `Ok(false)` if there was nothing to delete
-    pub fn delete_prev(&mut self) -> Result<bool, LineEditError> {
+    /// Returns the character if it was deleted
+    /// Returns `Ok(None)` if there was nothing to delete
+    pub fn delete_prev(&mut self) -> Result<Option<char>, LineEditError> {
         if self.shift_left(1)? == 0 {
-            return Ok(false);
+            return Ok(None);
         }
 
-        if !self.delete_current()? {
-            return Err(LineEditError::Generic(
-                "Bug: Could shift left but could not delete",
-            ));
-        }
-
-        Ok(true)
+        self.delete_current()
     }
 }
 
@@ -357,10 +404,10 @@ mod tests {
         state.insert_many(" there".chars());
         assert_eq!(state.as_str()?, "Hi there!");
         assert_eq!(state.shift_right(1)?, 1);
-        assert_eq!(state.delete_prev()?, true);
+        assert_eq!(state.delete_prev()?.unwrap(), '!');
         assert_eq!(state.as_str()?, "Hi there");
         assert_eq!(state.shift_left(1)?, 1);
-        assert_eq!(state.delete_prev()?, true);
+        assert_eq!(state.delete_prev()?.unwrap(), 'r');
         assert_eq!(state.as_str()?, "Hi thee");
         Ok(())
     }
@@ -371,12 +418,12 @@ mod tests {
         let mut state = LineEditState::from_buffer(&mut buffer);
         state.insert_many("Hi".chars());
         assert_eq!(state.as_str()?, "Hi");
-        assert!(state.delete_prev()?);
+        assert_eq!(state.delete_prev()?.unwrap(), 'i');
         assert_eq!(state.as_str()?, "H");
-        assert!(state.delete_prev()?);
+        assert_eq!(state.delete_prev()?.unwrap(), 'H');
         assert_eq!(state.as_str()?, "");
         // Now deletion should fail
-        assert!(!state.delete_prev()?);
+        assert!(state.delete_prev()?.is_none());
         Ok(())
     }
 
@@ -424,6 +471,19 @@ mod tests {
         assert_eq!(state.head()?, "");
         state.move_to_prev_start_of_word()?;
         assert_eq!(state.head()?, "");
+        Ok(())
+    }
+
+    #[test]
+    fn basic_killing() -> Result<(), LineEditError> {
+        let mut buffer = [0u8; 256];
+        let mut state = LineEditState::from_buffer(&mut buffer);
+        state.insert_many("The quick 🦊 jamped ".chars());
+        assert_eq!(state.kill_prev_word()?, "jamped ");
+        assert_eq!(state.kill_prev_word()?, "🦊 ");
+        assert_eq!(state.kill_prev_word()?, "quick ");
+        assert_eq!(state.kill_prev_word()?, "The ");
+        assert_eq!(state.kill_prev_word()?, "");
         Ok(())
     }
 }

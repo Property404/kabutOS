@@ -17,6 +17,7 @@ const CONTROL_D: char = '\x04';
 const CONTROL_E: char = '\x05';
 const CONTROL_F: char = '\x06';
 const CONTROL_L: char = '\x0c';
+const CONTROL_W: char = '\x17';
 
 /// Read line of user input
 pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str> {
@@ -69,6 +70,10 @@ pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str>
 
             CONTROL_L => {
                 write!(serial, "{CLEAR_SCREEN}")?;
+            }
+
+            CONTROL_W => {
+                buffer.kill_prev_word()?;
             }
 
             // Arrow keys
