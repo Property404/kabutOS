@@ -48,12 +48,10 @@ impl Driver for Ns16550Driver {}
 
 impl UartDriver for Ns16550Driver {
     fn next_byte(&self) -> u8 {
-        while !self.byte_available() {}
+        // Wait until byte is available
+        while unsafe { self.read(RegisterOffsets::LineStatusRegister) & 0x01 == 0 } {}
+        // Then read the byte
         unsafe { self.read(RegisterOffsets::Data) }
-    }
-
-    fn byte_available(&self) -> bool {
-        unsafe { self.read(RegisterOffsets::LineStatusRegister) & 0x01 != 0 }
     }
 
     fn send_byte(&self, byte: u8) {

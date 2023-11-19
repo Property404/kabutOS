@@ -40,27 +40,6 @@ pub fn putchar(c: c_char) -> c_int {
     0
 }
 
-/// Kernel equivalent of `getchar`(3)
-/// Send a character to serial
-/// Please make sure a character is actually available by checking [testchar]
-#[no_mangle]
-pub fn getchar() -> c_char {
-    if let Some(uart) = unsafe { &DRIVERS.uart } {
-        return uart.next_byte() as c_char;
-    }
-    // Send a question mark - what else would we do if the uart is not initialized?
-    '?' as c_char
-}
-
-/// Check if a character is currently available to be read from serial
-#[no_mangle]
-pub fn testchar() -> bool {
-    if let Some(uart) = unsafe { &DRIVERS.uart } {
-        return uart.byte_available();
-    }
-    false
-}
-
 /// C wrapper of readline functionality
 /// Note that C will not handle unicode characters correctly, so this is quite unsafe
 ///

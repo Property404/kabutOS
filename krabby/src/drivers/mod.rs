@@ -34,9 +34,6 @@ pub trait UartDriver: Driver {
     /// Write a byte to the UART
     fn send_byte(&self, byte: u8);
 
-    /// Check if a byte is available to be read
-    fn byte_available(&self) -> bool;
-
     /// Read the next character from the UART
     fn next_char(&self) -> char {
         let mut parser = Utf8Parser::default();
