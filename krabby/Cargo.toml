@@ -6,6 +6,12 @@ rust-version = "1.74"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lints.rust]
+# Don't allow implicit unsafe operations in `unsafe fn`, so we don't do
+# something unsafe without being aware of it. I'm told this will be a hard
+# error in a future version of Rust
+unsafe_op_in_unsafe_fn = "deny"
+
 [dependencies]
 embedded-line-edit = { version = "0.0.0", path = "../embedded-line-edit" }
 owo-colors = "3.5.0"

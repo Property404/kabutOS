@@ -3,9 +3,6 @@
 #![no_std]
 // Make sure everything's documented by warning when docs are missing
 #![warn(missing_docs)]
-// Don't allow implicit unsafe operations in `unsafe fn`, so we don't do something unsafe without
-// being aware of it. I'm told this will be a hard error in a future version of Rust
-#![deny(unsafe_op_in_unsafe_fn)]
 
 mod errors;
 mod panic;
