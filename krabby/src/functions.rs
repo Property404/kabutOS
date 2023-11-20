@@ -6,7 +6,7 @@ use owo_colors::{OwoColorize, Style};
 fn color_byte(byte: u8) -> Style {
     let style = Style::new();
     match byte {
-        0 => style.red(),
+        0 => style.purple(),
         0x20..=0x7e => style.green(),
         0xff => style.blue(),
         _ => style,
