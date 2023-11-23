@@ -293,7 +293,9 @@ impl<'a> LineEditState<'a> {
         for _ in 0..n {
             if self.byte_ptr < self.byte_length {
                 self.byte_ptr += 1;
-            }
+            } else {
+                break;
+            };
             // Forward to next UTF-8 start byte
             while self.byte_ptr < self.byte_length
                 && ParsedByte::try_from(self.buffer[self.byte_ptr])?.is_continuation()
@@ -383,6 +385,7 @@ impl<'a> LineEditState<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand::Rng;
 
     #[test]
     fn basic_insert() -> Result<(), LineEditError> {
@@ -484,6 +487,40 @@ mod tests {
         assert_eq!(state.kill_prev_word()?, "quick ");
         assert_eq!(state.kill_prev_word()?, "The ");
         assert_eq!(state.kill_prev_word()?, "");
+        Ok(())
+    }
+
+    #[test]
+    fn fuzz() -> Result<(), LineEditError> {
+        let mut rng = rand::thread_rng();
+        let mut buffer: Vec<u8> = vec![0; rng.gen::<usize>() % 256 + 1];
+
+        let mut state = LineEditState::from_buffer(&mut buffer);
+
+        for _ in 0..10000 {
+            if rng.gen::<bool>() {
+                let _ = state.insert(rng.gen());
+            }
+            if rng.gen::<bool>() {
+                let _ = state.shift_left(rng.gen());
+            }
+            if rng.gen::<bool>() {
+                let gen = rng.gen();
+                let _ = state.shift_right(gen);
+            }
+            if rng.gen::<bool>() {
+                let _ = state.delete_prev();
+            }
+            if rng.gen::<bool>() {
+                let _ = state.delete_current();
+            }
+            if rng.gen::<bool>() {
+                // Should always be valid utf-8
+                state.as_str().unwrap();
+                state.tail().unwrap();
+                state.head().unwrap();
+            }
+        }
         Ok(())
     }
 }
