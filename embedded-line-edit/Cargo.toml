@@ -8,4 +8,4 @@ unsafe_code = "forbid"
 missing_docs = "warn"
 
 [dependencies]
-utf8-parser = { git = "https://github.com/Property404/utf8-parser", tag = "0.0.0", default-features = false }
+utf8-parser = { git = "https://github.com/Property404/utf8-parser", tag = "0.0.1", default-features = false }

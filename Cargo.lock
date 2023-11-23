@@ -42,5 +42,5 @@ checksum = "c1b04fb49957986fdce4d6ee7a65027d55d4b6d2265e5848bbb507b58ccfdb6f"
 
 [[package]]
 name = "utf8-parser"
-version = "0.0.0"
-source = "git+https://github.com/Property404/utf8-parser?tag=0.0.0#6021b2a4edac0a4386c0e956bbc338b585a1dbcc"
+version = "0.0.1"
+source = "git+https://github.com/Property404/utf8-parser?tag=0.0.1#7944ffa6be22a6f62ebab493347fa1d3e2ad1eed"
