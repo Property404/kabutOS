@@ -23,9 +23,8 @@ unsafe fn kmain(_hart_id: usize, fdt_ptr: *const u8) {
     .unwrap();
     writeln!(serial, "Device tree is @ {fdt_ptr:p}").unwrap();
 
+    let mut buffer = [0; 256];
     loop {
-        unsafe {
-            krabby::c_functions::run_console();
-        }
+        krabby::readline::get_line(">>>", &mut buffer).unwrap();
     }
 }
