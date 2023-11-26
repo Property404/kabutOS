@@ -34,6 +34,7 @@ Help:
         packages+=" binutils-riscv64-unknown-elf "
         packages+=" qemu-system-riscv64 "
         packages+=" gdb-multiarch "
+        packages+=" curl "
     fi
 
     # shellcheck disable=SC2086
