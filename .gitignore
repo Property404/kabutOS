@@ -11,6 +11,9 @@
 !*.sh
 !*.bash
 
+# Debugger
+!*.gdb
+
 # Make
 !Makefile
 
