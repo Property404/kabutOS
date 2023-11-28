@@ -96,8 +96,8 @@ dependencies = [
 
 [[package]]
 name = "utf8-parser"
-version = "0.0.1"
-source = "git+https://github.com/Property404/utf8-parser?tag=0.0.1#7944ffa6be22a6f62ebab493347fa1d3e2ad1eed"
+version = "0.0.2"
+source = "git+https://github.com/Property404/utf8-parser?tag=0.0.2#4d870ee67162bf2c1cd2cca94023c1fef954c065"
 
 [[package]]
 name = "wasi"
