@@ -494,31 +494,35 @@ mod tests {
     fn fuzz() -> Result<(), LineEditError> {
         let mut rng = rand::thread_rng();
         let mut buffer: Vec<u8> = vec![0; rng.gen::<usize>() % 256 + 1];
+        // Shouldn't matter if it's zeroed out or not
+        if rng.gen::<bool>() {
+            buffer.fill_with(|| rng.gen());
+        }
 
         let mut state = LineEditState::from_buffer(&mut buffer);
 
         for _ in 0..10000 {
             if rng.gen::<bool>() {
-                let _ = state.insert(rng.gen());
+                state.insert(rng.gen());
             }
             if rng.gen::<bool>() {
-                let _ = state.shift_left(rng.gen());
+                state.shift_left(rng.gen())?;
             }
             if rng.gen::<bool>() {
                 let gen = rng.gen();
-                let _ = state.shift_right(gen);
+                state.shift_right(gen)?;
             }
             if rng.gen::<bool>() {
-                let _ = state.delete_prev();
+                state.delete_prev()?;
             }
             if rng.gen::<bool>() {
-                let _ = state.delete_current();
+                state.delete_current()?;
             }
             if rng.gen::<bool>() {
                 // Should always be valid utf-8
-                state.as_str().unwrap();
-                state.tail().unwrap();
-                state.head().unwrap();
+                state.as_str()?;
+                state.tail()?;
+                state.head()?;
             }
         }
         Ok(())
