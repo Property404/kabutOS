@@ -187,6 +187,14 @@ impl<'a> LineEditState<'a> {
         Ok(())
     }
 
+    /// Kill to the end of the line and return a reference to the killed portion
+    /// This should be equivalent to ctrl+K in GNU Readline
+    pub fn kill_to_end(&mut self) -> Result<&str, LineEditError> {
+        let prev_length = self.byte_length;
+        self.byte_length = self.byte_ptr;
+        Ok(str::from_utf8(&self.buffer[self.byte_ptr..prev_length])?)
+    }
+
     /// Kill the previous word and return a reference to it
     /// This should be equivalent to ctrl+w in GNU Readline
     pub fn kill_prev_word(&mut self) -> Result<&str, LineEditError> {
@@ -487,6 +495,29 @@ mod tests {
         assert_eq!(state.kill_prev_word()?, "quick ");
         assert_eq!(state.kill_prev_word()?, "The ");
         assert_eq!(state.kill_prev_word()?, "");
+        Ok(())
+    }
+
+    #[test]
+    fn kill_to_end() -> Result<(), LineEditError> {
+        let mut buffer = [0u8; 256];
+        let mut state = LineEditState::from_buffer(&mut buffer);
+        state.insert_many("Hello World!".chars());
+
+        assert_eq!(state.kill_to_end()?, "");
+        assert_eq!(state.as_str()?, "Hello World!");
+
+        state.move_to_prev_start_of_word()?;
+        assert_eq!(state.kill_to_end()?, "World!");
+        assert_eq!(state.as_str()?, "Hello ");
+
+        state.move_to_prev_start_of_word()?;
+        assert_eq!(state.kill_to_end()?, "Hello ");
+        assert_eq!(state.as_str()?, "");
+
+        assert_eq!(state.kill_to_end()?, "");
+        assert_eq!(state.as_str()?, "");
+
         Ok(())
     }
 
