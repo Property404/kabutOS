@@ -195,6 +195,28 @@ impl<'a> LineEditState<'a> {
         Ok(str::from_utf8(&self.buffer[self.byte_ptr..prev_length])?)
     }
 
+    /// Transpose characters
+    /// This should be equivalent to ctrl+T in GNU Readline
+    pub fn transpose_chars(&mut self) -> Result<(), LineEditError> {
+        if self.byte_ptr == 0 {
+            return Ok(());
+        }
+
+        // Cursor at end is a slight special case
+        if self.byte_ptr == self.byte_length {
+            self.shift_left(1)?;
+        }
+
+        self.shift_left(1)?;
+        let c = self.delete_current()?;
+        self.shift_right(1)?;
+        if let Some(c) = c {
+            self.insert(c);
+        }
+
+        Ok(())
+    }
+
     /// Kill the previous word and return a reference to it
     /// This should be equivalent to ctrl+w in GNU Readline
     pub fn kill_prev_word(&mut self) -> Result<&str, LineEditError> {
@@ -517,6 +539,39 @@ mod tests {
 
         assert_eq!(state.kill_to_end()?, "");
         assert_eq!(state.as_str()?, "");
+
+        Ok(())
+    }
+
+    #[test]
+    fn transpose_chars() -> Result<(), LineEditError> {
+        let mut buffer = [0u8; 256];
+        let mut state = LineEditState::from_buffer(&mut buffer);
+        state.insert_many("🐌Hello".chars());
+        state.move_to_start();
+
+        // Should do nothing when cursor at beginning
+        state.transpose_chars()?;
+        assert_eq!(state.as_str()?, "🐌Hello");
+
+        state.shift_right(1)?;
+
+        state.transpose_chars()?;
+        assert_eq!(state.as_str()?, "H🐌ello");
+        state.transpose_chars()?;
+        assert_eq!(state.as_str()?, "He🐌llo");
+        state.transpose_chars()?;
+        assert_eq!(state.as_str()?, "Hel🐌lo");
+        state.transpose_chars()?;
+        assert_eq!(state.as_str()?, "Hell🐌o");
+        state.transpose_chars()?;
+        assert_eq!(state.as_str()?, "Hello🐌");
+
+        // Cursor at end - snail moves back and forth
+        state.transpose_chars()?;
+        assert_eq!(state.as_str()?, "Hell🐌o");
+        state.transpose_chars()?;
+        assert_eq!(state.as_str()?, "Hello🐌");
 
         Ok(())
     }
