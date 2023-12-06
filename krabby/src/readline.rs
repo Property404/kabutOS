@@ -17,6 +17,7 @@ const CONTROL_C: char = '\x03';
 const CONTROL_D: char = '\x04';
 const CONTROL_E: char = '\x05';
 const CONTROL_F: char = '\x06';
+const CONTROL_K: char = '\x0b';
 const CONTROL_L: char = '\x0c';
 const CONTROL_W: char = '\x17';
 
@@ -72,6 +73,10 @@ pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str>
             CONTROL_F => {
                 buffer.shift_right(1)?;
                 shift_only = true;
+            }
+
+            CONTROL_K => {
+                buffer.kill_to_end()?;
             }
 
             CONTROL_L => {
