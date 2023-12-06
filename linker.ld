@@ -19,6 +19,11 @@ SECTIONS {
 	}
 	.rodata : ALIGN(4K) {
 		*(.rodata);
+        /*
+         * Solves issue of rodata* being put before .text
+         * https://stackoverflow.com/questions/43727214/linker-seems-to-be-placing-data-in-wrong-section
+         */
+		*(.rodata*);
 	}
 	.data : ALIGN(4K) {
 		*(.data);
