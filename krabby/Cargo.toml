@@ -18,4 +18,4 @@ owo-colors = "3.5.0"
 utf8-parser = { git = "https://github.com/Property404/utf8-parser", tag = "0.0.2", default-features = false }
 
 [build-dependencies]
-cc = "1.0.84"
+cc = "1.0.83"
