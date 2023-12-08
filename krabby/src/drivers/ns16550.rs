@@ -1,7 +1,8 @@
 //! Ns16550 Driver
-use crate::c_functions::{read_unaligned_volatile_u8, write_unaligned_volatile_u8};
 use crate::drivers::{Driver, UartDriver};
+use core::ptr::{read_volatile, write_volatile};
 
+#[derive(Copy, Clone)]
 enum RegisterOffsets {
     Data = 0x00,
     InterruptEnable = 0x01,
@@ -34,13 +35,13 @@ impl Ns16550Driver {
     }
 
     unsafe fn write(&self, offset: RegisterOffsets, value: u8) {
-        unsafe {
-            write_unaligned_volatile_u8(self.base_address.wrapping_add(offset as usize), value)
-        }
+        let address = self.base_address.wrapping_add(offset as usize);
+        unsafe { write_volatile(address, value) }
     }
 
     unsafe fn read(&self, offset: RegisterOffsets) -> u8 {
-        unsafe { read_unaligned_volatile_u8(self.base_address.wrapping_add(offset as usize)) }
+        let address = self.base_address.wrapping_add(offset as usize);
+        unsafe { read_volatile(address) }
     }
 }
 

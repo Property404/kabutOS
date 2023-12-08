@@ -6,10 +6,6 @@ use crate::{
 use core::ffi::{c_char, c_int};
 
 extern "C" {
-    /// Read one byte from an unaligned address
-    pub fn read_unaligned_volatile_u8(ptr: *const u8) -> u8;
-    /// Write one byte to an unaligned address
-    pub fn write_unaligned_volatile_u8(ptr: *mut u8, _: u8);
     /// Run the kernel console
     pub fn run_console();
 }
