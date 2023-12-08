@@ -2,29 +2,20 @@
 #![cfg_attr(not(test), no_std)]
 #![forbid(unsafe_code)]
 use core::str::{self, Utf8Error};
+use derive_more::{Display, From};
 use utf8_parser::{ParsedByte, Utf8Parser, Utf8ParserError};
 
 /// Error type used for this crate
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, From, Display)]
 pub enum LineEditError {
     /// Generic line editing error
     Generic(&'static str),
     /// Converted from [core::str::Utf8Error]
+    #[from]
     Utf8(Utf8Error),
     /// Converted from [utf8_parser::Utf8ParserError]
+    #[from]
     Utf8Parser(Utf8ParserError),
-}
-
-impl From<Utf8Error> for LineEditError {
-    fn from(error: Utf8Error) -> Self {
-        Self::Utf8(error)
-    }
-}
-
-impl From<Utf8ParserError> for LineEditError {
-    fn from(error: Utf8ParserError) -> Self {
-        Self::Utf8Parser(error)
-    }
 }
 
 /// A structure used to build a line editor

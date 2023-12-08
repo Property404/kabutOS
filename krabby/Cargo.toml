@@ -13,6 +13,7 @@ rust-version = "1.74"
 unsafe_op_in_unsafe_fn = "deny"
 
 [dependencies]
+derive_more = { version = "0.99.17", default-features = false, features = ["from", "display"] }
 embedded-line-edit = { version = "0.0.0", path = "../embedded-line-edit", default-features = false }
 owo-colors = "3.5.0"
 utf8-parser = { git = "https://github.com/Property404/utf8-parser", tag = "0.0.2", default-features = false }

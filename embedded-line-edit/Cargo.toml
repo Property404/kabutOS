@@ -8,6 +8,7 @@ unsafe_code = "forbid"
 missing_docs = "warn"
 
 [dependencies]
+derive_more = { version = "0.99.17", default-features = false, features = ["from", "display"] }
 utf8-parser = { git = "https://github.com/Property404/utf8-parser", tag = "0.0.2", default-features = false }
 
 [dev-dependencies]
