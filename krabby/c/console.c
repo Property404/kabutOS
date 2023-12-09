@@ -46,8 +46,8 @@ void parseArray(char* input_array) {
 
 
 void run_console() {
-     static char input_array[256];
-     const int numbytes = readline(input_array, 256);
+     static char input_array[64];
+     const int numbytes = readline(input_array, sizeof(input_array));
      printf("[DEBUG]%02x|%s|\n", numbytes, input_array);
      parseArray(input_array);
 }
