@@ -1,13 +1,30 @@
+//! KabutOS kernel
+// We're building a kernel, so we don't have access to the standard library
 #![no_std]
 #![no_main]
-use core::fmt::Write;
-use krabby::{
+// Make sure everything's documented by warning when docs are missing
+#![warn(missing_docs)]
+
+pub mod ansi_codes;
+pub mod c_functions;
+pub mod drivers;
+pub mod errors;
+pub mod functions;
+pub mod panic;
+pub mod readline;
+pub mod serial;
+
+pub use crate::errors::{KernelError, KernelResult};
+use crate::{
     ansi_codes::CLEAR_SCREEN,
+    c_functions::run_console,
     drivers::{ns16550::Ns16550Driver, DRIVERS},
     serial::Serial,
 };
+use core::fmt::Write;
 use owo_colors::OwoColorize;
 
+/// Kernel entry point
 #[no_mangle]
 unsafe fn kmain(_hart_id: usize, fdt_ptr: *const u8) {
     // Initialize drivers
@@ -25,7 +42,7 @@ unsafe fn kmain(_hart_id: usize, fdt_ptr: *const u8) {
 
     loop {
         unsafe {
-            krabby::c_functions::run_console();
+            run_console();
         }
     }
 }
