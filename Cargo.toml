@@ -5,6 +5,10 @@ members = [
     "krabby"
 ]
 
+# Printing the device tree without optimizations overruns the stack
+[profile.dev.package.fdt]
+opt-level = 1
+
 [profile.release]
 lto = "thin"
 strip = true

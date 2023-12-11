@@ -2,6 +2,7 @@
 use core::{fmt::Error as FmtError, num::ParseIntError, result::Result, str::Utf8Error};
 use derive_more::{Display, From};
 use embedded_line_edit::LineEditError;
+use schmargs::{SchmargsError, StrippedSchmargsError};
 use utf8_parser::Utf8ParserError;
 
 /// Error type for use in the Kernel
@@ -31,6 +32,15 @@ pub enum KernelError {
     /// Converted from [embedded_line_edit::LineEditError]
     #[from]
     LineEditError(LineEditError),
+    /// Converted from [schmargs::SchmargsError] or [schmargs::StrippedSchmargsError]
+    #[from]
+    SchmargsError(StrippedSchmargsError),
+}
+
+impl<T> From<SchmargsError<T>> for KernelError {
+    fn from(error: SchmargsError<T>) -> KernelError {
+        error.strip().into()
+    }
 }
 
 /// Result type for use in this crate

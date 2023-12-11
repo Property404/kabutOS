@@ -1,8 +1,7 @@
 //! Kernel console
-use crate::readline::get_line;
-use crate::serial::Serial;
-use crate::{KernelError, KernelResult};
+use crate::{globals, readline::get_line, serial::Serial, KernelError, KernelResult};
 use core::fmt::Write;
+use schmargs::Schmargs;
 
 /// Run the kernel console
 pub fn run_console() {
@@ -48,6 +47,24 @@ fn parse_line(line: &str) -> KernelResult<()> {
             };
         }
 
+        // Display device tree
+        "fdt" => {
+            let args = FdtArgs::parse(iter)?;
+            let device_tree = globals::get().device_tree;
+
+            // If node is specified, just display that
+            if let Some(node) = args.node {
+                if let Some(node) = device_tree.find_node(node) {
+                    writeln!(serial, "{node}")?;
+                } else {
+                    return Err(KernelError::Generic("Node doesn't exist"));
+                }
+            // Otherwise display the whole tree
+            } else {
+                writeln!(serial, "{device_tree:?}")?;
+            }
+        }
+
         _ => {
             return Err(KernelError::Generic("Command not found"));
         }
@@ -66,4 +83,11 @@ fn parse_line(line: &str) -> KernelResult<()> {
      */
 
     Ok(())
+}
+
+/// Display Device Tree
+#[derive(Schmargs)]
+struct FdtArgs<'a> {
+    /// The path to the node to display. E.g. "/chosen"
+    node: Option<&'a str>,
 }

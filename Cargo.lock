@@ -3,6 +3,12 @@
 version = 3
 
 [[package]]
+name = "anyhow"
+version = "1.0.75"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
+
+[[package]]
 name = "cc"
 version = "1.0.83"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -25,17 +31,43 @@ checksum = "4fb810d30a7c1953f91334de7244731fc3f3c10d7fe163338a35b9f640960321"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "derive_more"
+version = "1.0.0-beta.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f7abbfc297053be59290e3152f8cbcd52c8642e0728b69ee187d991d4c1af08d"
+dependencies = [
+ "derive_more-impl",
+]
+
+[[package]]
+name = "derive_more-impl"
+version = "1.0.0-beta.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2bba3e9872d7c58ce7ef0fcf1844fcc3e23ef2a58377b50df35dd98e42a5726e"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.41",
+ "unicode-xid",
 ]
 
 [[package]]
 name = "embedded-line-edit"
 version = "0.0.0"
 dependencies = [
- "derive_more",
+ "derive_more 0.99.17",
  "rand",
  "utf8-parser",
 ]
+
+[[package]]
+name = "fdt"
+version = "0.2.0-alpha1"
+source = "git+https://github.com/Property404/fdt?rev=5abb24aed8e5ae0ca4c0ed8a2510355c92ea7b8c#5abb24aed8e5ae0ca4c0ed8a2510355c92ea7b8c"
 
 [[package]]
 name = "getrandom"
@@ -53,9 +85,11 @@ name = "krabby"
 version = "0.0.0"
 dependencies = [
  "cc",
- "derive_more",
+ "derive_more 0.99.17",
  "embedded-line-edit",
+ "fdt",
  "owo-colors",
+ "schmargs",
  "utf8-parser",
 ]
 
@@ -126,6 +160,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "schmargs"
+version = "0.0.0"
+source = "git+https://github.com/Property404/schmargs?rev=63c6882#63c6882b9e5ae897f0d8307a603bf226e41289cf"
+dependencies = [
+ "derive_more 1.0.0-beta.6",
+ "schmargs-derive",
+]
+
+[[package]]
+name = "schmargs-derive"
+version = "0.0.0"
+source = "git+https://github.com/Property404/schmargs?rev=63c6882#63c6882b9e5ae897f0d8307a603bf226e41289cf"
+dependencies = [
+ "anyhow",
+ "proc-macro2",
+ "quote",
+ "snailquote",
+ "syn 2.0.41",
+]
+
+[[package]]
+name = "snailquote"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec62a949bda7f15800481a711909f946e1204f2460f89210eaf7f57730f88f86"
+dependencies = [
+ "thiserror",
+ "unicode_categories",
+]
+
+[[package]]
 name = "syn"
 version = "1.0.109"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -137,10 +202,53 @@ dependencies = [
 ]
 
 [[package]]
+name = "syn"
+version = "2.0.41"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44c8b28c477cc3bf0e7966561e3460130e1255f7a1cf71931075f1c5e7a7e269"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unicode-ident",
+]
+
+[[package]]
+name = "thiserror"
+version = "1.0.51"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f11c217e1416d6f036b870f14e0413d480dbf28edbee1f877abaf0206af43bb7"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.51"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01742297787513b79cf8e29d1056ede1313e2420b7b3b15d0a768b4921f549df"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.41",
+]
+
+[[package]]
 name = "unicode-ident"
 version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
+
+[[package]]
+name = "unicode-xid"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f962df74c8c05a667b5ee8bcf162993134c104e96440b663c8daa176dc772d8c"
+
+[[package]]
+name = "unicode_categories"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39ec24b3121d976906ece63c9daad25b85969647682eee313cb5779fdd69e14e"
 
 [[package]]
 name = "utf8-parser"
