@@ -1,6 +1,6 @@
 //! Functions meant to be called from `console()`
 use crate::{serial::Serial, KernelResult};
-use core::fmt::Write;
+use core::{cmp::min, fmt::Write};
 use owo_colors::{OwoColorize, Style};
 
 fn color_byte(byte: u8) -> Style {
@@ -30,17 +30,21 @@ pub unsafe fn dump_memory(mut ptr: *const u8, mut size: usize) -> KernelResult<(
 
         // Show bytes in hex
         for minor in (0..WIDTH).step_by(2) {
-            let (byte1, byte2) =
-                unsafe { (*(ptr.wrapping_add(minor)), *(ptr.wrapping_add(minor + 1))) };
-            let byte1 = byte1.style(color_byte(byte1));
-            let byte2 = byte2.style(color_byte(byte2));
-            write!(serial, " {byte1:02x}{byte2:02x}")?
+            if minor < size {
+                let (byte1, byte2) =
+                    unsafe { (*(ptr.wrapping_add(minor)), *(ptr.wrapping_add(minor + 1))) };
+                let byte1 = byte1.style(color_byte(byte1));
+                let byte2 = byte2.style(color_byte(byte2));
+                write!(serial, " {byte1:02x}{byte2:02x}")?
+            } else {
+                write!(serial, "     ")?
+            }
         }
 
         write!(serial, "  ")?;
 
         // Show bytes in ASCII
-        for minor in 0..WIDTH {
+        for minor in 0..min(size, WIDTH) {
             let c: u8 = unsafe { *(ptr.wrapping_add(minor)) };
             let color = color_byte(c);
             let c = if (0x20..0x7f).contains(&c) {
@@ -53,7 +57,7 @@ pub unsafe fn dump_memory(mut ptr: *const u8, mut size: usize) -> KernelResult<(
 
         writeln!(serial)?;
 
-        size -= WIDTH;
+        size = size.saturating_sub(WIDTH);
         ptr = ptr.wrapping_add(WIDTH);
     }
 

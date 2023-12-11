@@ -29,13 +29,7 @@ pub fn run_console() {
                 };
                 let size: usize = size.parse().unwrap();
 
-                if size % 16 != 0 {
-                    writeln!(
-                        serial,
-                        "Oopsie woopsie! There's a bug! Multiple of 16 ONLY!"
-                    );
-                    continue;
-                } else if ptr < 4096 {
+                if ptr < 4096 {
                     writeln!(serial, "Now you get what you deserve.");
                     // TODO: continue;
                 }
