@@ -6,7 +6,6 @@
 #![warn(missing_docs)]
 
 pub mod ansi_codes;
-pub mod c_functions;
 pub mod console;
 pub mod drivers;
 pub mod errors;
@@ -42,8 +41,6 @@ unsafe fn kmain(_hart_id: usize, fdt_ptr: *const u8) {
     writeln!(serial, "Device tree is @ {fdt_ptr:p}").unwrap();
 
     loop {
-        unsafe {
-            run_console();
-        }
+        run_console();
     }
 }
