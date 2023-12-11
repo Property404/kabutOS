@@ -21,7 +21,7 @@ fn main() {
 
     // Compile C code
     let mut cc = cc::Build::new();
-    let cc = cc.file("c/entry.S").flag("-ffreestanding");
+    let cc = cc.file("asm/entry.S").flag("-ffreestanding");
 
     // We need to force gcc to use the correct ABI if the target has double-precision floating
     // points are used, otherwise we'll get linker issues.
