@@ -1,5 +1,5 @@
 //! Error and Result type for use in this crate
-use core::{fmt::Error as FmtError, result::Result, str::Utf8Error};
+use core::{fmt::Error as FmtError, num::ParseIntError, result::Result, str::Utf8Error};
 use derive_more::{Display, From};
 use embedded_line_edit::LineEditError;
 use utf8_parser::Utf8ParserError;
@@ -7,6 +7,9 @@ use utf8_parser::Utf8ParserError;
 /// Error type for use in the Kernel
 #[derive(From, Debug, Display)]
 pub enum KernelError {
+    /// Generic error
+    #[display(fmt = "{}", _0)]
+    Generic(&'static str),
     /// Argument is invalid
     #[display(fmt = "Argument is invalid")]
     InvalidArguments,
@@ -19,6 +22,9 @@ pub enum KernelError {
     /// Converted from [core::str::Utf8Error]
     #[from]
     Utf8Error(Utf8Error),
+    /// Converted from [core::num::ParseIntError]
+    #[from]
+    ParseIntError(ParseIntError),
     /// Converted from [utf8_parser::Utf8ParserError]
     #[from]
     Utf8ParserError(Utf8ParserError),
@@ -28,4 +34,4 @@ pub enum KernelError {
 }
 
 /// Result type for use in this crate
-pub type KernelResult<T = ()> = Result<T, KernelError>;
+pub type KernelResult<T> = Result<T, KernelError>;
