@@ -7,6 +7,7 @@
 
 pub mod ansi_codes;
 pub mod c_functions;
+pub mod console;
 pub mod drivers;
 pub mod errors;
 pub mod functions;
@@ -17,7 +18,7 @@ pub mod serial;
 pub use crate::errors::{KernelError, KernelResult};
 use crate::{
     ansi_codes::CLEAR_SCREEN,
-    c_functions::run_console,
+    console::run_console,
     drivers::{ns16550::Ns16550Driver, DRIVERS},
     serial::Serial,
 };

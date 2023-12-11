@@ -35,6 +35,7 @@ Help:
         packages+=" qemu-system-riscv64 "
         packages+=" gdb-multiarch "
         packages+=" curl "
+        packages+=" cargo "
     fi
 
     # shellcheck disable=SC2086
