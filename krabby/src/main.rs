@@ -10,6 +10,7 @@ pub mod console;
 pub mod drivers;
 pub mod errors;
 pub mod functions;
+pub mod globals;
 pub mod panic;
 pub mod readline;
 pub mod serial;
@@ -22,6 +23,7 @@ use crate::{
     serial::Serial,
 };
 use core::fmt::Write;
+use fdt::Fdt;
 use owo_colors::OwoColorize;
 
 /// Kernel entry point
@@ -30,6 +32,12 @@ unsafe fn kmain(_hart_id: usize, fdt_ptr: *const u8) {
     // Initialize drivers
     let uart_driver = Ns16550Driver::new(0x10000000 as *mut u8);
     unsafe { DRIVERS.uart = Some(uart_driver) };
+
+    // Initialize global variables
+    unsafe {
+        let fdt = Fdt::from_ptr(fdt_ptr).unwrap();
+        globals::initialize(fdt);
+    }
 
     let mut serial = Serial::new();
     writeln!(

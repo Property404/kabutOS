@@ -1,7 +1,5 @@
 //! Kernel console
-use crate::readline::get_line;
-use crate::serial::Serial;
-use crate::{KernelError, KernelResult};
+use crate::{globals, readline::get_line, serial::Serial, KernelError, KernelResult};
 use core::fmt::Write;
 
 /// Run the kernel console
@@ -46,6 +44,12 @@ fn parse_line(line: &str) -> KernelResult<()> {
             unsafe {
                 crate::functions::dump_memory(ptr as *const u8, size)?;
             };
+        }
+
+        // Display device tree
+        "dt" => {
+            let device_tree = globals::get().device_tree;
+            writeln!(serial, "{device_tree:?}")?;
         }
 
         _ => {
