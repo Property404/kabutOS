@@ -3,7 +3,7 @@
 #![forbid(unsafe_code)]
 use core::str::{self, Utf8Error};
 use derive_more::{Display, From};
-use utf8_parser::{ParsedByte, Utf8Parser, Utf8ParserError};
+use utf8_parser::{Utf8ByteType, Utf8Parser, Utf8ParserError};
 
 /// Error type used for this crate
 #[derive(Copy, Clone, PartialEq, Eq, Debug, From, Display)]
@@ -288,7 +288,7 @@ impl<'a> LineEditState<'a> {
         for _ in 0..n {
             // Rewind to UTF-8 start byte
             while self.byte_ptr > 0
-                && ParsedByte::try_from(self.buffer[self.byte_ptr - 1])?.is_continuation()
+                && Utf8ByteType::of(self.buffer[self.byte_ptr - 1])?.is_continuation()
             {
                 self.byte_ptr -= 1;
             }
@@ -319,7 +319,7 @@ impl<'a> LineEditState<'a> {
             };
             // Forward to next UTF-8 start byte
             while self.byte_ptr < self.byte_length
-                && ParsedByte::try_from(self.buffer[self.byte_ptr])?.is_continuation()
+                && Utf8ByteType::of(self.buffer[self.byte_ptr])?.is_continuation()
             {
                 self.byte_ptr += 1;
             }

@@ -144,8 +144,9 @@ checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
 
 [[package]]
 name = "utf8-parser"
-version = "0.0.2"
-source = "git+https://github.com/Property404/utf8-parser?tag=0.0.2#4d870ee67162bf2c1cd2cca94023c1fef954c065"
+version = "0.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c8f6256d9c808ede57aacca8d8424abb9a204d57ed453cfaaaa9b2c59d71da06"
 
 [[package]]
 name = "wasi"
