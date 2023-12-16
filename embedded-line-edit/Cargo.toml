@@ -9,7 +9,7 @@ missing_docs = "warn"
 
 [dependencies]
 derive_more = { version = "0.99.17", default-features = false, features = ["from", "display"] }
-utf8-parser = { version = "0.0.3", default-features = false }
+utf8-parser = { version = "0.0.4", default-features = false }
 
 [dev-dependencies]
 rand = "0.8.5"
