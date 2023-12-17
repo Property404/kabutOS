@@ -21,8 +21,12 @@ pub enum LineEditError {
 
 /// A structure used to build a line editor
 ///
-/// This structure does not come with any way to interpret key presses or allocate memory. You must
+/// This structure does not come with any way to interpret key presses or manipulate output. You must
 /// do all that yourself.
+///
+/// This struct will not allocate memory unless provided with an implementation of [LineEditBuffer]
+/// that is capable of allocating memory, e.g
+/// [Vec](https://doc.rust-lang.org/std/vec/struct.Vec.html)
 ///
 /// # Example
 /// ```
@@ -347,6 +351,24 @@ impl<T: LineEditBuffer> LineEditState<T> {
         count
     }
 
+    // Request a buffer size of `needed_size` bytes or bigger
+    fn request_buffer_size(&mut self, needed_size: usize) -> Result<(), ()> {
+        let current_size = self.buffer.as_ref().len();
+        let additional_bytes_required: isize = (needed_size as isize) - current_size as isize;
+        if additional_bytes_required <= 0 {
+            return Ok(());
+        }
+        let bytes_obtained = self
+            .buffer
+            .request_memory(additional_bytes_required as usize);
+
+        if bytes_obtained < additional_bytes_required as usize {
+            return Err(());
+        }
+
+        Ok(())
+    }
+
     /// Insert a character
     ///
     /// Returns `true` if inserted, or `false` if the buffer is full
@@ -356,7 +378,8 @@ impl<T: LineEditBuffer> LineEditState<T> {
 
         let charlen = c.len_utf8();
 
-        if self.byte_length + charlen > self.buffer.as_ref().len() {
+        let needed_size = self.byte_length + charlen;
+        if self.request_buffer_size(needed_size).is_err() {
             return false;
         }
 
@@ -415,12 +438,24 @@ impl<const C: usize> Default for LineEditState<[u8; C]> {
 }
 
 /// A byte array type that's allowed to be wrapped by a [LineEditState]
-pub trait LineEditBuffer: AsRef<[u8]> + AsMut<[u8]> {}
+pub trait LineEditBuffer: AsRef<[u8]> + AsMut<[u8]> {
+    /// Request `bytes` bytes of memory. The implementor is not required to grant the request.
+    ///
+    /// Returns the number of bytes allocated.
+    fn request_memory(&mut self, _bytes: usize) -> usize {
+        0
+    }
+}
 
 impl<const C: usize> LineEditBuffer for [u8; C] {}
 
 #[cfg(any(test, feature = "std"))]
-impl LineEditBuffer for Vec<u8> {}
+impl LineEditBuffer for Vec<u8> {
+    fn request_memory(&mut self, bytes: usize) -> usize {
+        self.extend(core::iter::repeat(0).take(bytes));
+        bytes
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -482,6 +517,15 @@ mod tests {
         assert!(state.insert('4'));
         assert!(!state.insert('5'));
         assert_eq!(state.as_str()?, "1234");
+        Ok(())
+    }
+
+    #[test]
+    fn allocate_memory() -> Result<(), LineEditError> {
+        let buffer = vec![0u8; 2];
+        let mut state = LineEditState::from_buffer(buffer);
+        state.insert_many("Hello🌈world!".chars());
+        assert_eq!(state.as_str()?, "Hello🌈world!");
         Ok(())
     }
 
