@@ -78,13 +78,6 @@ impl<T: LineEditBuffer> LineEditState<T> {
         )?)
     }
 
-    /*
-    /// Get inner buffer as `&str`
-    pub fn to_str(self) -> Result<&'a str, LineEditError> {
-        Ok(str::from_utf8(&self.buffer.as_ref()[0..self.byte_length])?)
-    }
-    */
-
     /// Get current length of buffer in bytes.
     pub fn len(&self) -> usize {
         self.byte_length
