@@ -65,6 +65,14 @@ fn parse_line(line: &str) -> KernelResult<()> {
             }
         }
 
+        // Write to byte address
+        "poke" => {
+            let args = PokeArgs::parse(iter)?;
+
+            writeln!(serial, "Writing 0x{:02x} to {:p}", args.value, args.address)?;
+            unsafe { core::ptr::write_volatile(args.address, args.value) };
+        }
+
         _ => {
             return Err(KernelError::Generic("Command not found"));
         }
@@ -90,4 +98,13 @@ fn parse_line(line: &str) -> KernelResult<()> {
 struct FdtArgs<'a> {
     /// The path to the node to display. E.g. "/chosen"
     node: Option<&'a str>,
+}
+
+/// Write to byte in memory
+#[derive(Schmargs)]
+struct PokeArgs {
+    /// Address to write to
+    address: *mut u8,
+    /// Value to write
+    value: u8,
 }
