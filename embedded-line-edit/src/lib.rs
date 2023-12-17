@@ -1,6 +1,7 @@
 //! No-allocation line editor core
-#![cfg_attr(not(test), no_std)]
+#![cfg_attr(not(any(test, feature = "std")), no_std)]
 #![forbid(unsafe_code)]
+#![warn(missing_docs)]
 use core::str::{self, Utf8Error};
 use derive_more::{Display, From};
 use utf8_parser::{Utf8ByteType, Utf8Parser, Utf8ParserError};
@@ -28,7 +29,7 @@ pub enum LineEditError {
 /// use embedded_line_edit::LineEditState;
 ///
 /// let mut bytes = [0u8;256];
-/// let mut state = LineEditState::from_buffer(&mut bytes);
+/// let mut state = LineEditState::from_buffer(bytes);
 /// state.insert_many("Hello Worlf!".chars());
 /// state.shift_left(1).unwrap();
 /// state.delete_prev().unwrap();
@@ -36,19 +37,19 @@ pub enum LineEditError {
 /// state.shift_right(1).unwrap();
 /// assert_eq!(state.as_str().unwrap(), "Hello World!");
 /// ```
-pub struct LineEditState<'a> {
-    buffer: &'a mut [u8],
+pub struct LineEditState<T> {
+    buffer: T,
     byte_ptr: usize,
     byte_length: usize,
 }
 
-impl<'a> LineEditState<'a> {
+impl<T: LineEditBuffer> LineEditState<T> {
     /// Construct a new [LineEditState]
     ///
     /// # Panics
     /// Panics if buffer is zero sized
-    pub fn from_buffer(buffer: &'a mut [u8]) -> Self {
-        assert!(!buffer.is_empty());
+    pub fn from_buffer(buffer: T) -> Self {
+        assert!(!buffer.as_ref().is_empty());
         Self {
             buffer,
             byte_ptr: 0,
@@ -58,25 +59,27 @@ impl<'a> LineEditState<'a> {
 
     /// Get inner buffer as `&str`
     pub fn as_str(&self) -> Result<&str, LineEditError> {
-        Ok(str::from_utf8(&self.buffer[0..self.byte_length])?)
+        Ok(str::from_utf8(&self.buffer.as_ref()[0..self.byte_length])?)
     }
 
     /// Get inner buffer up to insertion point as `&str`
     pub fn head(&self) -> Result<&str, LineEditError> {
-        Ok(str::from_utf8(&self.buffer[0..self.byte_ptr])?)
+        Ok(str::from_utf8(&self.buffer.as_ref()[0..self.byte_ptr])?)
     }
 
     /// Get inner buffer from insertion point to end as `&str`
     pub fn tail(&self) -> Result<&str, LineEditError> {
         Ok(str::from_utf8(
-            &self.buffer[self.byte_ptr..self.byte_length],
+            &self.buffer.as_ref()[self.byte_ptr..self.byte_length],
         )?)
     }
 
+    /*
     /// Get inner buffer as `&str`
     pub fn to_str(self) -> Result<&'a str, LineEditError> {
-        Ok(str::from_utf8(&self.buffer[0..self.byte_length])?)
+        Ok(str::from_utf8(&self.buffer.as_ref()[0..self.byte_length])?)
     }
+    */
 
     /// Get current length of buffer in bytes.
     pub fn len(&self) -> usize {
@@ -119,7 +122,7 @@ impl<'a> LineEditState<'a> {
         }
 
         loop {
-            if let Some(c) = parser.push(self.buffer[self.byte_ptr + charlen])? {
+            if let Some(c) = parser.push(self.buffer.as_ref()[self.byte_ptr + charlen])? {
                 return Ok(Some(c));
             }
 
@@ -183,7 +186,9 @@ impl<'a> LineEditState<'a> {
     pub fn kill_to_end(&mut self) -> Result<&str, LineEditError> {
         let prev_length = self.byte_length;
         self.byte_length = self.byte_ptr;
-        Ok(str::from_utf8(&self.buffer[self.byte_ptr..prev_length])?)
+        Ok(str::from_utf8(
+            &self.buffer.as_ref()[self.byte_ptr..prev_length],
+        )?)
     }
 
     /// Transpose characters
@@ -237,13 +242,13 @@ impl<'a> LineEditState<'a> {
             // Place at end of buffer so we can return it
             let clen = c.len_utf8();
             debug_assert!(clen > 0);
-            let index = self.buffer.len() - bytes_deleted - clen;
-            c.encode_utf8(&mut self.buffer[index..]);
+            let index = self.buffer.as_ref().len() - bytes_deleted - clen;
+            c.encode_utf8(&mut self.buffer.as_mut()[index..]);
             bytes_deleted += clen;
         }
 
         Ok(str::from_utf8(
-            &self.buffer[self.buffer.len() - bytes_deleted..],
+            &self.buffer.as_ref()[self.buffer.as_ref().len() - bytes_deleted..],
         )?)
     }
 
@@ -281,14 +286,14 @@ impl<'a> LineEditState<'a> {
     ///
     /// Returns number of characters shifted
     pub fn shift_left(&mut self, n: usize) -> Result<usize, LineEditError> {
-        debug_assert!(self.buffer.len() >= self.byte_length);
+        debug_assert!(self.buffer.as_ref().len() >= self.byte_length);
         debug_assert!(self.byte_length >= self.byte_ptr);
 
         let mut shifted_by = 0;
         for _ in 0..n {
             // Rewind to UTF-8 start byte
             while self.byte_ptr > 0
-                && Utf8ByteType::of(self.buffer[self.byte_ptr - 1])?.is_continuation()
+                && Utf8ByteType::of(self.buffer.as_ref()[self.byte_ptr - 1])?.is_continuation()
             {
                 self.byte_ptr -= 1;
             }
@@ -307,7 +312,7 @@ impl<'a> LineEditState<'a> {
     ///
     /// Returns number of characters shifted
     pub fn shift_right(&mut self, n: usize) -> Result<usize, LineEditError> {
-        debug_assert!(self.buffer.len() >= self.byte_length);
+        debug_assert!(self.buffer.as_ref().len() >= self.byte_length);
         debug_assert!(self.byte_length >= self.byte_ptr);
 
         let mut shifted_by = 0;
@@ -319,7 +324,7 @@ impl<'a> LineEditState<'a> {
             };
             // Forward to next UTF-8 start byte
             while self.byte_ptr < self.byte_length
-                && Utf8ByteType::of(self.buffer[self.byte_ptr])?.is_continuation()
+                && Utf8ByteType::of(self.buffer.as_ref()[self.byte_ptr])?.is_continuation()
             {
                 self.byte_ptr += 1;
             }
@@ -346,22 +351,22 @@ impl<'a> LineEditState<'a> {
     ///
     /// Returns `true` if inserted, or `false` if the buffer is full
     pub fn insert(&mut self, c: char) -> bool {
-        debug_assert!(self.buffer.len() >= self.byte_length);
+        debug_assert!(self.buffer.as_ref().len() >= self.byte_length);
         debug_assert!(self.byte_length >= self.byte_ptr);
 
         let charlen = c.len_utf8();
 
-        if self.byte_length + charlen > self.buffer.len() {
+        if self.byte_length + charlen > self.buffer.as_ref().len() {
             return false;
         }
 
         // First shift everything right by the character length
         for i in ((self.byte_ptr)..(self.byte_length)).rev() {
-            self.buffer[i + charlen] = self.buffer[i]
+            self.buffer.as_mut()[i + charlen] = self.buffer.as_ref()[i]
         }
 
         // Then copy the character onto the buffer
-        c.encode_utf8(&mut self.buffer[self.byte_ptr..]);
+        c.encode_utf8(&mut self.buffer.as_mut()[self.byte_ptr..]);
         self.byte_ptr += charlen;
         self.byte_length += charlen;
 
@@ -383,7 +388,7 @@ impl<'a> LineEditState<'a> {
 
         // Shift everything left
         for i in self.byte_ptr..self.byte_length - charlen {
-            self.buffer[i] = self.buffer[i + charlen];
+            self.buffer.as_mut()[i] = self.buffer.as_ref()[i + charlen];
         }
         self.byte_length -= charlen;
 
@@ -403,6 +408,20 @@ impl<'a> LineEditState<'a> {
     }
 }
 
+impl<const C: usize> Default for LineEditState<[u8; C]> {
+    fn default() -> Self {
+        LineEditState::from_buffer([0; C])
+    }
+}
+
+/// A byte array type that's allowed to be wrapped by a [LineEditState]
+pub trait LineEditBuffer: AsRef<[u8]> + AsMut<[u8]> {}
+
+impl<const C: usize> LineEditBuffer for [u8; C] {}
+
+#[cfg(any(test, feature = "std"))]
+impl LineEditBuffer for Vec<u8> {}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -410,8 +429,8 @@ mod tests {
 
     #[test]
     fn basic_insert() -> Result<(), LineEditError> {
-        let mut buffer = [0u8; 256];
-        let mut state = LineEditState::from_buffer(&mut buffer);
+        let buffer = [0u8; 256];
+        let mut state = LineEditState::from_buffer(buffer);
         state.insert_many("Hello world".chars());
         state.insert('!');
         assert_eq!(state.as_str()?, "Hello world!");
@@ -420,8 +439,8 @@ mod tests {
 
     #[test]
     fn shifting() -> Result<(), LineEditError> {
-        let mut buffer = [0u8; 256];
-        let mut state = LineEditState::from_buffer(&mut buffer);
+        let buffer = [0u8; 256];
+        let mut state = LineEditState::from_buffer(buffer);
         state.insert_many("Hi!".chars());
         assert_eq!(state.shift_left(1)?, 1);
         assert_eq!(state.as_str()?, "Hi!");
@@ -438,8 +457,8 @@ mod tests {
 
     #[test]
     fn basic_delete() -> Result<(), LineEditError> {
-        let mut buffer = [0u8; 256];
-        let mut state = LineEditState::from_buffer(&mut buffer);
+        let buffer = [0u8; 256];
+        let mut state = LineEditState::from_buffer(buffer);
         state.insert_many("Hi".chars());
         assert_eq!(state.as_str()?, "Hi");
         assert_eq!(state.delete_prev()?.unwrap(), 'i');
@@ -453,8 +472,8 @@ mod tests {
 
     #[test]
     fn check_oom_and_clear() -> Result<(), LineEditError> {
-        let mut buffer = [0u8; 4];
-        let mut state = LineEditState::from_buffer(&mut buffer);
+        let buffer = [0u8; 4];
+        let mut state = LineEditState::from_buffer(buffer);
         assert_eq!(state.insert_many("Hello world".chars()), 4);
         assert!(!state.insert('!'));
         assert_eq!(state.as_str()?, "Hell");
@@ -468,8 +487,8 @@ mod tests {
 
     #[test]
     fn move_past_next_word() -> Result<(), LineEditError> {
-        let mut buffer = [0u8; 256];
-        let mut state = LineEditState::from_buffer(&mut buffer);
+        let buffer = [0u8; 256];
+        let mut state = LineEditState::from_buffer(buffer);
         state.insert_many("The quick    brown\tfax    ".chars());
         state.move_to_start();
         assert_eq!(state.head()?, "");
@@ -500,8 +519,8 @@ mod tests {
 
     #[test]
     fn basic_killing() -> Result<(), LineEditError> {
-        let mut buffer = [0u8; 256];
-        let mut state = LineEditState::from_buffer(&mut buffer);
+        let buffer = [0u8; 256];
+        let mut state = LineEditState::from_buffer(buffer);
         state.insert_many("The quick 🦊 jamped ".chars());
         assert_eq!(state.kill_prev_word()?, "jamped ");
         assert_eq!(state.kill_prev_word()?, "🦊 ");
@@ -513,8 +532,8 @@ mod tests {
 
     #[test]
     fn kill_to_end() -> Result<(), LineEditError> {
-        let mut buffer = [0u8; 256];
-        let mut state = LineEditState::from_buffer(&mut buffer);
+        let buffer = [0u8; 256];
+        let mut state = LineEditState::from_buffer(buffer);
         state.insert_many("Hello World!".chars());
 
         assert_eq!(state.kill_to_end()?, "");
@@ -536,8 +555,8 @@ mod tests {
 
     #[test]
     fn transpose_chars() -> Result<(), LineEditError> {
-        let mut buffer = [0u8; 256];
-        let mut state = LineEditState::from_buffer(&mut buffer);
+        let buffer = [0u8; 256];
+        let mut state = LineEditState::from_buffer(buffer);
         state.insert_many("🐌Hello".chars());
         state.move_to_start();
 
@@ -576,7 +595,7 @@ mod tests {
             buffer.fill_with(|| rng.gen());
         }
 
-        let mut state = LineEditState::from_buffer(&mut buffer);
+        let mut state = LineEditState::from_buffer(buffer);
 
         for _ in 0..10000 {
             if rng.gen::<bool>() {

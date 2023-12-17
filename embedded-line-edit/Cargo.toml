@@ -3,13 +3,13 @@ name = "embedded-line-edit"
 version = "0.0.0"
 edition = "2021"
 
-[lints.rust]
-unsafe_code = "forbid"
-missing_docs = "warn"
-
 [dependencies]
 derive_more = { version = "0.99.17", default-features = false, features = ["from", "display"] }
 utf8-parser = { version = "0.0.4", default-features = false }
 
 [dev-dependencies]
 rand = "0.8.5"
+
+[features]
+default = []
+std = ["utf8-parser/std"]

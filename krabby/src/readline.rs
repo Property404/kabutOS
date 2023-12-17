@@ -22,143 +22,150 @@ const CONTROL_L: char = '\x0c';
 const CONTROL_T: char = '\x14';
 const CONTROL_W: char = '\x17';
 
-/// Read line of user input
-// TODO: Add up arrow functionality
-pub fn get_line<'a>(prompt: &str, buffer: &'a mut [u8]) -> KernelResult<&'a str> {
-    let mut serial = Serial::new();
-    let mut buffer = LineEditState::from_buffer(buffer);
+/// Readline object used to retrieve user input
+#[derive(Default)]
+pub struct Readline<const BUFFER_SIZE: usize> {
+    buffer: LineEditState<[u8; BUFFER_SIZE]>,
+}
 
-    let prompt = prompt.cyan();
-    write!(serial, "{prompt}")?;
-    loop {
-        // For optimization purposes
-        // Set to true if we're only moving the cursor
-        let mut shift_only = false;
+impl<const BUFFER_SIZE: usize> Readline<BUFFER_SIZE> {
+    /// Read line of user input
+    pub fn get_line<'a>(&'a mut self, prompt: &str) -> KernelResult<&'a str> {
+        let mut serial = Serial::new();
+        self.buffer.clear();
 
-        match serial.next_char()? {
-            // <Enter> is pressed. Print a new line and return
-            '\r' => {
-                writeln!(serial)?;
-                return Ok(buffer.to_str()?);
-            }
+        let prompt = prompt.cyan();
+        write!(serial, "{prompt}")?;
+        loop {
+            // For optimization purposes
+            // Set to true if we're only moving the cursor
+            let mut shift_only = false;
 
-            // <BackSpace> is pressed. Delete last character.
-            DELETE | BACKSPACE => {
-                buffer.delete_prev()?;
-            }
+            match serial.next_char()? {
+                // <Enter> is pressed. Print a new line and return
+                '\r' => {
+                    writeln!(serial)?;
+                    return Ok(self.buffer.as_str()?);
+                }
 
-            CONTROL_A => {
-                buffer.move_to_start();
-                shift_only = true;
-            }
+                // <BackSpace> is pressed. Delete last character.
+                DELETE | BACKSPACE => {
+                    self.buffer.delete_prev()?;
+                }
 
-            CONTROL_B => {
-                buffer.shift_left(1)?;
-                shift_only = true;
-            }
+                CONTROL_A => {
+                    self.buffer.move_to_start();
+                    shift_only = true;
+                }
 
-            // Cancel
-            CONTROL_C => {
-                writeln!(serial)?;
-                return Ok("");
-            }
+                CONTROL_B => {
+                    self.buffer.shift_left(1)?;
+                    shift_only = true;
+                }
 
-            CONTROL_D => {
-                buffer.delete_current()?;
-            }
+                // Cancel
+                CONTROL_C => {
+                    writeln!(serial)?;
+                    return Ok("");
+                }
 
-            CONTROL_E => {
-                buffer.move_to_end();
-                shift_only = true;
-            }
+                CONTROL_D => {
+                    self.buffer.delete_current()?;
+                }
 
-            CONTROL_F => {
-                buffer.shift_right(1)?;
-                shift_only = true;
-            }
+                CONTROL_E => {
+                    self.buffer.move_to_end();
+                    shift_only = true;
+                }
 
-            CONTROL_K => {
-                buffer.kill_to_end()?;
-            }
+                CONTROL_F => {
+                    self.buffer.shift_right(1)?;
+                    shift_only = true;
+                }
 
-            CONTROL_L => {
-                write!(serial, "{CLEAR_SCREEN}")?;
-            }
+                CONTROL_K => {
+                    self.buffer.kill_to_end()?;
+                }
 
-            CONTROL_T => {
-                buffer.transpose_chars()?;
-            }
+                CONTROL_L => {
+                    write!(serial, "{CLEAR_SCREEN}")?;
+                }
 
-            CONTROL_W => {
-                buffer.kill_prev_word()?;
-            }
+                CONTROL_T => {
+                    self.buffer.transpose_chars()?;
+                }
 
-            // Arrow keys
-            ESCAPE => {
-                match serial.next_char()? {
-                    '[' => {
-                        match serial.next_char()? {
-                            // Left arrow key: <ESC>[D
-                            'D' => {
-                                buffer.shift_left(1)?;
-                                shift_only = true;
-                            }
-                            // Right arrow key: <ESC>[C
-                            'C' => {
-                                buffer.shift_right(1)?;
-                                shift_only = true;
-                            }
-                            _ => continue,
-                        };
+                CONTROL_W => {
+                    self.buffer.kill_prev_word()?;
+                }
+
+                // Arrow keys
+                ESCAPE => {
+                    match serial.next_char()? {
+                        '[' => {
+                            match serial.next_char()? {
+                                // Left arrow key: <ESC>[D
+                                'D' => {
+                                    self.buffer.shift_left(1)?;
+                                    shift_only = true;
+                                }
+                                // Right arrow key: <ESC>[C
+                                'C' => {
+                                    self.buffer.shift_right(1)?;
+                                    shift_only = true;
+                                }
+                                _ => continue,
+                            };
+                        }
+                        // Alt-b: <ESC>b
+                        'b' => {
+                            self.buffer.move_to_prev_start_of_word()?;
+                            shift_only = true;
+                        }
+                        // Alt-f: <ESC>f
+                        'f' => {
+                            self.buffer.move_past_end_of_word()?;
+                            shift_only = true;
+                        }
+                        _ => {
+                            continue;
+                        }
                     }
-                    // Alt-b: <ESC>b
-                    'b' => {
-                        buffer.move_to_prev_start_of_word()?;
-                        shift_only = true;
+                }
+
+                // Ignore all other control characters
+                // Explicitly continue so we don't redraw
+                c if c.is_ascii_control() => {
+                    continue;
+                }
+
+                // Character is entered - Echo and place on buffer
+                c => {
+                    if self.buffer.insert(c) {
+                        // This should be a bit more efficient than a complete redraw
+                        let tail = self.buffer.tail()?;
+                        write!(serial, "{c}{tail}")?;
+                        for _ in 0..tail.len() {
+                            write!(serial, "\x08")?;
+                        }
                     }
-                    // Alt-f: <ESC>f
-                    'f' => {
-                        buffer.move_past_end_of_word()?;
-                        shift_only = true;
-                    }
-                    _ => {
-                        continue;
-                    }
+                    continue;
                 }
             }
 
-            // Ignore all other control characters
-            // Explicitly continue so we don't redraw
-            c if c.is_ascii_control() => {
-                continue;
+            if shift_only {
+                // Just place the cursor correctly
+                write!(serial, "\r{prompt}{}", self.buffer.head()?)?;
+            } else {
+                write!(
+                    serial,
+                    "{CLEAR_LINE}\r{prompt}{}\r{prompt}{}",
+                    // Write whole line
+                    self.buffer.as_str()?,
+                    // Then place cursor at `byte_ptr`
+                    self.buffer.head()?
+                )?;
             }
-
-            // Character is entered - Echo and place on buffer
-            c => {
-                if buffer.insert(c) {
-                    // This should be a bit more efficient than a complete redraw
-                    let tail = buffer.tail()?;
-                    write!(serial, "{c}{tail}")?;
-                    for _ in 0..tail.len() {
-                        write!(serial, "\x08")?;
-                    }
-                }
-                continue;
-            }
-        }
-
-        if shift_only {
-            // Just place the cursor correctly
-            write!(serial, "\r{prompt}{}", buffer.head()?)?;
-        } else {
-            write!(
-                serial,
-                "{CLEAR_LINE}\r{prompt}{}\r{prompt}{}",
-                // Write whole line
-                buffer.as_str()?,
-                // Then place cursor at `byte_ptr`
-                buffer.head()?
-            )?;
         }
     }
 }

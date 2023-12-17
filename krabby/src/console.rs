@@ -1,15 +1,15 @@
 //! Kernel console
-use crate::{globals, readline::get_line, serial::Serial, KernelError, KernelResult};
+use crate::{globals, readline::Readline, serial::Serial, KernelError, KernelResult};
 use core::fmt::Write;
 use schmargs::Schmargs;
 
 /// Run the kernel console
 pub fn run_console() {
-    let mut buffer = [0u8; 64];
+    let mut readline = Readline::<64>::default();
     let mut serial = Serial::new();
 
     loop {
-        let line = get_line("KabutOS➔  ", &mut buffer).unwrap();
+        let line = readline.get_line("KabutOS➔  ").unwrap();
         if let Err(error) = parse_line(line) {
             writeln!(serial, "error: {error}").unwrap();
         }
