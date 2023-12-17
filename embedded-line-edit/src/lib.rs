@@ -1,4 +1,4 @@
-//! No-allocation line editor core
+//! `#![no_std]`-friendly line editor core
 #![cfg_attr(not(any(test, feature = "std")), no_std)]
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
@@ -519,6 +519,7 @@ mod tests {
         let mut state = LineEditState::from_buffer(buffer);
         state.insert_many("Hello🌈world!".chars());
         assert_eq!(state.as_str()?, "Hello🌈world!");
+        assert_eq!(state.len(), 15);
         Ok(())
     }
 
