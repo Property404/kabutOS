@@ -1,6 +1,6 @@
 //! Kernel console
 use crate::{globals, readline::Readline, serial::Serial, KernelError, KernelResult};
-use core::fmt::Write;
+use core::fmt::{Display, Write};
 use schmargs::Schmargs;
 
 /// Run the kernel console
@@ -26,29 +26,48 @@ fn parse_line(line: &str) -> KernelResult<()> {
     };
 
     match command {
-        "memdump" => {
-            let Some(ptr) = iter.next() else {
-                return Err(KernelError::Generic("Missing address!"));
-            };
-            let ptr: usize = ptr.parse()?;
+        HelpArgs::NAME | "?" => {
+            let command_vector: [(&'static str, &'static str, &dyn Display); 4] = [
+                (HelpArgs::NAME, HelpArgs::DESCRIPTION, &HelpArgs::help()),
+                (
+                    MemdumpArgs::NAME,
+                    MemdumpArgs::DESCRIPTION,
+                    &MemdumpArgs::help(),
+                ),
+                (FdtArgs::NAME, FdtArgs::DESCRIPTION, &FdtArgs::help()),
+                (PokeArgs::NAME, PokeArgs::DESCRIPTION, &PokeArgs::help()),
+            ];
 
-            let Some(size) = iter.next() else {
-                return Err(KernelError::Generic("Missing number of bytes!"));
-            };
-            let size: usize = size.parse()?;
+            let args = HelpArgs::parse(iter)?;
+            if let Some(command) = args.command {
+                for com in command_vector {
+                    if com.0 == command {
+                        writeln!(serial, "{}", com.2)?;
+                        return Ok(());
+                    }
+                }
+                writeln!(serial, "No command with name '{command}'")?;
+            } else {
+                for com in command_vector {
+                    writeln!(serial, "{}: {}", com.0, com.1)?;
+                }
+            }
+        }
+        MemdumpArgs::NAME => {
+            let args = MemdumpArgs::parse(iter)?;
 
-            if ptr < 4096 {
-                writeln!(serial, "Now you get what you deserve.")?;
-                // TODO: continue;
+            if (args.start as usize) < 4096 {
+                // This will crash
+                writeln!(serial, "Now you get what you deserve!")?;
             }
 
             unsafe {
-                crate::functions::dump_memory(ptr as *const u8, size)?;
+                crate::functions::dump_memory(args.start, args.len)?;
             };
         }
 
         // Display device tree
-        "fdt" => {
+        FdtArgs::NAME => {
             let args = FdtArgs::parse(iter)?;
             let device_tree = globals::get().device_tree;
 
@@ -66,7 +85,7 @@ fn parse_line(line: &str) -> KernelResult<()> {
         }
 
         // Write to byte address
-        "poke" => {
+        PokeArgs::NAME => {
             let args = PokeArgs::parse(iter)?;
 
             writeln!(serial, "Writing 0x{:02x} to {:p}", args.value, args.address)?;
@@ -78,23 +97,30 @@ fn parse_line(line: &str) -> KernelResult<()> {
         }
     }
 
-    // (prompt: &str, buffer: &'a mut [u8]
-    // parse out first word
-
-    /*
-
-    void run_console() {
-    static char input_array[64];
-    const int numbytes = readline(input_array, sizeof(input_array));
-    printf("[DEBUG]%02x|%s|\n", numbytes, input_array);
-    parseArray(input_array);
-     */
-
     Ok(())
+}
+
+/// Display help
+#[derive(Schmargs)]
+#[schmargs(name = "help")]
+struct HelpArgs<'a> {
+    /// Command for which to show help
+    command: Option<&'a str>,
 }
 
 /// Display Device Tree
 #[derive(Schmargs)]
+#[schmargs(name = "memdump")]
+struct MemdumpArgs {
+    /// Starting memory address
+    start: *const u8,
+    /// Number of bytes to read
+    len: usize,
+}
+
+/// Display Device Tree
+#[derive(Schmargs)]
+#[schmargs(name = "fdt")]
 struct FdtArgs<'a> {
     /// The path to the node to display. E.g. "/chosen"
     node: Option<&'a str>,
@@ -102,6 +128,7 @@ struct FdtArgs<'a> {
 
 /// Write to byte in memory
 #[derive(Schmargs)]
+#[schmargs(name = "poke")]
 struct PokeArgs {
     /// Address to write to
     address: *mut u8,
