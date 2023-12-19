@@ -5,11 +5,11 @@ use schmargs::Schmargs;
 
 /// Run the kernel console
 pub fn run_console() {
-    let mut readline = Readline::<64>::default();
+    let mut readline = Readline::<64, 8>::default();
     let mut serial = Serial::new();
 
     loop {
-        let line = readline.get_line("KabutOS➔  ").unwrap();
+        let line = readline.get_line("KabutOS➔ ").unwrap();
         if let Err(error) = parse_line(line) {
             writeln!(serial, "error: {error}").unwrap();
         }

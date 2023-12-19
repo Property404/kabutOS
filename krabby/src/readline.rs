@@ -5,7 +5,7 @@ use crate::{
     KernelResult,
 };
 use core::{fmt::Write, str};
-use embedded_line_edit::LineEditState;
+use embedded_line_edit::{LineEditBufferWithHistoryRing, LineEditState};
 use owo_colors::OwoColorize;
 
 const DELETE: char = '\x7F';
@@ -23,16 +23,27 @@ const CONTROL_T: char = '\x14';
 const CONTROL_W: char = '\x17';
 
 /// Readline object used to retrieve user input
-#[derive(Default)]
-pub struct Readline<const BUFFER_SIZE: usize> {
-    buffer: LineEditState<[u8; BUFFER_SIZE]>,
+pub struct Readline<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> {
+    buffer: LineEditState<LineEditBufferWithHistoryRing<[u8; BUFFER_SIZE], HISTORY_SIZE>>,
 }
 
-impl<const BUFFER_SIZE: usize> Readline<BUFFER_SIZE> {
+impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Default
+    for Readline<BUFFER_SIZE, HISTORY_SIZE>
+{
+    fn default() -> Self {
+        let buffer_with_history = LineEditBufferWithHistoryRing::from_buffer([0; BUFFER_SIZE]);
+        let buffer = LineEditState::from_buffer(buffer_with_history);
+        Self { buffer }
+    }
+}
+
+impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Readline<BUFFER_SIZE, HISTORY_SIZE> {
     /// Read line of user input
     pub fn get_line<'a>(&'a mut self, prompt: &str) -> KernelResult<&'a str> {
         let mut serial = Serial::new();
-        self.buffer.clear();
+        if !self.buffer.is_empty() {
+            self.buffer.new_history_entry();
+        }
 
         let prompt = prompt.cyan();
         write!(serial, "{prompt}")?;
@@ -113,6 +124,14 @@ impl<const BUFFER_SIZE: usize> Readline<BUFFER_SIZE> {
                                 'C' => {
                                     self.buffer.shift_right(1)?;
                                     shift_only = true;
+                                }
+                                // Up arrow key: <ESC>[A
+                                'A' => {
+                                    self.buffer.prev_history_entry();
+                                }
+                                // Down arrow key: <ESC>[B
+                                'B' => {
+                                    self.buffer.next_history_entry();
                                 }
                                 _ => continue,
                             };

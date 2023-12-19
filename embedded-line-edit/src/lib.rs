@@ -516,15 +516,15 @@ impl<T: Default + Copy, const HISTORY_SIZE: usize> Default
 
 impl<T, const HISTORY_SIZE: usize> History for LineEditBufferWithHistoryRing<T, HISTORY_SIZE>
 where
-    T: Default,
+    T: Clone,
 {
     fn new_entry(&mut self, current_entry_size: usize) {
-        self.buffers
-            .get_mut(self.index)
-            .expect("Bug: No entry for index")
-            .1 = current_entry_size;
-        self.buffers.push((Default::default(), 0));
+        self.current_mut().1 = current_entry_size;
         self.index = self.buffers.len() - 1;
+        if self.current().1 > 0 {
+            self.buffers.push((self.current().0.clone(), 0));
+            self.index = self.buffers.len() - 1;
+        }
     }
 
     fn next(&mut self, current_entry_size: usize) -> Option<usize> {
