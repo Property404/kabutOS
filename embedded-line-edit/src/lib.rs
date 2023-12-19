@@ -4,6 +4,7 @@
 #![warn(missing_docs)]
 use core::str::{self, Utf8Error};
 use derive_more::{Display, From};
+use ringbuffer::{ConstGenericRingBuffer, RingBuffer};
 use utf8_parser::{Utf8ByteType, Utf8Parser, Utf8ParserError};
 
 /// Error type used for this crate
@@ -424,6 +425,37 @@ impl<T: LineEditBuffer> LineEditState<T> {
     }
 }
 
+impl<T: History> LineEditState<T> {
+    /// Add new entry to the history
+    pub fn new_history_entry(&mut self) {
+        self.buffer.new_entry(self.byte_length);
+        self.byte_length = 0;
+        self.byte_ptr = 0;
+    }
+
+    /// Switch to the next history entry
+    ///
+    /// # Returns the size of the new buffer, or None if no new history
+    pub fn next_history_entry(&mut self) -> Option<usize> {
+        self.buffer.next(self.byte_length).map(|size| {
+            self.byte_length = size;
+            self.byte_ptr = size;
+            size
+        })
+    }
+
+    /// Switch to the previous history entry
+    ///
+    /// # Returns the size of the new buffer, or None if no old history
+    pub fn prev_history_entry(&mut self) -> Option<usize> {
+        self.buffer.prev(self.byte_length).map(|size| {
+            self.byte_length = size;
+            self.byte_ptr = size;
+            size
+        })
+    }
+}
+
 impl<const C: usize> Default for LineEditState<[u8; C]> {
     fn default() -> Self {
         LineEditState::from_buffer([0; C])
@@ -447,6 +479,136 @@ impl LineEditBuffer for Vec<u8> {
     fn request_memory(&mut self, bytes: usize) -> usize {
         self.extend(core::iter::repeat(0).take(bytes));
         bytes
+    }
+}
+
+/// Something capable of holding multiple line buffers and switching between them
+pub trait History {
+    /// Push a new history entry
+    fn new_entry(&mut self, current_entry_size: usize);
+
+    /// Switch to next buffer
+    ///
+    /// # Returns
+    /// The size of the new buffer, or None if nothing left in history
+    fn next(&mut self, current_entry_size: usize) -> Option<usize>;
+
+    /// Switch to prev buffer
+    ///
+    /// # Returns
+    /// The size of the new buffer, or None if nothing left in history
+    fn prev(&mut self, current_entry_size: usize) -> Option<usize>;
+}
+
+/// A line edit buffer with a history ring
+pub struct LineEditBufferWithHistoryRing<T, const HISTORY_SIZE: usize> {
+    buffers: ConstGenericRingBuffer<(T, usize), HISTORY_SIZE>,
+    index: usize,
+}
+
+impl<T: Default + Copy, const HISTORY_SIZE: usize> Default
+    for LineEditBufferWithHistoryRing<T, HISTORY_SIZE>
+{
+    fn default() -> Self {
+        Self::from_buffer(Default::default())
+    }
+}
+
+impl<T, const HISTORY_SIZE: usize> History for LineEditBufferWithHistoryRing<T, HISTORY_SIZE>
+where
+    T: Default,
+{
+    fn new_entry(&mut self, current_entry_size: usize) {
+        self.buffers
+            .get_mut(self.index)
+            .expect("Bug: No entry for index")
+            .1 = current_entry_size;
+        self.buffers.push((Default::default(), 0));
+        self.index = self.buffers.len() - 1;
+    }
+
+    fn next(&mut self, current_entry_size: usize) -> Option<usize> {
+        self.buffers
+            .get_mut(self.index)
+            .expect("Bug index should be valid")
+            .1 = current_entry_size;
+
+        let index = core::cmp::min(self.index + 1, self.buffers.len().saturating_sub(1));
+        if self.index == index {
+            return None;
+        }
+        self.index = index;
+        Some(
+            self.buffers
+                .get(index)
+                .expect("Bug: Index should be valid")
+                .1,
+        )
+    }
+
+    fn prev(&mut self, current_entry_size: usize) -> Option<usize> {
+        self.buffers
+            .get_mut(self.index)
+            .expect("Bug index should be valid")
+            .1 = current_entry_size;
+
+        let index = self.index.saturating_sub(1);
+        if self.index == index {
+            return None;
+        }
+        self.index = index;
+        Some(
+            self.buffers
+                .get(index)
+                .expect("Bug: Index should be valid")
+                .1,
+        )
+    }
+}
+
+impl<T, const HISTORY_SIZE: usize> LineEditBufferWithHistoryRing<T, HISTORY_SIZE> {
+    /// Construct a new [LineEditBufferWithHistoryRing] with `buffer` as the first entry
+    pub fn from_buffer(buffer: T) -> Self
+    where
+        T: Copy,
+    {
+        let mut buffers = ConstGenericRingBuffer::default();
+        buffers.push((buffer, 0));
+        Self { buffers, index: 0 }
+    }
+
+    fn current(&self) -> &(T, usize) {
+        self.buffers.get(self.index).expect("Ring buffer empty!")
+    }
+
+    fn current_mut(&mut self) -> &mut (T, usize) {
+        self.buffers
+            .get_mut(self.index)
+            .expect("Ring buffer empty!")
+    }
+}
+
+impl<T: AsRef<[u8]>, const HISTORY_SIZE: usize> AsRef<[u8]>
+    for LineEditBufferWithHistoryRing<T, HISTORY_SIZE>
+{
+    fn as_ref(&self) -> &[u8] {
+        self.current().0.as_ref()
+    }
+}
+
+impl<T: AsMut<[u8]>, const HISTORY_SIZE: usize> AsMut<[u8]>
+    for LineEditBufferWithHistoryRing<T, HISTORY_SIZE>
+{
+    fn as_mut(&mut self) -> &mut [u8] {
+        self.current_mut().0.as_mut()
+    }
+}
+
+impl<T: LineEditBuffer, const HISTORY_SIZE: usize> LineEditBuffer
+    for LineEditBufferWithHistoryRing<T, HISTORY_SIZE>
+{
+    fn request_memory(&mut self, bytes: usize) -> usize {
+        self.current_mut().0.request_memory(bytes)
     }
 }
 
@@ -659,6 +821,63 @@ mod tests {
                 state.head()?;
             }
         }
+        Ok(())
+    }
+
+    #[test]
+    fn line_edit_with_history() -> Result<(), LineEditError> {
+        let ring = LineEditBufferWithHistoryRing::<[u8; 4], 3>::default();
+        let mut state = LineEditState::from_buffer(ring);
+
+        assert_eq!(state.as_str()?, "");
+        state.insert_many("One".chars());
+        assert_eq!(state.as_str()?, "One");
+        assert!(state.next_history_entry().is_none());
+        assert!(state.prev_history_entry().is_none());
+
+        state.new_history_entry();
+        assert_eq!(state.as_str()?, "");
+        state.insert_many("Two".chars());
+        assert_eq!(state.as_str()?, "Two");
+        assert!(state.next_history_entry().is_none());
+        assert!(state.prev_history_entry().is_some());
+        assert!(state.prev_history_entry().is_none());
+        assert_eq!(state.as_str()?, "One");
+        assert!(state.next_history_entry().is_some());
+        assert_eq!(state.as_str()?, "Two");
+        assert!(state.next_history_entry().is_none());
+        assert_eq!(state.as_str()?, "Two");
+
+        state.new_history_entry();
+        state.insert_many("Three".chars());
+        assert_eq!(state.as_str()?, "Thre");
+        assert!(state.prev_history_entry().is_some());
+        assert_eq!(state.as_str()?, "Two");
+        assert!(state.prev_history_entry().is_some());
+        assert_eq!(state.as_str()?, "One");
+        assert!(state.next_history_entry().is_some());
+        assert!(state.next_history_entry().is_some());
+
+        state.new_history_entry();
+        state.insert_many("Four".chars());
+        assert_eq!(state.as_str()?, "Four");
+        assert!(state.prev_history_entry().is_some());
+        assert_eq!(state.as_str()?, "Thre");
+        assert!(state.prev_history_entry().is_some());
+        assert_eq!(state.as_str()?, "Two");
+        // All filled up!
+        assert!(state.prev_history_entry().is_none());
+
+        state.new_history_entry();
+        state.insert_many("Five".chars());
+        assert_eq!(state.as_str()?, "Five");
+        assert!(state.prev_history_entry().is_some());
+        assert_eq!(state.as_str()?, "Four");
+        assert!(state.prev_history_entry().is_some());
+        assert_eq!(state.as_str()?, "Thre");
+        // All filled up!
+        assert!(state.prev_history_entry().is_none());
+
         Ok(())
     }
 }
