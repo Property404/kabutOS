@@ -195,6 +195,7 @@ checksum = "3df6368f71f205ff9c33c076d170dd56ebf68e8161c733c0caa07a7a5509ed53"
 [[package]]
 name = "schmargs"
 version = "0.0.0"
+source = "git+https://github.com/Property404/schmargs?rev=97819273#97819273fbcf61ac1488aea39df37a4f690476f1"
 dependencies = [
  "derive_more 1.0.0-beta.6",
  "schmargs-derive",
@@ -203,6 +204,7 @@ dependencies = [
 [[package]]
 name = "schmargs-derive"
 version = "0.0.0"
+source = "git+https://github.com/Property404/schmargs?rev=97819273#97819273fbcf61ac1488aea39df37a4f690476f1"
 dependencies = [
  "anyhow",
  "proc-macro2",

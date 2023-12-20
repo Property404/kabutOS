@@ -20,7 +20,7 @@ embedded-line-edit = { version = "0.0.0", path = "../embedded-line-edit", defaul
 fdt = { git = "https://github.com/Property404/fdt", rev="5abb24aed8e5ae0ca4c0ed8a2510355c92ea7b8c", features = ["pretty-printing"] }
 heapless = "0.8.0"
 owo-colors = "3.5.0"
-schmargs = { version = "0.0.0", default-features = false, path = "../../schmargs/schmargs" }
+schmargs = { default-features = false, git = "https://github.com/Property404/schmargs", rev="97819273" }
 utf8-parser = { version = "0.0.4", default-features = false }
 
 [build-dependencies]
