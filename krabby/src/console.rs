@@ -108,7 +108,7 @@ struct HelpArgs<'a> {
     command: Option<&'a str>,
 }
 
-/// Display Device Tree
+/// Dump memory at address
 #[derive(Schmargs)]
 #[schmargs(name = "memdump")]
 struct MemdumpArgs {
