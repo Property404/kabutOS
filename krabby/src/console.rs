@@ -18,9 +18,9 @@ pub fn run_console() {
 
 fn parse_line(line: &str) -> KernelResult<()> {
     let mut serial = Serial::new();
-    let mut iter = line.split_whitespace();
+    let mut args = line.split_whitespace();
 
-    let Some(command) = iter.next() else {
+    let Some(command) = args.next() else {
         // No command entered
         return Ok(());
     };
@@ -38,7 +38,7 @@ fn parse_line(line: &str) -> KernelResult<()> {
                 (PokeArgs::NAME, PokeArgs::DESCRIPTION, &PokeArgs::help()),
             ];
 
-            let args = HelpArgs::parse(iter)?;
+            let args = HelpArgs::parse(args)?;
             if let Some(command) = args.command {
                 for com in command_vector {
                     if com.0 == command {
@@ -54,7 +54,7 @@ fn parse_line(line: &str) -> KernelResult<()> {
             }
         }
         MemdumpArgs::NAME => {
-            let args = MemdumpArgs::parse(iter)?;
+            let args = MemdumpArgs::parse(args)?;
 
             if (args.start as usize) < 4096 {
                 // This will crash
@@ -68,7 +68,7 @@ fn parse_line(line: &str) -> KernelResult<()> {
 
         // Display device tree
         FdtArgs::NAME => {
-            let args = FdtArgs::parse(iter)?;
+            let args = FdtArgs::parse(args)?;
             let device_tree = globals::get().device_tree;
 
             // If node is specified, just display that
@@ -86,7 +86,7 @@ fn parse_line(line: &str) -> KernelResult<()> {
 
         // Write to byte address
         PokeArgs::NAME => {
-            let args = PokeArgs::parse(iter)?;
+            let args = PokeArgs::parse(args)?;
 
             writeln!(serial, "Writing 0x{:02x} to {:p}", args.value, args.address)?;
             unsafe { core::ptr::write_volatile(args.address, args.value) };
