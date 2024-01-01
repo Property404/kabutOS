@@ -115,6 +115,7 @@ struct MemdumpArgs {
     /// Starting memory address
     start: *const u8,
     /// Number of bytes to read
+    #[arg(default_value = 0x100)]
     len: usize,
 }
 
