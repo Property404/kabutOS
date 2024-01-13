@@ -27,7 +27,7 @@ fn parse_line(line: &str) -> KernelResult<()> {
 
     match command {
         HelpArgs::NAME | "?" => {
-            let command_vector: [(&'static str, &'static str, &dyn Display); 4] = [
+            let command_vector: [(&'static str, &'static str, &dyn Display); 5] = [
                 (HelpArgs::NAME, HelpArgs::DESCRIPTION, &HelpArgs::help()),
                 (
                     MemdumpArgs::NAME,
@@ -36,6 +36,7 @@ fn parse_line(line: &str) -> KernelResult<()> {
                 ),
                 (FdtArgs::NAME, FdtArgs::DESCRIPTION, &FdtArgs::help()),
                 (PokeArgs::NAME, PokeArgs::DESCRIPTION, &PokeArgs::help()),
+                (PanicArgs::NAME, PanicArgs::DESCRIPTION, &PanicArgs::help()),
             ];
 
             let args = HelpArgs::parse(args)?;
