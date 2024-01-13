@@ -92,6 +92,13 @@ fn parse_line(line: &str) -> KernelResult<()> {
             unsafe { core::ptr::write_volatile(args.address, args.value) };
         }
 
+        // Panic
+        PanicArgs::NAME => {
+            let PanicArgs { message } = PanicArgs::parse(args)?;
+
+            panic!("{message}");
+        }
+
         _ => {
             return Err(KernelError::Generic("Command not found"));
         }
@@ -117,6 +124,14 @@ struct MemdumpArgs {
     /// Number of bytes to read
     #[arg(default_value = 0x100)]
     len: usize,
+}
+
+/// Force a kernel panic
+#[derive(Schmargs)]
+#[schmargs(name = "panic")]
+struct PanicArgs<'a> {
+    /// Messsage to panic with
+    message: &'a str,
 }
 
 /// Display Device Tree
