@@ -11,6 +11,7 @@ pub mod drivers;
 pub mod errors;
 pub mod functions;
 pub mod globals;
+pub mod handlers;
 pub mod panic;
 pub mod readline;
 pub mod serial;

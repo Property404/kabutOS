@@ -38,9 +38,19 @@ bss_clear:
 	la t0, kmain
 	csrw mepc, t0
 
+    // Set exception handler
+    la t0, asm_exception_handler
+    csrw mtvec, t0
+
 	/* Jump to kernel! */
 	tail kmain
 
+	.cfi_endproc
+
+asm_exception_handler:
+	.cfi_startproc
+    // Todo: Preserve registers on stack
+    call exception_handler
 	.cfi_endproc
 
 .end

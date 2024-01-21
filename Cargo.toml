@@ -7,7 +7,7 @@ members = [
 
 # Printing the device tree without optimizations overruns the stack
 [profile.dev.package.fdt]
-opt-level = 1
+opt-level = 3
 
 [profile.release]
 lto = "thin"
