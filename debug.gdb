@@ -1,3 +1,5 @@
 target remote localhost:1234
-break kmain
+break exception_handler
+break asm_exception_handler
+break enter_supervisor_mode
 layout asm

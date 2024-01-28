@@ -1,10 +1,12 @@
-.section .init
-
 # Disable compression
 .option norvc
 
+.section .init
+
 .type start, @function
 .global start
+.global enter_supervisor_mode
+.global asm_exception_handler
 start:
 	.cfi_startproc
 
@@ -51,6 +53,20 @@ asm_exception_handler:
 	.cfi_startproc
     // Todo: Preserve registers on stack
     call exception_handler
+	.cfi_endproc
+
+// Switch from machine mode to supervisor mode
+.option norvc
+enter_supervisor_mode:
+	.cfi_startproc
+
+    li		t0, (1 << 11) | (1 << 5)
+	csrw	mstatus, t0
+
+    la t5, svmain
+    csrw mepc, t5
+
+    mret
 	.cfi_endproc
 
 .end

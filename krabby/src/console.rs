@@ -1,5 +1,7 @@
 //! Kernel console
-use crate::{globals, readline::Readline, serial::Serial, KernelError, KernelResult};
+use crate::{
+    functions::GroupBytesBy, globals, readline::Readline, serial::Serial, KernelError, KernelResult,
+};
 use core::fmt::{Display, Write};
 use schmargs::Schmargs;
 
@@ -57,13 +59,25 @@ fn parse_line(line: &str) -> KernelResult<()> {
         MemdumpArgs::NAME => {
             let args = MemdumpArgs::parse(args)?;
 
+            let group_by = match args.group_by {
+                8 => GroupBytesBy::U8,
+                16 => GroupBytesBy::U16,
+                32 => GroupBytesBy::U32,
+                64 => GroupBytesBy::U64,
+                _ => {
+                    return Err(KernelError::Generic(
+                        "--group-by should be 8, 16, 32, or 64",
+                    ));
+                }
+            };
+
             if (args.start as usize) < 4096 {
                 // This will crash
                 writeln!(serial, "Now you get what you deserve!")?;
             }
 
             unsafe {
-                crate::functions::dump_memory(args.start, args.len)?;
+                crate::functions::dump_memory(args.start, args.len, args.width, group_by)?;
             };
         }
 
@@ -120,6 +134,12 @@ struct HelpArgs<'a> {
 #[derive(Schmargs)]
 #[schmargs(name = "memdump")]
 struct MemdumpArgs {
+    /// Width of each row in bytes
+    #[arg(short, long, default_value = 16)]
+    width: usize,
+    /// Group bytes by power of two
+    #[arg(short, long, default_value = 8)]
+    group_by: usize,
     /// Starting memory address
     start: *const u8,
     /// Number of bytes to read

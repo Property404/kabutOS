@@ -17,6 +17,9 @@ pub enum KernelError {
     /// Driver is uninitialized
     #[display(fmt = "Driver is uninitialized")]
     DriverUninitialized,
+    /// Invalid address
+    #[display(fmt = "Invalid address: {}", _0)]
+    InvalidAddress(usize),
     /// Converted from [core::fmt::Error]
     #[from]
     FmtError(FmtError),

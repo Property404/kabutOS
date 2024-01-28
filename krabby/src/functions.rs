@@ -1,5 +1,5 @@
 //! Functions meant to be called from `console()`
-use crate::{serial::Serial, KernelResult};
+use crate::{serial::Serial, KernelError, KernelResult};
 use core::{cmp::min, fmt::Write};
 use owo_colors::{OwoColorize, Style};
 
@@ -13,6 +13,18 @@ fn color_byte(byte: u8) -> Style {
     }
 }
 
+/// Ways a memory dump can be grouped
+pub enum GroupBytesBy {
+    /// No grouping
+    U8,
+    /// Group by 2's
+    U16,
+    /// Group by 4's
+    U32,
+    /// Group by 8's
+    U64,
+}
+
 /// Show hex dump of memory.
 ///
 /// The output is meant to look like the output of `xxd`(1)
@@ -20,31 +32,66 @@ fn color_byte(byte: u8) -> Style {
 /// # Safety
 /// Some memory is not meant to be read. Use at your own risk.
 /// Welcome to a virtual buffet of undefined behavior.
-pub unsafe fn dump_memory(mut ptr: *const u8, mut size: usize) -> KernelResult<()> {
-    const WIDTH: usize = 16;
+pub unsafe fn dump_memory(
+    mut ptr: *const u8,
+    mut size: usize,
+    width: usize,
+    group_by: GroupBytesBy,
+) -> KernelResult<()> {
     let mut serial = Serial::new();
+
+    let group = match group_by {
+        GroupBytesBy::U8 => 1,
+        GroupBytesBy::U16 => 2,
+        GroupBytesBy::U32 => 4,
+        GroupBytesBy::U64 => 8,
+    };
+
+    if width < group || width % group != 0 {
+        return Err(KernelError::Generic("Width not divisible by group"));
+    }
 
     while size > 0 {
         // Show address
         write!(serial, "{ptr:p}: ")?;
 
         // Show bytes in hex
-        for minor in (0..WIDTH).step_by(2) {
+        for minor in (0..width).step_by(group) {
             if minor < size {
-                let (byte1, byte2) =
-                    unsafe { (*(ptr.wrapping_add(minor)), *(ptr.wrapping_add(minor + 1))) };
-                let byte1 = byte1.style(color_byte(byte1));
-                let byte2 = byte2.style(color_byte(byte2));
-                write!(serial, " {byte1:02x}{byte2:02x}")?
+                match group_by {
+                    GroupBytesBy::U8 => {
+                        let byte = unsafe { *(ptr.wrapping_add(minor)) };
+                        let byte = byte.style(color_byte(byte));
+                        write!(serial, " {byte:02x}")?;
+                    }
+                    GroupBytesBy::U16 => {
+                        write!(serial, " {:04x}", unsafe {
+                            *(ptr.wrapping_add(minor) as *const u16)
+                        })?;
+                    }
+                    GroupBytesBy::U32 => {
+                        write!(serial, " {:08x}", unsafe {
+                            *(ptr.wrapping_add(minor) as *const u32)
+                        })?;
+                    }
+                    GroupBytesBy::U64 => {
+                        write!(serial, " {:016x}", unsafe {
+                            *(ptr.wrapping_add(minor) as *const u64)
+                        })?;
+                    }
+                }
             } else {
-                write!(serial, "     ")?
+                write!(serial, " ")?;
+                for _ in 0..group {
+                    write!(serial, "  ")?;
+                }
             }
         }
 
         write!(serial, "  ")?;
 
         // Show bytes in ASCII
-        for minor in 0..min(size, WIDTH) {
+        for minor in 0..min(size, width) {
             let c: u8 = unsafe { *(ptr.wrapping_add(minor)) };
             let color = color_byte(c);
             let c = if (0x20..0x7f).contains(&c) {
@@ -57,8 +104,8 @@ pub unsafe fn dump_memory(mut ptr: *const u8, mut size: usize) -> KernelResult<(
 
         writeln!(serial)?;
 
-        size = size.saturating_sub(WIDTH);
-        ptr = ptr.wrapping_add(WIDTH);
+        size = size.saturating_sub(width);
+        ptr = ptr.wrapping_add(width);
     }
 
     Ok(())
