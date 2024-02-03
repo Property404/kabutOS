@@ -8,6 +8,7 @@
 pub mod ansi_codes;
 pub mod console;
 pub mod drivers;
+mod entry;
 pub mod errors;
 pub mod functions;
 pub mod globals;

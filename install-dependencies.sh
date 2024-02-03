@@ -49,7 +49,6 @@ Help:
     fi
 
     # Install Rust Targets
-    rustup target add riscv{32,64}imac-unknown-none-elf
     rustup target add riscv64gc-unknown-none-elf
 }
 
