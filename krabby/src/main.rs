@@ -34,12 +34,13 @@ extern "C" {
 
 /// Kernel entry point
 #[no_mangle]
-unsafe fn kmain(_hart_id: usize, fdt_ptr: *const u8) {
+unsafe fn kmain(_hart_id: usize, fdt_ptr: *const u8, pmo: usize) {
     // Early init uart
     let uart_driver = Ns16550Driver::new(0x1000_0000 as *mut u8);
     unsafe { DRIVERS.uart = Some(uart_driver) };
     let _ = writeln!(Serial::new(), "Early UART initialization on!",);
-    let _ = writeln!(Serial::new(), "dt: {fdt_ptr:?}");
+    let _ = writeln!(Serial::new(), "device tree: {fdt_ptr:?}");
+    let _ = writeln!(Serial::new(), "physical memory offset: 0x{pmo:08x}");
 
     // Initialize global variables
     unsafe {

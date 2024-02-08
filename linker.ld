@@ -1,8 +1,14 @@
-ENTRY(start);
+ENTRY(preinit);
 
 . = 0x80000000;
 
 SECTIONS {
+    /* This is not mapped to virtual memory. It contains some initial code to
+     * jump to .text, but after entering supervisor mode, this is just unmapped
+     * to catch null dereferences */
+    .init_zero : ALIGN(4K) {
+        *(.init_zero)
+    }
     /* Include entry point at start of binary */
     .text : ALIGN(4K) {
         PROVIDE(kernel_start = .);

@@ -1,5 +1,6 @@
 [build]
 target = "riscv64gc-unknown-none-elf"
+rustflags = "-Crelocation-model=pie"
 
 [target.riscv64gc-unknown-none-elf]
 runner = "qemu-system-riscv64 -serial mon:stdio -nographic -machine virt -bios none -kernel"

@@ -1,9 +1,23 @@
 # Disable compression
 .option norvc
 
+
+.section .init_zero, "ax"
+.type preinit, @function
+.global preinit
+preinit:
+    # a0 contains the hart ID and a2 contains the device tree pointer
+    # Load PC into a2 and jump to start
+    .cfi_startproc
+    auipc a2, 0
+    j start
+    .cfi_endproc
+
 .section .init
 
 .type start, @function
+.type enter_supervisor_mode, @function
+.type asm_exception_handler, @function
 .global start
 .global enter_supervisor_mode
 .global asm_exception_handler
