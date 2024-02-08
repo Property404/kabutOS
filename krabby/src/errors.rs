@@ -18,8 +18,17 @@ pub enum KernelError {
     #[display(fmt = "Driver is uninitialized")]
     DriverUninitialized,
     /// Invalid address
-    #[display(fmt = "Invalid address: {}", _0)]
-    InvalidAddress(usize),
+    #[display(fmt = "Invalid virtual address: {}", _0)]
+    InvalidVirtualAddress(usize),
+    /// Invalid address
+    #[display(fmt = "Invalid physical address: {}", _0)]
+    InvalidPhysicalAddress(usize),
+    /// Address is misaligned
+    #[display(fmt = "Address not page aligned: {}", _0)]
+    AddressNotPageAligned(usize),
+    /// Misaligned size
+    #[display(fmt = "Size is misaligned: {}", _0)]
+    SizeMisaligned(usize),
     /// Converted from [core::fmt::Error]
     #[from]
     FmtError(FmtError),

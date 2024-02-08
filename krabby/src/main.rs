@@ -28,6 +28,10 @@ use core::fmt::Write;
 use fdt::Fdt;
 use owo_colors::OwoColorize;
 
+extern "C" {
+    fn enter_supervisor_mode() -> !;
+}
+
 /// Kernel entry point
 #[no_mangle]
 unsafe fn kmain(_hart_id: usize, fdt_ptr: *const u8) {
@@ -44,7 +48,13 @@ unsafe fn kmain(_hart_id: usize, fdt_ptr: *const u8) {
     }
 
     // Initialize paging
-    mmu::init_mmu();
+    mmu::init_mmu().unwrap();
+
+    mmu::identity_map_range(fdt_ptr as usize, fdt_ptr as usize + 0x4000).unwrap();
+
+    unsafe {
+        enter_supervisor_mode();
+    }
 }
 
 /// Supervisor entry point

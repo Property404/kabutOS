@@ -21,32 +21,33 @@ Help:
         esac
     done
 
-    if ! command -v apt > /dev/null; then
+    if ! command -v apt-get > /dev/null; then
         echo "This command expects Debian or Ubuntu" >&2
         return 1
     fi
 
-    local packages=" gcc-riscv64-unknown-elf "
 
     # CI doesn't need quite as much
     if [[ -z "${ci}" ]]; then
-        packages+=" vim tmux git "
+        local packages=" git "
         packages+=" binutils-riscv64-unknown-elf "
         packages+=" qemu-system-riscv64 "
         packages+=" gdb-multiarch "
         packages+=" curl "
-        packages+=" cargo "
+
+        # shellcheck disable=SC2086
+        sudo apt-get install -y ${packages}
     fi
 
-    # shellcheck disable=SC2086
-    sudo apt install ${packages}
 
     # Install RustUp if needed
     if ! command -v rustup > /dev/null; then
         curl --proto '=https' --tlsv1.3 -sSf https://sh.rustup.rs | sh
         export PATH="${PATH}:${HOME}/.cargo/bin"
-        rustup default beta
     fi
+
+    # Update
+    rustup update stable
 
     # Install Rust Targets
     rustup target add riscv64gc-unknown-none-elf

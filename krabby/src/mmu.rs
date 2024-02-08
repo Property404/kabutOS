@@ -1,9 +1,9 @@
 //! MMU and paging setup
 //!
 //! Most of this is based off <https://osblog.stephenmarz.com/ch3.2.html>
-use crate::serial::Serial;
+use crate::{serial::Serial, KernelError, KernelResult};
 use bilge::prelude::*;
-use core::{cell::RefCell, ffi::c_void, fmt::Write};
+use core::{cell::RefCell, ffi::c_void, fmt::Write, ptr};
 use critical_section::Mutex;
 
 extern "C" {
@@ -12,7 +12,6 @@ extern "C" {
     static kernel_start: c_void;
     static stack_bottom: c_void;
     static stack_top: c_void;
-    fn enter_supervisor_mode();
 }
 
 const PAGE_SIZE: usize = 4096;
@@ -79,7 +78,7 @@ impl Sv39PageTable {
 }
 
 #[bitsize(64)]
-#[derive(TryFromBits)]
+#[derive(TryFromBits, Copy, Clone)]
 pub struct Sv39VirtualAddress {
     page_offset: u12,
     vpn0: u9,
@@ -88,8 +87,37 @@ pub struct Sv39VirtualAddress {
     _ignored: u25,
 }
 
+impl Sv39VirtualAddress {
+    fn is_page_aligned(&self) -> bool {
+        usize::from(*self) & (PAGE_SIZE - 1) == 0
+    }
+
+    fn offset(&self, offset: isize) -> KernelResult<Self> {
+        let val: usize = (*self).into();
+        // Saturating is OK here, because `try_from` will error out if it's actually saturated
+        Self::try_from(val.saturating_add_signed(offset))
+    }
+}
+
+impl TryFrom<usize> for Sv39VirtualAddress {
+    type Error = KernelError;
+    fn try_from(other: usize) -> KernelResult<Self> {
+        if other > MAX_VIRTUAL_ADDRESS {
+            return Err(KernelError::InvalidVirtualAddress(other));
+        }
+        Ok(Self::try_from(other as u64)
+            .expect("Expected address to be valid since we already checked it"))
+    }
+}
+
+impl From<Sv39VirtualAddress> for usize {
+    fn from(other: Sv39VirtualAddress) -> Self {
+        other.value as Self
+    }
+}
+
 #[bitsize(64)]
-#[derive(TryFromBits)]
+#[derive(TryFromBits, Copy, Clone)]
 pub struct Sv39PhysicalAddress {
     page_offset: u12,
     ppn0: u9,
@@ -98,32 +126,56 @@ pub struct Sv39PhysicalAddress {
     _ignored: u8,
 }
 
+impl Sv39PhysicalAddress {
+    fn is_page_aligned(&self) -> bool {
+        usize::from(*self) & (PAGE_SIZE - 1) == 0
+    }
+
+    fn offset(&self, offset: isize) -> KernelResult<Self> {
+        let val: usize = (*self).into();
+        // Saturating is OK here, because `try_from` will error out if it's actually saturated
+        Self::try_from(val.saturating_add_signed(offset))
+    }
+}
+
+impl TryFrom<usize> for Sv39PhysicalAddress {
+    type Error = KernelError;
+    fn try_from(other: usize) -> KernelResult<Self> {
+        if other > MAX_PHYSICAL_ADDRESS {
+            return Err(KernelError::InvalidPhysicalAddress(other));
+        }
+        Ok(Self::try_from(other as u64)
+            .expect("Expected address to be valid since we already checked it"))
+    }
+}
+
+impl From<Sv39PhysicalAddress> for usize {
+    fn from(other: Sv39PhysicalAddress) -> Self {
+        other.value as Self
+    }
+}
+
 /// Initialize paging and all that jazz
-pub fn init_mmu() {
+pub fn init_mmu() -> KernelResult<()> {
     self_test();
 
     set_root_page_table(zalloc_page());
 
-    let (bottom, top) = unsafe {
-        (
-            &kernel_start as *const c_void as usize,
-            &heap_top as *const c_void as usize,
-        )
-    };
-    for page in (bottom..top).step_by(4096) {
-        map_vaddr_to_paddr(page, page);
-        assert_eq!(page, vaddr_to_paddr(page).unwrap());
+    unsafe {
+        identity_map_range(
+            ptr::from_ref(&kernel_start) as usize,
+            ptr::from_ref(&heap_top) as usize,
+        )?;
     }
 
-    for page in unsafe {
-        (&stack_bottom as *const c_void as usize..&stack_top as *const c_void as usize)
-            .step_by(4096)
-    } {
-        map_vaddr_to_paddr(page, page);
-        assert_eq!(page, vaddr_to_paddr(page).unwrap());
+    unsafe {
+        identity_map_range(
+            ptr::from_ref(&stack_bottom) as usize,
+            ptr::from_ref(&stack_top) as usize,
+        )?;
     }
-    map_vaddr_to_paddr(0x1000_0000, 0x1000_0000);
-    assert_eq!(0x1000_0000, vaddr_to_paddr(0x1000_0000).unwrap());
+
+    identity_map_range(0x1000_0000, 0x1000_1000)?;
 
     // Enable page protections
     // Necessary to prevent fault for mret
@@ -141,8 +193,7 @@ pub fn init_mmu() {
     // Fence
     unsafe { riscv::asm::sfence_vma_all() };
 
-    // Enter supervisor mode
-    unsafe { enter_supervisor_mode() }
+    Ok(())
 }
 
 /// Set the root page table address
@@ -162,11 +213,10 @@ fn set_root_page_table(paddr: usize) {
 }
 
 /// Get physical mapping by walking page table
-#[must_use]
-pub fn vaddr_to_paddr(vaddr: usize) -> Option<usize> {
+pub fn vaddr_to_paddr(vaddr: usize) -> KernelResult<Option<usize>> {
     let mut table =
         unsafe { Sv39PageTable::mut_from_addr(riscv::register::satp::read().ppn() << 12) };
-    let vaddr = Sv39VirtualAddress::try_from(vaddr as u64).expect("Invalid Address");
+    let vaddr = Sv39VirtualAddress::try_from(vaddr)?;
 
     // Walk page tables
     for step in 0..=2 {
@@ -175,11 +225,11 @@ pub fn vaddr_to_paddr(vaddr: usize) -> Option<usize> {
         let entry = table.entry(index);
 
         if !entry.valid() {
-            return None;
+            return Ok(None);
         }
 
         if entry.is_leaf() {
-            return Some(entry.physical_address());
+            return Ok(Some(entry.physical_address()));
         }
 
         table = unsafe { Sv39PageTable::mut_from_addr(entry.physical_address()) };
@@ -187,18 +237,52 @@ pub fn vaddr_to_paddr(vaddr: usize) -> Option<usize> {
     panic!("Walked right off the table!");
 }
 
-/// Map a virtual address to a physical address, in 4k blocks
-pub fn map_vaddr_to_paddr(vaddr: usize, paddr: usize) {
-    assert_eq!(vaddr & (PAGE_SIZE - 1), 0, "Virtual address not 4k-aligned");
-    assert_eq!(
-        paddr & (PAGE_SIZE - 1),
-        0,
-        "Physical address not 4k-aligned"
-    );
-    assert!(vaddr < MAX_VIRTUAL_ADDRESS);
-    assert!(paddr < MAX_PHYSICAL_ADDRESS);
-    let vaddr = Sv39VirtualAddress::try_from(vaddr as u64).expect("Invalid Address");
-    let paddr = Sv39PhysicalAddress::try_from(paddr as u64).expect("Invalid Address");
+/// Convenience function for identity mapping
+pub fn identity_map_page(address: usize) -> KernelResult<()> {
+    map_page(address.try_into()?, address.try_into()?)
+}
+
+/// Convenience function for identity mapping
+pub fn identity_map_range(bottom: usize, top: usize) -> KernelResult<()> {
+    assert!(top > bottom);
+    map_range(bottom.try_into()?, bottom.try_into()?, top - bottom)
+}
+
+/// Map a range of addresses
+pub fn map_range(
+    mut vaddr: Sv39VirtualAddress,
+    mut paddr: Sv39PhysicalAddress,
+    size: usize,
+) -> KernelResult<()> {
+    assert!(size > 0);
+    if !vaddr.is_page_aligned() {
+        return Err(KernelError::AddressNotPageAligned(usize::from(vaddr)));
+    }
+    if !paddr.is_page_aligned() {
+        return Err(KernelError::AddressNotPageAligned(usize::from(paddr)));
+    }
+
+    if size % PAGE_SIZE != 0 {
+        return Err(KernelError::SizeMisaligned(size));
+    }
+
+    for _ in 0..size / PAGE_SIZE {
+        map_page(vaddr, paddr)?;
+        vaddr = vaddr.offset(PAGE_SIZE as isize)?;
+        paddr = paddr.offset(PAGE_SIZE as isize)?;
+    }
+
+    Ok(())
+}
+
+/// Map a single virtual page to a physical page
+pub fn map_page(vaddr: Sv39VirtualAddress, paddr: Sv39PhysicalAddress) -> KernelResult<()> {
+    if !vaddr.is_page_aligned() {
+        return Err(KernelError::AddressNotPageAligned(usize::from(vaddr)));
+    }
+    if !paddr.is_page_aligned() {
+        return Err(KernelError::AddressNotPageAligned(usize::from(paddr)));
+    }
 
     // TODO: The page tables are shared memory, and therefore this needs to be guarded with a critical
     // section. Any access to the page tables needs to be guarded. But doing that efficiently
@@ -214,7 +298,7 @@ pub fn map_vaddr_to_paddr(vaddr: usize, paddr: usize) {
         let mut entry = table.entry(index);
         if !entry.valid() {
             let addr = zalloc_page();
-            let phys = Sv39PhysicalAddress::try_from(addr as u64).expect("Bad physical address");
+            let phys = Sv39PhysicalAddress::try_from(addr)?;
             entry = table.set_entry(
                 index,
                 Sv39PageTableEntry::new(
@@ -255,6 +339,8 @@ pub fn map_vaddr_to_paddr(vaddr: usize, paddr: usize) {
             paddr.ppn2(),
         ),
     );
+
+    Ok(())
 }
 
 /// Get a new 4k-aligned page

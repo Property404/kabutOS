@@ -19,9 +19,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Update stable toolchain
-        run: rustup update stable
-
       - name: Install Dependencies
         run: ./install-dependencies.sh --ci
 
