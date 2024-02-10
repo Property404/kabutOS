@@ -1,6 +1,6 @@
 ENTRY(preinit);
 
-. = 0x80000000;
+. = 0x00000000;
 
 SECTIONS {
     /* This is not mapped to virtual memory. It contains some initial code to
@@ -15,15 +15,20 @@ SECTIONS {
         *(.init);
         *(.text);
     }
+    .data : ALIGN(4K) {
+        *(.data);
+    }
+    .got : ALIGN(4K) {
+        PROVIDE(got_start = .);
+        *(.got*);
+        PROVIDE(got_end = .);
+    }
     .rodata : ALIGN(4K) {
         /*
          * Solves issue of rodata* being put before .text
          * https://stackoverflow.com/questions/43727214/linker-seems-to-be-placing-data-in-wrong-section
          */
         *(.rodata*);
-    }
-    .data : ALIGN(4K) {
-        *(.data);
     }
     /* Nothing past this point needs to exist in the binary file */
     .bss : ALIGN(4K) {

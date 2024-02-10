@@ -1,9 +1,9 @@
 //! MMU and paging setup
 //!
 //! Most of this is based off <https://osblog.stephenmarz.com/ch3.2.html>
-use crate::{serial::Serial, KernelError, KernelResult};
+use crate::{KernelError, KernelResult};
 use bilge::prelude::*;
-use core::{cell::RefCell, ffi::c_void, fmt::Write, ptr};
+use core::{cell::RefCell, ffi::c_void, ptr};
 use critical_section::Mutex;
 
 extern "C" {
@@ -156,22 +156,30 @@ impl From<Sv39PhysicalAddress> for usize {
 }
 
 /// Initialize paging and all that jazz
-pub fn init_mmu() -> KernelResult<()> {
+pub fn init_mmu(pmo: usize) -> KernelResult<()> {
     self_test();
 
     set_root_page_table(zalloc_page());
 
     unsafe {
-        identity_map_range(
-            ptr::from_ref(&kernel_start) as usize,
-            ptr::from_ref(&heap_top) as usize,
+        let kernel_start_addr = ptr::from_ref(&kernel_start) as usize;
+        assert!(kernel_start_addr >= pmo);
+        map_range(
+            // The GOT table was offshifted by PMO in asm, so we have to shift the virtual pages
+            // back
+            Sv39VirtualAddress::try_from(kernel_start_addr - pmo)?,
+            Sv39PhysicalAddress::try_from(kernel_start_addr)?,
+            ptr::from_ref(&heap_top) as usize - kernel_start_addr,
         )?;
     }
 
     unsafe {
-        identity_map_range(
-            ptr::from_ref(&stack_bottom) as usize,
-            ptr::from_ref(&stack_top) as usize,
+        let stack_bottom_addr = ptr::from_ref(&stack_bottom) as usize;
+        let stack_top_addr = ptr::from_ref(&stack_top) as usize;
+        map_range(
+            Sv39VirtualAddress::try_from(stack_bottom_addr - pmo)?,
+            Sv39PhysicalAddress::try_from(stack_bottom_addr)?,
+            stack_top_addr - stack_bottom_addr,
         )?;
     }
 
@@ -204,8 +212,6 @@ fn set_root_page_table(paddr: usize) {
         0,
         "Physical address not 4k-aligned"
     );
-
-    let _ = writeln!(Serial::new(), "Creating root page table @ {paddr:08x}");
 
     // PPN is 4k-aligned, and we don't store the trailing zeroes
     let paddr = (paddr) >> 12;

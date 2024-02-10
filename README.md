@@ -20,7 +20,7 @@ cargo build
 ## Running on QEMU
 
 ```bash
-cargo run
+./run.sh
 ```
 
 To exit QEMU, type `Ctrl-A` then `X`
@@ -28,11 +28,10 @@ To exit QEMU, type `Ctrl-A` then `X`
 ## Debugging
 
 ```
-cargo run -- -S -s
+./run.sh -S -s
 
 # In another terminal
-gdb-multiarch target/riscv64imac-unknown-none-elf/debug/krabby
-> target remote localhost:1234
+./debug.sh
 
 # GDB commands
 si/stepi # Step by instruction

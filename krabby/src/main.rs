@@ -6,9 +6,9 @@
 //#![warn(missing_docs)]
 
 pub mod ansi_codes;
+mod asm;
 pub mod console;
 pub mod drivers;
-mod entry;
 pub mod errors;
 pub mod functions;
 pub mod globals;
@@ -21,7 +21,7 @@ pub mod serial;
 pub use crate::errors::{KernelError, KernelResult};
 use crate::{
     console::run_console,
-    drivers::{ns16550::Ns16550Driver, DRIVERS},
+    drivers::{ns16550::Ns16550Driver, UartDriver, DRIVERS},
     serial::Serial,
 };
 use core::fmt::Write;
@@ -29,18 +29,15 @@ use fdt::Fdt;
 use owo_colors::OwoColorize;
 
 extern "C" {
-    fn enter_supervisor_mode() -> !;
+    fn enter_supervisor_mode(pmo: usize) -> !;
 }
 
-/// Kernel entry point
+/// Machine pre-mmu entry point
 #[no_mangle]
-unsafe fn kmain(_hart_id: usize, fdt_ptr: *const u8, pmo: usize) {
+unsafe fn boot(_hart_id: usize, fdt_ptr: *const u8, pmo: usize) {
     // Early init uart
     let uart_driver = Ns16550Driver::new(0x1000_0000 as *mut u8);
-    unsafe { DRIVERS.uart = Some(uart_driver) };
-    let _ = writeln!(Serial::new(), "Early UART initialization on!",);
-    let _ = writeln!(Serial::new(), "device tree: {fdt_ptr:?}");
-    let _ = writeln!(Serial::new(), "physical memory offset: 0x{pmo:08x}");
+    uart_driver.send_str("Early uart ON!\n");
 
     // Initialize global variables
     unsafe {
@@ -49,20 +46,21 @@ unsafe fn kmain(_hart_id: usize, fdt_ptr: *const u8, pmo: usize) {
     }
 
     // Initialize paging
-    mmu::init_mmu().unwrap();
+    mmu::init_mmu(pmo).unwrap();
 
     mmu::identity_map_range(fdt_ptr as usize, fdt_ptr as usize + 0x4000).unwrap();
 
     unsafe {
-        enter_supervisor_mode();
+        enter_supervisor_mode(pmo);
     }
 }
 
 /// Supervisor entry point
 #[no_mangle]
-unsafe fn svmain() {
+unsafe fn kmain() {
     // Initialize drivers
     let uart_driver = Ns16550Driver::new(0x10000000 as *mut u8);
+    uart_driver.send_str("svmain\n");
     unsafe { DRIVERS.uart = Some(uart_driver) };
 
     let mut serial = Serial::new();
