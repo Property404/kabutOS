@@ -24,6 +24,7 @@ preinit:
 start:
 	.cfi_startproc
 
+
 .option push
 # Disables relaxation. The RISC-V assembler and linker opportunistically relax some code sequences, but sometimes this behavior is not desirable.
 #  Linker relaxation is the process of finding shorted opcodes for jumps to addresses nearby.
@@ -34,6 +35,19 @@ start:
 #    alignment of code. Code that was previously aligned might be shifted.
 #    Linker relaxations might cause the opposite effect on jumps whose distance increases due to relaxation. This occurs when jumping over a memory whole between sections.
 .option norelax
+    # Before we do anything else, we need to fix up the global offset table
+    la t0, got_start
+    add t0, t0, a2
+    la t1, got_end
+    add t1, t1, a2
+    fixup_got:
+        ld t2, 0(t0)
+        add t2, t2, a2
+        sd t2, 0(t0)
+        # Todo: I think this should be 4 for 32 bits
+        addi t0, t0, 8
+        bne t0, t1, fixup_got
+
 	la gp, global_pointer
 .option pop
 
@@ -73,6 +87,24 @@ asm_exception_handler:
 .option norvc
 enter_supervisor_mode:
 	.cfi_startproc
+
+    # We messed up the global offset table, no now we have to fix it again
+    la t0, got_start
+    la t1, got_end
+    refixup_got:
+        ld t2, 0(t0)
+        sub t2, t2, a0
+        sd t2, 0(t0)
+        # Todo: I think this should be 4 for 32 bits
+        addi t0, t0, 8
+        bne t0, t1, refixup_got
+
+.option push
+.option norelax
+	la gp, global_pointer
+.option pop
+
+	la sp, stack_top
 
     li		t0, (1 << 11) | (1 << 5)
 	csrw	mstatus, t0
