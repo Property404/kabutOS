@@ -13,10 +13,10 @@ pub struct Uart {
     /// THR - Transmit Holding Register (Write only)
     /// DLL - Divisor Latch Low(R/W)
     ///
-    /// Essentially, read to receive, write to transmit UNLESS LCR[7] = 1, in which case this
+    /// Essentially, read to receive, write to transmit UNLESS LCR\[7] = 1, in which case this
     /// register will act as the Divisor Latch Low register
     pub rxtx: u32, // 0x00
-    /// Divisor Latch High (if LCR[7] = 1) or Interrupt Enable Register(if LCR[7] = 0)
+    /// Divisor Latch High (if LCR\[7] = 1) or Interrupt Enable Register(if LCR\[7] = 0)
     pub dlh_ier: u32, // 0x04
     /// Interrupt Identification Register (if read) or FIFO control register (if written)
     pub irr_fcr: u32, // 0x08
