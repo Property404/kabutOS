@@ -1,5 +1,6 @@
 //! Drivers and driver accessories
 use crate::KernelResult;
+pub mod dw_apb_uart;
 pub mod ns16550;
 use ns16550::Ns16550Driver;
 use utf8_parser::Utf8Parser;
