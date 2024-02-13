@@ -1,23 +1,23 @@
 //! Drivers and driver accessories
 use crate::KernelResult;
+use alloc::boxed::Box;
+use core::fmt::Debug;
 pub mod dw_apb_uart;
 pub mod ns16550;
-use ns16550::Ns16550Driver;
 use utf8_parser::Utf8Parser;
 
 /// Collection of initialized drivers
 #[derive(Debug)]
 pub struct Drivers {
     /// The UART driver
-    // TODO: make this dynamic
-    pub uart: Option<Ns16550Driver>,
+    pub uart: Option<Box<dyn UartDriver>>,
 }
 
 /// Global object that keeps track of initialized drivers
 pub static mut DRIVERS: Drivers = Drivers { uart: None };
 
 /// Generic driver supertrait
-pub trait Driver: Sized {}
+pub trait Driver: Debug {}
 
 /// Driver for a "disk.' This can be NOR flash, an SSD, a hard drive, or just RAM.
 pub trait DiskDriver: Driver {

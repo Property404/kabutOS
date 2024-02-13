@@ -36,8 +36,6 @@ pub struct DwApbUartDriver {
     uart: *mut Uart,
 }
 
-unsafe impl Sync for DwApbUartDriver {}
-
 impl DwApbUartDriver {
     /// Initialize the driver
     pub fn new(base_address: *mut u8) -> Self {

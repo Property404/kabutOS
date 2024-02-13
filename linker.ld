@@ -17,7 +17,7 @@ SECTIONS {
         *(.text);
     }
     .data : ALIGN(4K) {
-        *(.data);
+        *(.data*);
     }
     .got : ALIGN(4K) {
         PROVIDE(got_start = .);
@@ -40,9 +40,12 @@ SECTIONS {
         PROVIDE(bss_end = .);
     }
     .heap : ALIGN(4K) {
-        PROVIDE(heap_bottom = .);
+        *(.heap*);
+    }
+    .table_heap : ALIGN(4K) {
+        PROVIDE(table_heap_bottom = .);
         . += 32768;
-        PROVIDE(heap_top = .);
+        PROVIDE(table_heap_top = .);
     }
     /* Stack guard should be unmapped in virtual memory */
     .stack_guard : ALIGN(4K) {

@@ -7,8 +7,8 @@ use core::{cell::RefCell, ffi::c_void, ptr};
 use critical_section::Mutex;
 
 extern "C" {
-    static heap_bottom: c_void;
-    static heap_top: c_void;
+    static table_heap_bottom: c_void;
+    static table_heap_top: c_void;
     static kernel_start: c_void;
     static stack_bottom: c_void;
     static stack_top: c_void;
@@ -78,7 +78,7 @@ impl Sv39PageTable {
 }
 
 #[bitsize(64)]
-#[derive(TryFromBits, Copy, Clone)]
+#[derive(TryFromBits, Copy, Clone, DebugBits)]
 pub struct Sv39VirtualAddress {
     page_offset: u12,
     vpn0: u9,
@@ -169,7 +169,7 @@ pub fn init_mmu(pmo: isize) -> KernelResult<()> {
             // back
             Sv39VirtualAddress::try_from(kernel_start_addr.checked_add_signed(-pmo).unwrap())?,
             Sv39PhysicalAddress::try_from(kernel_start_addr)?,
-            ptr::from_ref(&heap_top) as usize - kernel_start_addr,
+            ptr::from_ref(&table_heap_top) as usize - kernel_start_addr,
         )?;
     }
 
@@ -356,13 +356,13 @@ fn kalloc_page() -> usize {
     critical_section::with(|cs| {
         let mut heap = HEAP.borrow_ref_mut(cs);
         if let Some(new_page) = *heap {
-            if new_page >= unsafe { &heap_top as *const c_void as usize } {
+            if new_page >= unsafe { &table_heap_top as *const c_void as usize } {
                 panic!("Heap overflow!");
             }
             *heap = Some(new_page + PAGE_SIZE);
             new_page
         } else {
-            let bottom = unsafe { &heap_bottom as *const c_void as usize };
+            let bottom = unsafe { &table_heap_bottom as *const c_void as usize };
             *heap = Some(bottom + PAGE_SIZE);
             bottom
         }

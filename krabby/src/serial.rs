@@ -1,8 +1,5 @@
 //! Home of the `Serial` object - used to write to serial
-use crate::{
-    drivers::{UartDriver, DRIVERS},
-    KernelError, KernelResult,
-};
+use crate::{drivers::DRIVERS, KernelError, KernelResult};
 use core::fmt::{Error, Write};
 
 /// A cheap structure used to write to serial.

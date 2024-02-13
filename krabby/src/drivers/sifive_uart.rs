@@ -35,8 +35,6 @@ pub struct SifiveUartDriver {
     uart: *mut Uart,
 }
 
-unsafe impl Sync for SifiveUartDriver {}
-
 impl SifiveUartDriver {
     /// Initialize the driver
     pub fn new(base_address: *mut u8) -> Self {

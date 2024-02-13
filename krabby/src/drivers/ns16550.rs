@@ -18,7 +18,6 @@ enum RegisterOffsets {
 pub struct Ns16550Driver {
     base_address: *mut u8,
 }
-unsafe impl Sync for Ns16550Driver {}
 
 impl Ns16550Driver {
     /// Initialize the driver
