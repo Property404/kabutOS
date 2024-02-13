@@ -35,6 +35,10 @@ start:
 #    alignment of code. Code that was previously aligned might be shifted.
 #    Linker relaxations might cause the opposite effect on jumps whose distance increases due to relaxation. This occurs when jumping over a memory whole between sections.
 .option norelax
+    # Get virtual/physical offset
+    la t0, virtual_base
+    sub a2, a2, t0
+
     # Before we do anything else, we need to fix up the global offset table
     la t0, got_start
     add t0, t0, a2
