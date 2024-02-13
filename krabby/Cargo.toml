@@ -24,5 +24,5 @@ owo-colors = "4.0.0"
 riscv = { version = "0.11.0", features = [ "critical-section-single-hart" ] }
 schmargs = { default-features = false, git = "https://github.com/Property404/schmargs", rev="c9598f31" }
 spin = "0.9.8"
-talc = "4.2.0"
+talc = { version = "4.2.0", default-features = false, features = [ "lock_api" ] }
 utf8-parser = { version = "0.0.4", default-features = false }
