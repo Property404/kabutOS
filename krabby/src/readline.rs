@@ -1,6 +1,7 @@
 //! GNU Readline-like functionality
 use crate::{
     ansi_codes::{CLEAR_LINE, CLEAR_SCREEN},
+    print, println,
     serial::Serial,
     KernelResult,
 };
@@ -46,7 +47,7 @@ impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Readline<BUFFER_SIZE, 
         }
 
         let prompt = prompt.cyan();
-        write!(serial, "{prompt}")?;
+        print!("{prompt}");
         loop {
             // For optimization purposes
             // Set to true if we're only moving the cursor
@@ -55,7 +56,7 @@ impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Readline<BUFFER_SIZE, 
             match serial.next_char()? {
                 // <Enter> is pressed. Print a new line and return
                 '\r' => {
-                    writeln!(serial)?;
+                    println!();
                     return Ok(self.buffer.as_str()?);
                 }
 
@@ -76,7 +77,7 @@ impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Readline<BUFFER_SIZE, 
 
                 // Cancel
                 CONTROL_C => {
-                    writeln!(serial)?;
+                    println!();
                     return Ok("");
                 }
 
@@ -99,7 +100,7 @@ impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Readline<BUFFER_SIZE, 
                 }
 
                 CONTROL_L => {
-                    write!(serial, "{CLEAR_SCREEN}")?;
+                    print!("{CLEAR_SCREEN}");
                 }
 
                 CONTROL_T => {
@@ -163,9 +164,9 @@ impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Readline<BUFFER_SIZE, 
                     if self.buffer.insert(c) {
                         // This should be a bit more efficient than a complete redraw
                         let tail = self.buffer.tail()?;
-                        write!(serial, "{c}{tail}")?;
+                        print!("{c}{tail}");
                         for _ in 0..tail.len() {
-                            write!(serial, "\x08")?;
+                            print!("\x08");
                         }
                     }
                     continue;

@@ -1,6 +1,6 @@
 //! Functions meant to be called from `console()`
-use crate::{serial::Serial, KernelError, KernelResult};
-use core::{cmp::min, fmt::Write};
+use crate::{print, println, KernelError, KernelResult};
+use core::cmp::min;
 use owo_colors::{OwoColorize, Style};
 
 fn color_byte(byte: u8) -> Style {
@@ -38,8 +38,6 @@ pub unsafe fn dump_memory(
     width: usize,
     group_by: GroupBytesBy,
 ) -> KernelResult<()> {
-    let mut serial = Serial::new();
-
     let group = match group_by {
         GroupBytesBy::U8 => 1,
         GroupBytesBy::U16 => 2,
@@ -53,7 +51,7 @@ pub unsafe fn dump_memory(
 
     while size > 0 {
         // Show address
-        write!(serial, "{ptr:p}: ")?;
+        print!("{ptr:p}: ");
 
         // Show bytes in hex
         for minor in (0..width).step_by(group) {
@@ -62,33 +60,33 @@ pub unsafe fn dump_memory(
                     GroupBytesBy::U8 => {
                         let byte = unsafe { *(ptr.wrapping_add(minor)) };
                         let byte = byte.style(color_byte(byte));
-                        write!(serial, " {byte:02x}")?;
+                        print!(" {byte:02x}");
                     }
                     GroupBytesBy::U16 => {
-                        write!(serial, " {:04x}", unsafe {
+                        print!(" {:04x}", unsafe {
                             *(ptr.wrapping_add(minor) as *const u16)
-                        })?;
+                        });
                     }
                     GroupBytesBy::U32 => {
-                        write!(serial, " {:08x}", unsafe {
+                        print!(" {:08x}", unsafe {
                             *(ptr.wrapping_add(minor) as *const u32)
-                        })?;
+                        });
                     }
                     GroupBytesBy::U64 => {
-                        write!(serial, " {:016x}", unsafe {
+                        print!(" {:016x}", unsafe {
                             *(ptr.wrapping_add(minor) as *const u64)
-                        })?;
+                        });
                     }
                 }
             } else {
-                write!(serial, " ")?;
+                print!(" ");
                 for _ in 0..group {
-                    write!(serial, "  ")?;
+                    print!("  ");
                 }
             }
         }
 
-        write!(serial, "  ")?;
+        print!("  ");
 
         // Show bytes in ASCII
         for minor in 0..min(size, width) {
@@ -99,10 +97,10 @@ pub unsafe fn dump_memory(
             } else {
                 '.'
             };
-            write!(serial, "{}", c.style(color))?;
+            print!("{}", c.style(color));
         }
 
-        writeln!(serial)?;
+        println!();
 
         size = size.saturating_sub(width);
         ptr = ptr.wrapping_add(width);

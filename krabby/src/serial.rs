@@ -41,3 +41,29 @@ impl Write for Serial {
         Ok(())
     }
 }
+
+// Macros copied from <https://osblog.stephenmarz.com/ch2.html>
+
+#[macro_export]
+macro_rules! print
+{
+	($($args:tt)+) => ({
+			use core::fmt::Write;
+            use $crate::serial::Serial;
+			let _ = write!(Serial::new(), $($args)+);
+	});
+}
+
+#[macro_export]
+macro_rules! println
+{
+	() => ({
+		print!("\r\n")
+	});
+	($($args:tt)+) => ({
+			use core::fmt::Write;
+            use $crate::serial::Serial;
+			let _ = write!(Serial::new(), $($args)+);
+            let _ = write!(Serial::new(), "\n");
+	});
+}

@@ -1,25 +1,23 @@
 //! Kernel console
 use crate::{
-    functions::GroupBytesBy, globals, readline::Readline, serial::Serial, KernelError, KernelResult,
+    functions::GroupBytesBy, globals, println, readline::Readline, KernelError, KernelResult,
 };
-use core::fmt::{Display, Write};
+use core::fmt::Display;
 use schmargs::Schmargs;
 
 /// Run the kernel console
 pub fn run_console() {
     let mut readline = Readline::<64, 8>::default();
-    let mut serial = Serial::new();
 
     loop {
         let line = readline.get_line("KabutOS➔ ").unwrap();
         if let Err(error) = parse_line(line) {
-            writeln!(serial, "error: {error}").unwrap();
+            println!("error: {error}");
         }
     }
 }
 
 fn parse_line(line: &str) -> KernelResult<()> {
-    let mut serial = Serial::new();
     let mut args = line.split_whitespace();
 
     let Some(command) = args.next() else {
@@ -45,14 +43,14 @@ fn parse_line(line: &str) -> KernelResult<()> {
             if let Some(command) = args.command {
                 for com in command_vector {
                     if com.0 == command {
-                        writeln!(serial, "{}", com.2)?;
+                        println!("{}", com.2);
                         return Ok(());
                     }
                 }
-                writeln!(serial, "No command with name '{command}'")?;
+                println!("No command with name '{command}'");
             } else {
                 for com in command_vector {
-                    writeln!(serial, "{}: {}", com.0, com.1)?;
+                    println!("{}: {}", com.0, com.1);
                 }
             }
         }
@@ -73,7 +71,7 @@ fn parse_line(line: &str) -> KernelResult<()> {
 
             if (args.start as usize) < 4096 {
                 // This will crash
-                writeln!(serial, "Now you get what you deserve!")?;
+                println!("Now you get what you deserve!");
             }
 
             unsafe {
@@ -89,13 +87,13 @@ fn parse_line(line: &str) -> KernelResult<()> {
             // If node is specified, just display that
             if let Some(node) = args.node {
                 if let Some(node) = device_tree.find_node(node) {
-                    writeln!(serial, "{node}")?;
+                    println!("{node}");
                 } else {
                     return Err(KernelError::Generic("Node doesn't exist"));
                 }
             // Otherwise display the whole tree
             } else {
-                writeln!(serial, "{device_tree:?}")?;
+                println!("{device_tree:?}");
             }
         }
 
@@ -103,7 +101,7 @@ fn parse_line(line: &str) -> KernelResult<()> {
         PokeArgs::NAME => {
             let args = PokeArgs::parse(args)?;
 
-            writeln!(serial, "Writing 0x{:02x} to {:p}", args.value, args.address)?;
+            println!("Writing 0x{:02x} to {:p}", args.value, args.address);
             unsafe { core::ptr::write_volatile(args.address, args.value) };
         }
 
