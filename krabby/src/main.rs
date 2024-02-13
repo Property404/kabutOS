@@ -29,12 +29,12 @@ use fdt::Fdt;
 use owo_colors::OwoColorize;
 
 extern "C" {
-    fn enter_supervisor_mode(pmo: usize) -> !;
+    fn enter_supervisor_mode(pmo: isize) -> !;
 }
 
 /// Machine pre-mmu entry point
 #[no_mangle]
-unsafe fn boot(_hart_id: usize, fdt_ptr: *const u8, pmo: usize) {
+unsafe fn boot(_hart_id: usize, fdt_ptr: *const u8, pmo: isize) {
     // Early init uart
     let uart_driver = Ns16550Driver::new(0x1000_0000 as *mut u8);
     uart_driver.send_str("Early uart ON!\n");

@@ -156,18 +156,18 @@ impl From<Sv39PhysicalAddress> for usize {
 }
 
 /// Initialize paging and all that jazz
-pub fn init_mmu(pmo: usize) -> KernelResult<()> {
+pub fn init_mmu(pmo: isize) -> KernelResult<()> {
     self_test();
 
     set_root_page_table(zalloc_page());
 
     unsafe {
         let kernel_start_addr = ptr::from_ref(&kernel_start) as usize;
-        assert!(kernel_start_addr >= pmo);
+        assert!((kernel_start_addr as isize) >= pmo);
         map_range(
             // The GOT table was offshifted by PMO in asm, so we have to shift the virtual pages
             // back
-            Sv39VirtualAddress::try_from(kernel_start_addr - pmo)?,
+            Sv39VirtualAddress::try_from(kernel_start_addr.checked_add_signed(-pmo).unwrap())?,
             Sv39PhysicalAddress::try_from(kernel_start_addr)?,
             ptr::from_ref(&heap_top) as usize - kernel_start_addr,
         )?;
@@ -177,7 +177,7 @@ pub fn init_mmu(pmo: usize) -> KernelResult<()> {
         let stack_bottom_addr = ptr::from_ref(&stack_bottom) as usize;
         let stack_top_addr = ptr::from_ref(&stack_top) as usize;
         map_range(
-            Sv39VirtualAddress::try_from(stack_bottom_addr - pmo)?,
+            Sv39VirtualAddress::try_from(stack_bottom_addr.checked_add_signed(-pmo).unwrap())?,
             Sv39PhysicalAddress::try_from(stack_bottom_addr)?,
             stack_top_addr - stack_bottom_addr,
         )?;
