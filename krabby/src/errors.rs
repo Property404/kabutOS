@@ -29,6 +29,9 @@ pub enum KernelError {
     /// Misaligned size
     #[display(fmt = "Size is misaligned: {}", _0)]
     SizeMisaligned(usize),
+    /// Missing FDT node property
+    #[display(fmt = "Missing FDT node property: {}", _0)]
+    MissingProperty(&'static str),
     /// Converted from [core::fmt::Error]
     #[from]
     FmtError(FmtError),

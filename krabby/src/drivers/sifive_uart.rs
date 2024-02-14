@@ -4,9 +4,11 @@
 //!     <https://github.com/riscv-software-src/opensbi/blob/master/lib/utils/serial/sifive-uart.c>
 //!     Copyright (c) 2019 Western Digital Corporation or its affiliates, under the BSD license.
 //!     Author: Anup Patel
-use crate::drivers::{Driver, UartDriver};
+use crate::{drivers::UartDriver, KernelError, KernelResult};
+use alloc::boxed::Box;
 use bilge::prelude::*;
 use core::ptr::{self, read_volatile, write_volatile};
+use fdt::node::FdtNode;
 
 // Memory-mapped Sifive Uart
 #[repr(C, packed(32))]
@@ -36,6 +38,26 @@ pub struct SifiveUartDriver {
 }
 
 impl SifiveUartDriver {
+    const COMPATIBLE_STRING: &'static str = "sifive,uart0";
+
+    /// Initialize the driver
+    pub fn maybe_from_node(node: &FdtNode) -> KernelResult<Option<Box<dyn UartDriver>>> {
+        let Some(compatible) = node.compatible() else {
+            return Ok(None);
+        };
+        if compatible.first() != Self::COMPATIBLE_STRING {
+            return Ok(None);
+        }
+
+        let base_address = node
+            .reg()
+            .and_then(|mut v| v.next())
+            .ok_or(KernelError::MissingProperty("reg"))?
+            .starting_address;
+
+        Ok(Some(Box::new(Self::new(base_address as *mut u8))))
+    }
+
     /// Initialize the driver
     pub fn new(base_address: *mut u8) -> Self {
         let uart = base_address as *mut Uart;
@@ -53,8 +75,6 @@ impl SifiveUartDriver {
         Self { uart }
     }
 }
-
-impl Driver for SifiveUartDriver {}
 
 impl UartDriver for SifiveUartDriver {
     fn next_byte(&self) -> u8 {

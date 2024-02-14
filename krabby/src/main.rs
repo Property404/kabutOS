@@ -25,7 +25,6 @@ use crate::{
     console::run_console,
     drivers::{ns16550::Ns16550Driver, UartDriver, DRIVERS},
 };
-use alloc::boxed::Box;
 use fdt::Fdt;
 use owo_colors::OwoColorize;
 
@@ -64,9 +63,7 @@ unsafe fn boot(_hart_id: usize, fdt_ptr: *const u8, pmo: isize) {
 #[no_mangle]
 unsafe fn kmain() {
     // Initialize drivers
-    let uart_driver = Ns16550Driver::new(0x10000000 as *mut u8);
-    uart_driver.send_str("kmain\n");
-    unsafe { DRIVERS.uart = Some(Box::new(uart_driver)) };
+    unsafe { DRIVERS.init(&globals::get().device_tree).unwrap() };
 
     println!("{}", "Welcome to KabutOS!!!".cyan().bold());
 

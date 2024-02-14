@@ -2,8 +2,9 @@
 use crate::KernelResult;
 use alloc::boxed::Box;
 use core::fmt::Debug;
-pub mod dw_apb_uart;
+use fdt::{node::FdtNode, Fdt};
 pub mod ns16550;
+pub mod sifive_uart;
 use utf8_parser::Utf8Parser;
 
 /// Collection of initialized drivers
@@ -13,14 +14,36 @@ pub struct Drivers {
     pub uart: Option<Box<dyn UartDriver>>,
 }
 
+impl Drivers {
+    fn init_uart(&mut self, node: &FdtNode) -> KernelResult<()> {
+        // Don't reinit
+        if self.uart.is_some() {
+            return Ok(());
+        }
+
+        self.uart = ns16550::Ns16550Driver::maybe_from_node(node)
+            .transpose()
+            .or_else(|| sifive_uart::SifiveUartDriver::maybe_from_node(node).transpose())
+            .transpose()?;
+
+        Ok(())
+    }
+
+    pub fn init(&mut self, fdt: &Fdt) -> KernelResult<()> {
+        let chosen = fdt.chosen();
+        if let Some(stdout) = chosen.stdout() {
+            self.init_uart(&stdout.node())?;
+        }
+
+        Ok(())
+    }
+}
+
 /// Global object that keeps track of initialized drivers
 pub static mut DRIVERS: Drivers = Drivers { uart: None };
 
-/// Generic driver supertrait
-pub trait Driver: Debug {}
-
 /// Driver for a "disk.' This can be NOR flash, an SSD, a hard drive, or just RAM.
-pub trait DiskDriver: Driver {
+pub trait DiskDriver: Debug {
     /// Read one byte from `address`
     fn read8(&self, address: usize) -> KernelResult<u8>;
     /// Write one byte to `address`
@@ -28,7 +51,7 @@ pub trait DiskDriver: Driver {
 }
 
 /// A UART/serial driver
-pub trait UartDriver: Driver {
+pub trait UartDriver: Debug {
     /// Read the next byte out of the UART
     fn next_byte(&self) -> u8;
 
