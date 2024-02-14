@@ -20,7 +20,7 @@ cargo build
 ## Running on QEMU
 
 ```bash
-./run.sh
+cargo run
 ```
 
 To exit QEMU, type `Ctrl-A` then `X`
@@ -28,7 +28,7 @@ To exit QEMU, type `Ctrl-A` then `X`
 ## Debugging
 
 ```
-./run.sh -S -s
+cargo run -- -S -s
 
 # In another terminal
 ./debug.sh
@@ -43,7 +43,9 @@ continue # continue until breakpoint
 
 ## Setting up Distrobox
 
-This not required for all distros, but is required for development on Fedora
+While KabutOS will build anywhere, a GDB build for RISC-V is lacking in the
+Fedora system packages, so installing Debian via Distrobox is useful for
+debugging.
 
 Install Distrobox:
 
