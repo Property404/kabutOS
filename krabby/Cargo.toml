@@ -21,7 +21,7 @@ embedded-line-edit = { version = "0.0.0", path = "../embedded-line-edit", defaul
 # upstream currently cannot pretty-print individual nodes
 fdt = { git = "https://github.com/Property404/fdt", rev="5abb24aed8e5ae0ca4c0ed8a2510355c92ea7b8c", features = ["pretty-printing"] }
 owo-colors = "4.0.0"
-riscv = { version = "0.11.0", features = [ "critical-section-single-hart" ] }
+riscv = { version = "0.11.0", features = [ "critical-section-single-hart", "s-mode" ] }
 schmargs = { default-features = false, git = "https://github.com/Property404/schmargs", rev="c9598f31" }
 spin = "0.9.8"
 talc = { version = "4.2.0", default-features = false, features = [ "lock_api" ] }

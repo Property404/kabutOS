@@ -183,8 +183,6 @@ pub fn init_mmu(pmo: isize) -> KernelResult<()> {
         )?;
     }
 
-    identity_map_range(0x1000_0000, 0x1000_1000)?;
-
     // Enable page protections
     // Necessary to prevent fault for mret
     // Don't fully understand this yet 😅
