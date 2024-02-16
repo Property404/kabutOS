@@ -53,7 +53,6 @@ unsafe fn boot(_hart_id: usize, fdt_ptr: *const u8, pmo: isize) {
     uart_driver.send_str("> fdt\n");
     mmu::identity_map_range(fdt_ptr as usize, fdt_ptr as usize + 0x4000).unwrap();
 
-
     unsafe {
         uart_driver.send_str("> entering sv mode\n");
         enter_supervisor_mode(pmo);
@@ -69,7 +68,6 @@ unsafe fn kmain() {
 
     // Initialize drivers
     unsafe { DRIVERS.init(&globals::get().device_tree).unwrap() };
-
 
     println!("{}", "Welcome to KabutOS!!!".cyan().bold());
 
