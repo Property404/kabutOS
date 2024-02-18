@@ -112,6 +112,18 @@ fn parse_line(line: &str) -> KernelResult<()> {
             panic!("{message}");
         }
 
+        // Control and Status registers
+        CsrArgs::NAME => {
+            let CsrArgs {} = CsrArgs::parse(args)?;
+
+            let sstatus = riscv::register::sstatus::read();
+            println!("sstatus:");
+            println!("\tsie: {}", sstatus.sie());
+            println!("\tspie: {}", sstatus.spie());
+            println!("\tspp: {:?}", sstatus.spp());
+            println!("\tsum: {}", sstatus.sum());
+        }
+
         _ => {
             return Err(KernelError::Generic("Command not found"));
         }
@@ -170,3 +182,8 @@ struct PokeArgs {
     /// Value to write
     value: u8,
 }
+
+/// Show control and status regs
+#[derive(Schmargs)]
+#[schmargs(name = "csr")]
+struct CsrArgs {}
