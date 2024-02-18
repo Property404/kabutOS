@@ -46,8 +46,10 @@ macro_rules! print
 {
 	($($args:tt)+) => ({
 			use core::fmt::Write;
-            use $crate::serial::Serial;
-			let _ = write!(Serial::new(), $($args)+);
+            use $crate::{drivers::DRIVERS, serial::Serial};
+            if let Some(_uart) = unsafe { &DRIVERS.uart } {
+                let _ = write!(Serial::new(), $($args)+);
+            }
 	});
 }
 
@@ -55,12 +57,14 @@ macro_rules! print
 macro_rules! println
 {
 	() => ({
-		print!("\r\n")
+		print!("\n")
 	});
 	($($args:tt)+) => ({
-			use core::fmt::Write;
-            use $crate::serial::Serial;
+        use core::fmt::Write;
+        use $crate::{drivers::DRIVERS, serial::Serial};
+        if let Some(_uart) = unsafe { &DRIVERS.uart } {
 			let _ = write!(Serial::new(), $($args)+);
             let _ = write!(Serial::new(), "\n");
+        }
 	});
 }
