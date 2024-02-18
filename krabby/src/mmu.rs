@@ -14,7 +14,7 @@ extern "C" {
     static stack_top: c_void;
 }
 
-const PAGE_SIZE: usize = 4096;
+pub const PAGE_SIZE: usize = 4096;
 const MAX_VIRTUAL_ADDRESS: usize = (1 << 39) - 1;
 const MAX_PHYSICAL_ADDRESS: usize = (1 << 56) - 1;
 const ENTRIES_IN_PAGE_TABLE: usize = 512;

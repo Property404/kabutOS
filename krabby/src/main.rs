@@ -51,7 +51,8 @@ unsafe fn boot(_hart_id: usize, fdt_ptr: *const u8, pmo: isize) {
     mmu::init_mmu(pmo).unwrap();
 
     uart_driver.send_str("> fdt\n");
-    mmu::identity_map_range(fdt_ptr as usize, fdt_ptr as usize + 0x4000).unwrap();
+    let fdt_page = fdt_ptr as usize & !(mmu::PAGE_SIZE);
+    mmu::identity_map_range(fdt_page, fdt_page + 0x4000).unwrap();
 
     unsafe {
         uart_driver.send_str("> entering sv mode\n");
