@@ -51,7 +51,7 @@ unsafe fn boot(_hart_id: usize, fdt_ptr: *const u8, pmo: isize) {
     mmu::init_mmu(pmo).unwrap();
 
     uart_driver.send_str("> fdt\n");
-    let fdt_page = fdt_ptr as usize & !(mmu::PAGE_SIZE);
+    let fdt_page = fdt_ptr as usize & !(mmu::PAGE_SIZE - 1);
     mmu::identity_map_range(fdt_page, fdt_page + 0x4000).unwrap();
 
     unsafe {
