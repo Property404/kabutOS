@@ -1,10 +1,24 @@
 //! MMU and paging setup
 //!
 //! Most of this is based off <https://osblog.stephenmarz.com/ch3.2.html>
-use crate::{KernelError, KernelResult};
+use crate::{println, serial::Serial, KernelError, KernelResult};
 use bilge::prelude::*;
-use core::{cell::RefCell, ffi::c_void, ptr};
+use core::{
+    cell::{Cell, RefCell},
+    ffi::c_void,
+    fmt::Write,
+    ptr,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 use critical_section::Mutex;
+
+/// The root kernel-space page table
+#[link_section = ".kernel_root_page_table"]
+pub static ROOT_PAGE_TABLE: Mutex<RefCell<Sv39PageTable>> =
+    Mutex::new(RefCell::new(Sv39PageTable::new()));
+
+// Offset between kernel space and physical memory
+pub static PHYSICAL_MEMORY_OFFSET: Mutex<Cell<isize>> = Mutex::new(Cell::new(0));
 
 extern "C" {
     static table_heap_bottom: c_void;
@@ -34,6 +48,10 @@ pub struct Sv39PageTableEntry {
 }
 
 impl Sv39PageTableEntry {
+    const fn zero() -> Self {
+        Self { value: 0 }
+    }
+
     /// Is this a leaf node(i.e., does not link to a page table)?
     pub fn is_leaf(&self) -> bool {
         self.read() | self.write() | self.execute()
@@ -56,11 +74,18 @@ impl Sv39PageTableEntry {
     }
 }
 
+#[repr(align(4096))]
 pub struct Sv39PageTable {
     pub entries: [Sv39PageTableEntry; ENTRIES_IN_PAGE_TABLE],
 }
 
 impl Sv39PageTable {
+    const fn new() -> Self {
+        Self {
+            entries: [Sv39PageTableEntry::zero(); ENTRIES_IN_PAGE_TABLE],
+        }
+    }
+
     unsafe fn mut_from_addr<'a>(address: usize) -> &'a mut Self {
         unsafe { &mut *(address as *mut Self) }
     }
@@ -155,34 +180,8 @@ impl From<Sv39PhysicalAddress> for usize {
     }
 }
 
-/// Initialize paging and all that jazz
+/// Start the MMU
 pub fn init_mmu(pmo: isize) -> KernelResult<()> {
-    self_test();
-
-    set_root_page_table(zalloc_page());
-
-    unsafe {
-        let kernel_start_addr = ptr::from_ref(&kernel_start) as usize;
-        assert!((kernel_start_addr as isize) >= pmo);
-        map_range(
-            // The GOT table was offshifted by PMO in asm, so we have to shift the virtual pages
-            // back
-            Sv39VirtualAddress::try_from(kernel_start_addr.checked_add_signed(-pmo).unwrap())?,
-            Sv39PhysicalAddress::try_from(kernel_start_addr)?,
-            ptr::from_ref(&table_heap_top) as usize - kernel_start_addr,
-        )?;
-    }
-
-    unsafe {
-        let stack_bottom_addr = ptr::from_ref(&stack_bottom) as usize;
-        let stack_top_addr = ptr::from_ref(&stack_top) as usize;
-        map_range(
-            Sv39VirtualAddress::try_from(stack_bottom_addr.checked_add_signed(-pmo).unwrap())?,
-            Sv39PhysicalAddress::try_from(stack_bottom_addr)?,
-            stack_top_addr - stack_bottom_addr,
-        )?;
-    }
-
     // Enable page protections
     // Necessary to prevent fault for mret
     // Don't fully understand this yet 😅
@@ -199,11 +198,65 @@ pub fn init_mmu(pmo: isize) -> KernelResult<()> {
     // Fence
     unsafe { riscv::asm::sfence_vma_all() };
 
+    // Set PMO
+    critical_section::with(|cs| {
+        PHYSICAL_MEMORY_OFFSET.borrow(cs).set(pmo);
+    });
+
+    Ok(())
+}
+
+/// Initialize paging and all that jazz
+pub fn init_page_tables(pmo: isize) -> KernelResult<()> {
+    self_test();
+
+    set_root_page_table();
+
+    critical_section::with(|cs| {
+        let mut root_page_table = ROOT_PAGE_TABLE.borrow_ref_mut(cs);
+        map_kernel_space(&mut root_page_table, pmo)
+    })?;
+
+    Ok(())
+}
+
+pub fn map_kernel_space(table: &mut Sv39PageTable, pmo: isize) -> KernelResult<()> {
+    unsafe {
+        let kernel_start_addr = ptr::from_ref(&kernel_start) as usize;
+        assert!((kernel_start_addr as isize) >= pmo);
+        map_range(
+            table,
+            // The GOT table was offshifted by PMO in asm, so we have to shift the virtual pages
+            // back
+            Sv39VirtualAddress::try_from(kernel_start_addr.checked_add_signed(-pmo).unwrap())?,
+            Sv39PhysicalAddress::try_from(kernel_start_addr)?,
+            ptr::from_ref(&table_heap_top) as usize - kernel_start_addr,
+        )?;
+    }
+
+    unsafe {
+        let stack_bottom_addr = ptr::from_ref(&stack_bottom) as usize;
+        let stack_top_addr = ptr::from_ref(&stack_top) as usize;
+        map_range(
+            table,
+            Sv39VirtualAddress::try_from(stack_bottom_addr.checked_add_signed(-pmo).unwrap())?,
+            Sv39PhysicalAddress::try_from(stack_bottom_addr)?,
+            stack_top_addr - stack_bottom_addr,
+        )?;
+    }
+
     Ok(())
 }
 
 /// Set the root page table address
-fn set_root_page_table(paddr: usize) {
+fn set_root_page_table() {
+    let paddr = critical_section::with(|cs| {
+        // We have to make sure we're actually getting the table address here
+        let table = ROOT_PAGE_TABLE.borrow(cs);
+        let table: &Sv39PageTable = &table.borrow();
+        ptr::from_ref(table) as usize
+    });
+
     assert!(paddr < MAX_PHYSICAL_ADDRESS);
     assert_eq!(
         paddr & (PAGE_SIZE - 1),
@@ -217,9 +270,7 @@ fn set_root_page_table(paddr: usize) {
 }
 
 /// Get physical mapping by walking page table
-pub fn vaddr_to_paddr(vaddr: usize) -> KernelResult<Option<usize>> {
-    let mut table =
-        unsafe { Sv39PageTable::mut_from_addr(riscv::register::satp::read().ppn() << 12) };
+pub fn vaddr_to_paddr(mut table: &Sv39PageTable, vaddr: usize) -> KernelResult<Option<usize>> {
     let vaddr = Sv39VirtualAddress::try_from(vaddr)?;
 
     // Walk page tables
@@ -241,23 +292,31 @@ pub fn vaddr_to_paddr(vaddr: usize) -> KernelResult<Option<usize>> {
     panic!("Walked right off the table!");
 }
 
-/// Convenience function for identity mapping
-pub fn identity_map_page(address: usize) -> KernelResult<()> {
-    map_page(address.try_into()?, address.try_into()?)
-}
-
-/// Convenience function for identity mapping
-pub fn identity_map_range(bottom: usize, top: usize) -> KernelResult<()> {
-    assert!(top > bottom);
-    map_range(bottom.try_into()?, bottom.try_into()?, top - bottom)
+/// Map a memory-mapped device to kernel space
+pub fn map_device(phys_address: usize, size: usize) -> KernelResult<usize> {
+    Serial::new().write_str("<map_device>\n")?;
+    assert!(size >= 0x1000);
+    let virt_address = phys_address;
+    critical_section::with(|cs| {
+        let mut root_page_table = ROOT_PAGE_TABLE.borrow_ref_mut(cs);
+        map_range(
+            &mut root_page_table,
+            phys_address.try_into()?,
+            virt_address.try_into()?,
+            size,
+        )
+    })?;
+    Ok(virt_address)
 }
 
 /// Map a range of addresses
 pub fn map_range(
+    table: &mut Sv39PageTable,
     mut vaddr: Sv39VirtualAddress,
     mut paddr: Sv39PhysicalAddress,
     size: usize,
 ) -> KernelResult<()> {
+    println!("<map_range table={:?}>", table as *mut Sv39PageTable);
     assert!(size > 0);
     if !vaddr.is_page_aligned() {
         return Err(KernelError::AddressNotPageAligned(usize::from(vaddr)));
@@ -271,7 +330,7 @@ pub fn map_range(
     }
 
     for _ in 0..size / PAGE_SIZE {
-        map_page(vaddr, paddr)?;
+        map_page(table, vaddr, paddr)?;
         vaddr = vaddr.offset(PAGE_SIZE as isize)?;
         paddr = paddr.offset(PAGE_SIZE as isize)?;
     }
@@ -280,7 +339,12 @@ pub fn map_range(
 }
 
 /// Map a single virtual page to a physical page
-pub fn map_page(vaddr: Sv39VirtualAddress, paddr: Sv39PhysicalAddress) -> KernelResult<()> {
+pub fn map_page(
+    mut table: &mut Sv39PageTable,
+    vaddr: Sv39VirtualAddress,
+    paddr: Sv39PhysicalAddress,
+) -> KernelResult<()> {
+    println!("<map_page table={:?}>", table as *mut Sv39PageTable);
     if !vaddr.is_page_aligned() {
         return Err(KernelError::AddressNotPageAligned(usize::from(vaddr)));
     }
@@ -288,12 +352,7 @@ pub fn map_page(vaddr: Sv39VirtualAddress, paddr: Sv39PhysicalAddress) -> Kernel
         return Err(KernelError::AddressNotPageAligned(usize::from(paddr)));
     }
 
-    // TODO: The page tables are shared memory, and therefore this needs to be guarded with a critical
-    // section. Any access to the page tables needs to be guarded. But doing that efficiently
-    // seems..complicated?
-
-    let mut table =
-        unsafe { Sv39PageTable::mut_from_addr(riscv::register::satp::read().ppn() << 12) };
+    let pmo = critical_section::with(|cs| PHYSICAL_MEMORY_OFFSET.borrow(cs).get());
 
     // Walk page tables
     for step in 0..2 {
@@ -301,7 +360,7 @@ pub fn map_page(vaddr: Sv39VirtualAddress, paddr: Sv39PhysicalAddress) -> Kernel
 
         let mut entry = table.entry(index);
         if !entry.valid() {
-            let addr = zalloc_page();
+            let addr = zalloc_page().checked_add_signed(pmo).unwrap();
             let phys = Sv39PhysicalAddress::try_from(addr)?;
             entry = table.set_entry(
                 index,
@@ -322,7 +381,15 @@ pub fn map_page(vaddr: Sv39VirtualAddress, paddr: Sv39PhysicalAddress) -> Kernel
             panic!("Unexpected leaf node in page table! (step {step}): {entry:?}");
         }
 
-        table = unsafe { Sv39PageTable::mut_from_addr(entry.physical_address()) };
+        table = unsafe {
+            Sv39PageTable::mut_from_addr(
+                entry
+                    .physical_address()
+                    .checked_add_signed(-pmo)
+                    .expect("Table address translation overflow!!"),
+            )
+        };
+        println!("\ttable={:?}", table as *mut Sv39PageTable);
     }
 
     let index = u16::from(vaddr.vpn0()) as usize;
@@ -349,10 +416,21 @@ pub fn map_page(vaddr: Sv39VirtualAddress, paddr: Sv39PhysicalAddress) -> Kernel
 
 /// Get a new 4k-aligned page
 fn kalloc_page() -> usize {
-    static HEAP: Mutex<RefCell<Option<usize>>> = Mutex::new(RefCell::new(None));
+    static PAGES_ALLOCATED: AtomicUsize = AtomicUsize::new(0);
 
+    let next_page = unsafe { &table_heap_bottom as *const c_void as usize }
+        + PAGES_ALLOCATED.fetch_add(1, Ordering::Relaxed) * PAGE_SIZE;
+
+    if next_page >= unsafe { &table_heap_top as *const c_void as usize } {
+        panic!("Heap overflow!");
+    }
+
+    next_page
+}
+
+/*
     critical_section::with(|cs| {
-        let mut heap = HEAP.borrow_ref_mut(cs);
+        let mut heap = PAGES_ALLOCATED.get() * PAGE_SIZE;
         if let Some(new_page) = *heap {
             if new_page >= unsafe { &table_heap_top as *const c_void as usize } {
                 panic!("Heap overflow!");
@@ -366,6 +444,7 @@ fn kalloc_page() -> usize {
         }
     })
 }
+*/
 
 /// Get a new ZEROED 4k-aligned page
 fn zalloc_page() -> usize {

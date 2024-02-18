@@ -42,9 +42,12 @@ SECTIONS {
     .heap : ALIGN(4K) {
         *(.heap*);
     }
+    .kernel_root_page_table : ALIGN(4K) {
+        *(.kernel_root_page_table*);
+    }
     .table_heap : ALIGN(4K) {
         PROVIDE(table_heap_bottom = .);
-        . += 32768;
+        . += 65536;
         PROVIDE(table_heap_top = .);
     }
     /* Stack guard should be unmapped in virtual memory */

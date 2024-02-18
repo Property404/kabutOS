@@ -48,12 +48,13 @@ unsafe fn boot(_hart_id: usize, fdt_ptr: *const u8, pmo: isize) {
 
     // Initialize paging
     uart_driver.send_str("> initializing mmu\n");
-    mmu::init_mmu(pmo).unwrap();
+    mmu::init_page_tables(pmo).unwrap();
 
     uart_driver.send_str("> fdt\n");
     let fdt_page = fdt_ptr as usize & !(mmu::PAGE_SIZE - 1);
-    mmu::identity_map_range(fdt_page, fdt_page + 0x4000).unwrap();
+    mmu::map_device(fdt_page, 0x4000).unwrap();
 
+    mmu::init_mmu(pmo).unwrap();
     unsafe {
         uart_driver.send_str("> entering sv mode\n");
         enter_supervisor_mode(pmo);
@@ -64,8 +65,8 @@ unsafe fn boot(_hart_id: usize, fdt_ptr: *const u8, pmo: isize) {
 #[no_mangle]
 unsafe fn kmain() {
     // TODO: Make device mapping dynamic
-    mmu::identity_map_range(0x1000_0000, 0x1000_1000).unwrap();
-    mmu::identity_map_range(0x2000_0000, 0x2020_0000).unwrap();
+    mmu::map_device(0x1000_0000, 0x1000).unwrap();
+    mmu::map_device(0x2000_0000, 0x2000).unwrap();
 
     // Initialize drivers
     unsafe { DRIVERS.init(&globals::get().device_tree).unwrap() };

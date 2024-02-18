@@ -47,7 +47,7 @@ macro_rules! print
 	($($args:tt)+) => ({
 			use core::fmt::Write;
             use $crate::{drivers::DRIVERS, serial::Serial};
-            if let Some(_uart) = unsafe { &DRIVERS.uart } {
+            if unsafe { DRIVERS.uart.is_some() } {
                 let _ = write!(Serial::new(), $($args)+);
             }
 	});
@@ -62,7 +62,7 @@ macro_rules! println
 	($($args:tt)+) => ({
         use core::fmt::Write;
         use $crate::{drivers::DRIVERS, serial::Serial};
-        if let Some(_uart) = unsafe { &DRIVERS.uart } {
+        if unsafe { DRIVERS.uart.is_some() } {
 			let _ = write!(Serial::new(), $($args)+);
             let _ = write!(Serial::new(), "\n");
         }
