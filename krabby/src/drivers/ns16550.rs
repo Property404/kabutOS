@@ -1,5 +1,9 @@
 //! Ns16550 Driver
-use crate::{drivers::UartDriver, KernelError, KernelResult};
+use crate::{
+    drivers::UartDriver,
+    mmu::{map_device, PAGE_SIZE},
+    KernelError, KernelResult,
+};
 use alloc::boxed::Box;
 use core::ptr::{read_volatile, write_volatile};
 use fdt::node::FdtNode;
@@ -33,11 +37,11 @@ impl Ns16550Driver {
             return Ok(None);
         }
 
-        let base_address = node
+        let reg = node
             .reg()
             .and_then(|mut v| v.next())
-            .ok_or(KernelError::MissingProperty("reg"))?
-            .starting_address;
+            .ok_or(KernelError::MissingProperty("reg"))?;
+        let base_address = map_device(reg.starting_address as usize, PAGE_SIZE)?;
 
         Ok(Some(Box::new(Self::new(base_address as *mut u8))))
     }

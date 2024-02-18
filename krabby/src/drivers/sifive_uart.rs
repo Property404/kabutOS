@@ -4,7 +4,11 @@
 //!     <https://github.com/riscv-software-src/opensbi/blob/master/lib/utils/serial/sifive-uart.c>
 //!     Copyright (c) 2019 Western Digital Corporation or its affiliates, under the BSD license.
 //!     Author: Anup Patel
-use crate::{drivers::UartDriver, KernelError, KernelResult};
+use crate::{
+    drivers::UartDriver,
+    mmu::{map_device, PAGE_SIZE},
+    KernelError, KernelResult,
+};
 use alloc::boxed::Box;
 use bilge::prelude::*;
 use core::ptr::{self, read_volatile, write_volatile};
@@ -49,11 +53,11 @@ impl SifiveUartDriver {
             return Ok(None);
         }
 
-        let base_address = node
+        let reg = node
             .reg()
             .and_then(|mut v| v.next())
-            .ok_or(KernelError::MissingProperty("reg"))?
-            .starting_address;
+            .ok_or(KernelError::MissingProperty("reg"))?;
+        let base_address = map_device(reg.starting_address as usize, PAGE_SIZE)?;
 
         Ok(Some(Box::new(Self::new(base_address as *mut u8))))
     }

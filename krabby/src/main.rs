@@ -64,10 +64,6 @@ unsafe fn boot(_hart_id: usize, fdt_ptr: *const u8, pmo: isize) {
 /// Supervisor entry point
 #[no_mangle]
 unsafe fn kmain() {
-    // TODO: Make device mapping dynamic
-    mmu::map_device(0x1000_0000, 0x1000).unwrap();
-    mmu::map_device(0x2000_0000, 0x2000).unwrap();
-
     // Initialize drivers
     unsafe { DRIVERS.init(&globals::get().device_tree).unwrap() };
 
