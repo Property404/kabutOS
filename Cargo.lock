@@ -269,7 +269,7 @@ dependencies = [
 [[package]]
 name = "schmargs"
 version = "0.0.0"
-source = "git+https://github.com/Property404/schmargs?rev=c9598f31#c9598f31dbcc45d0f6582cd867bbb1e84ccd0817"
+source = "git+https://github.com/Property404/schmargs?rev=b919fab#b919faba5435d58669e681e341aa8997019e5590"
 dependencies = [
  "derive_more 1.0.0-beta.6",
  "schmargs-derive",
@@ -278,7 +278,7 @@ dependencies = [
 [[package]]
 name = "schmargs-derive"
 version = "0.0.0"
-source = "git+https://github.com/Property404/schmargs?rev=c9598f31#c9598f31dbcc45d0f6582cd867bbb1e84ccd0817"
+source = "git+https://github.com/Property404/schmargs?rev=b919fab#b919faba5435d58669e681e341aa8997019e5590"
 dependencies = [
  "anyhow",
  "proc-macro2",

@@ -108,3 +108,74 @@ pub unsafe fn dump_memory(
 
     Ok(())
 }
+
+/// Show registers
+pub fn show_csr_registers(names: &[&str], machine: bool) -> KernelResult<()> {
+    static M_REGS: &[(&str, fn())] = &[("mstatus", || {
+        let reg = riscv::register::mstatus::read();
+        println!("mstatus:");
+        println!("\tsie: {}", reg.sie());
+        println!("\tmie: {}", reg.mie());
+        println!("\tspie: {}", reg.spie());
+        println!("\tmpie: {}", reg.mpie());
+        println!("\tspp: {:?}", reg.spp());
+        println!("\tmpp: {:?}", reg.mpp());
+        println!("\tsum: {}", reg.sum());
+    })];
+    static S_REGS: &[(&str, fn())] = &[
+        ("sstatus", || {
+            let reg = riscv::register::sstatus::read();
+            println!("sstatus:");
+            println!("\tsie: {}", reg.sie());
+            println!("\tspie: {}", reg.spie());
+            println!("\tspp: {:?}", reg.spp());
+            println!("\tsum: {}", reg.sum());
+        }),
+        ("satp", || {
+            let reg = riscv::register::satp::read();
+            println!("satp: {:08x}", reg.bits());
+            println!("\tmode: {:?}", reg.mode());
+            println!("\tasid: {:08x}", reg.asid());
+            println!("\tppn: {:08x}", reg.ppn() << 12);
+        }),
+        ("sepc", || {
+            let reg = riscv::register::sepc::read();
+            println!("sepc: {reg:08x}");
+        }),
+        ("sie", || {
+            let reg = riscv::register::sie::read();
+            println!("sie: {:08x}", reg.bits());
+            println!("\tssoft: {}", reg.ssoft());
+            println!("\tstimer: {}", reg.stimer());
+            println!("\tsext: {}", reg.sext());
+        }),
+        ("stvec", || {
+            let reg = riscv::register::stvec::read();
+            println!("stvec: {:08x}", reg.bits());
+            println!("\taddress: {:08x}", reg.address());
+            println!("\ttrap_mode: {:?}", reg.trap_mode());
+        }),
+    ];
+
+    if names.is_empty() {
+        if machine {
+            for (_, func) in M_REGS {
+                func()
+            }
+        }
+        for (_, func) in S_REGS {
+            func()
+        }
+    } else {
+        'outer: for name in names {
+            for (reg, func) in M_REGS.iter().chain(S_REGS.iter()) {
+                if name == reg {
+                    func();
+                    continue 'outer;
+                }
+            }
+            return Err(KernelError::Generic("No such register"));
+        }
+    }
+    Ok(())
+}

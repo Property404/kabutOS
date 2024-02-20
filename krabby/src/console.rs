@@ -1,6 +1,9 @@
 //! Kernel console
 use crate::{
-    functions::GroupBytesBy, globals, println, readline::Readline, KernelError, KernelResult,
+    functions::{self, GroupBytesBy},
+    globals, println,
+    readline::Readline,
+    KernelError, KernelResult,
 };
 use core::fmt::Display;
 use schmargs::Schmargs;
@@ -76,7 +79,7 @@ fn parse_line(line: &str) -> KernelResult<()> {
             }
 
             unsafe {
-                crate::functions::dump_memory(args.start, args.len, args.width, group_by)?;
+                functions::dump_memory(args.start, args.len, args.width, group_by)?;
             };
         }
 
@@ -115,30 +118,9 @@ fn parse_line(line: &str) -> KernelResult<()> {
 
         // Control and Status registers
         CsrArgs::NAME => {
-            let CsrArgs {} = CsrArgs::parse(args)?;
-
-            let sstatus = riscv::register::sstatus::read();
-            println!("sstatus:");
-            println!("\tsie: {}", sstatus.sie());
-            println!("\tspie: {}", sstatus.spie());
-            println!("\tspp: {:?}", sstatus.spp());
-            println!("\tsum: {}", sstatus.sum());
-            let satp = riscv::register::satp::read();
-            println!("satp: {:08x}", satp.bits());
-            println!("\tmode: {:?}", satp.mode());
-            println!("\tasid: {:08x}", satp.asid());
-            println!("\tppn: {:08x}", satp.ppn() << 12);
-            let sepc = riscv::register::sepc::read();
-            println!("sepc: {sepc:08x}");
-            let sie = riscv::register::sie::read();
-            println!("sie: {:08x}", sie.bits());
-            println!("\tssoft: {}", sie.ssoft());
-            println!("\tstimer: {}", sie.stimer());
-            println!("\tsext: {}", sie.sext());
-            let stvec = riscv::register::stvec::read();
-            println!("stvec: {:08x}", stvec.bits());
-            println!("\taddress: {:08x}", stvec.address());
-            println!("\ttrap_mode: {:?}", stvec.trap_mode());
+            let CsrArgs { registers } = CsrArgs::parse(args)?;
+            let registers = registers.unwrap_or_default();
+            functions::show_csr_registers(&registers, false)?;
         }
 
         _ => {
@@ -203,4 +185,7 @@ struct PokeArgs {
 /// Show control and status regs
 #[derive(Schmargs)]
 #[schmargs(name = "csr")]
-struct CsrArgs {}
+struct CsrArgs<'a> {
+    /// The CSR registers to show
+    registers: Option<alloc::vec::Vec<&'a str>>,
+}
