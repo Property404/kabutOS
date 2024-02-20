@@ -1,7 +1,6 @@
 # Disable compression
 .option norvc
 
-
 .section .init_zero, "ax"
 .type preinit, @function
 .global preinit
@@ -17,13 +16,10 @@ preinit:
 
 .type start, @function
 .type enter_supervisor_mode, @function
-.type asm_exception_handler, @function
 .global start
 .global enter_supervisor_mode
-.global asm_exception_handler
 start:
 	.cfi_startproc
-
 
 .option push
 # Disables relaxation. The RISC-V assembler and linker opportunistically relax some code sequences, but sometimes this behavior is not desirable.
@@ -81,12 +77,6 @@ bss_clear:
 
 	.cfi_endproc
 
-asm_exception_handler:
-	.cfi_startproc
-    // Todo: Preserve registers on stack
-    call exception_handler
-	.cfi_endproc
-
 // Switch from machine mode to supervisor mode
 .option norvc
 enter_supervisor_mode:
@@ -112,6 +102,13 @@ enter_supervisor_mode:
 
     li		t0, (1 << 11) | (1 << 5)
 	csrw	mstatus, t0
+
+    # Handle all traps in supervisor mode
+    li t0, 0xFFFFFFFF
+    csrw medeleg, t0
+    csrw mideleg, t0
+    la t5, asm_exception_handler
+    csrw stvec, t5
 
     la t5, kmain
     csrw mepc, t5

@@ -111,17 +111,34 @@ pub unsafe fn dump_memory(
 
 /// Show registers
 pub fn show_csr_registers(names: &[&str], machine: bool) -> KernelResult<()> {
-    static M_REGS: &[(&str, fn())] = &[("mstatus", || {
-        let reg = riscv::register::mstatus::read();
-        println!("mstatus:");
-        println!("\tsie: {}", reg.sie());
-        println!("\tmie: {}", reg.mie());
-        println!("\tspie: {}", reg.spie());
-        println!("\tmpie: {}", reg.mpie());
-        println!("\tspp: {:?}", reg.spp());
-        println!("\tmpp: {:?}", reg.mpp());
-        println!("\tsum: {}", reg.sum());
-    })];
+    static M_REGS: &[(&str, fn())] = &[
+        ("mstatus", || {
+            let reg = riscv::register::mstatus::read();
+            println!("mstatus:");
+            println!("\tsie: {}", reg.sie());
+            println!("\tmie: {}", reg.mie());
+            println!("\tspie: {}", reg.spie());
+            println!("\tmpie: {}", reg.mpie());
+            println!("\tspp: {:?}", reg.spp());
+            println!("\tmpp: {:?}", reg.mpp());
+            println!("\tsum: {}", reg.sum());
+            println!("\ttsr: {}", reg.tsr());
+        }),
+        ("mie", || {
+            let reg = riscv::register::mie::read();
+            println!("mie: {:08x}", reg.bits());
+            println!("\tssoft: {}", reg.ssoft());
+            println!("\tmsoft: {}", reg.msoft());
+            println!("\tstimer: {}", reg.stimer());
+            println!("\tmtimer: {}", reg.mtimer());
+            println!("\tsext: {}", reg.sext());
+            println!("\tmext: {}", reg.mext());
+        }),
+        ("mscratch", || {
+            let reg = riscv::register::mscratch::read();
+            println!("mscratch: {reg:08x}");
+        }),
+    ];
     static S_REGS: &[(&str, fn())] = &[
         ("sstatus", || {
             let reg = riscv::register::sstatus::read();
@@ -141,6 +158,10 @@ pub fn show_csr_registers(names: &[&str], machine: bool) -> KernelResult<()> {
         ("sepc", || {
             let reg = riscv::register::sepc::read();
             println!("sepc: {reg:08x}");
+        }),
+        ("sscratch", || {
+            let reg = riscv::register::sscratch::read();
+            println!("mscratch: {reg:08x}");
         }),
         ("sie", || {
             let reg = riscv::register::sie::read();
