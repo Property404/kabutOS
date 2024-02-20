@@ -27,7 +27,7 @@ fn parse_line(line: &str) -> KernelResult<()> {
 
     match command {
         HelpArgs::NAME | "?" => {
-            let command_vector: [(&'static str, &'static str, &dyn Display); 5] = [
+            let command_vector: [(&'static str, &'static str, &dyn Display); 6] = [
                 (HelpArgs::NAME, HelpArgs::DESCRIPTION, &HelpArgs::help()),
                 (
                     MemdumpArgs::NAME,
@@ -37,6 +37,7 @@ fn parse_line(line: &str) -> KernelResult<()> {
                 (FdtArgs::NAME, FdtArgs::DESCRIPTION, &FdtArgs::help()),
                 (PokeArgs::NAME, PokeArgs::DESCRIPTION, &PokeArgs::help()),
                 (PanicArgs::NAME, PanicArgs::DESCRIPTION, &PanicArgs::help()),
+                (CsrArgs::NAME, CsrArgs::DESCRIPTION, &CsrArgs::help()),
             ];
 
             let args = HelpArgs::parse(args)?;
@@ -122,6 +123,22 @@ fn parse_line(line: &str) -> KernelResult<()> {
             println!("\tspie: {}", sstatus.spie());
             println!("\tspp: {:?}", sstatus.spp());
             println!("\tsum: {}", sstatus.sum());
+            let satp = riscv::register::satp::read();
+            println!("satp: {:08x}", satp.bits());
+            println!("\tmode: {:?}", satp.mode());
+            println!("\tasid: {:08x}", satp.asid());
+            println!("\tppn: {:08x}", satp.ppn() << 12);
+            let sepc = riscv::register::sepc::read();
+            println!("sepc: {sepc:08x}");
+            let sie = riscv::register::sie::read();
+            println!("sie: {:08x}", sie.bits());
+            println!("\tssoft: {}", sie.ssoft());
+            println!("\tstimer: {}", sie.stimer());
+            println!("\tsext: {}", sie.sext());
+            let stvec = riscv::register::stvec::read();
+            println!("stvec: {:08x}", stvec.bits());
+            println!("\taddress: {:08x}", stvec.address());
+            println!("\ttrap_mode: {:?}", stvec.trap_mode());
         }
 
         _ => {
