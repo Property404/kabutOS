@@ -107,13 +107,17 @@ enter_supervisor_mode:
     li t0, 0xFFFFFFFF
     csrw medeleg, t0
     csrw mideleg, t0
-    la t5, asm_exception_handler
-    csrw stvec, t5
 
-    la t5, kmain
+    la t5, sv_entry
     csrw mepc, t5
 
     mret
+
+    sv_entry:
+    la t5, asm_exception_handler
+    csrw stvec, t5
+    call kmain
+
 	.cfi_endproc
 
 .end
