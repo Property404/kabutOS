@@ -53,11 +53,11 @@ impl<const PAGE_SIZE: usize> RecordsPage<PAGE_SIZE> {
     ///
     /// # Returns
     /// The number of pages deallocated
-    pub fn deallocate(
+    pub fn deallocate<T>(
         &mut self,
         heap_start: *const c_void,
         heap_size: usize,
-        address: *const c_void,
+        address: *const T,
     ) -> usize {
         assert_eq!(
             heap_start as usize & (PAGE_SIZE - 1),
@@ -123,12 +123,12 @@ impl<const PAGE_SIZE: usize> RecordsPage<PAGE_SIZE> {
     ///
     /// # Returns
     /// The address of the first allocated page
-    pub fn allocate(
+    pub fn allocate<T>(
         &mut self,
         heap_start: *const c_void,
         heap_size: usize,
         num_pages: usize,
-    ) -> *mut c_void {
+    ) -> *mut T {
         assert_eq!(
             heap_start as usize & (PAGE_SIZE - 1),
             0,
@@ -167,7 +167,7 @@ impl<const PAGE_SIZE: usize> RecordsPage<PAGE_SIZE> {
                 self.set_last(page_start + count - 1, true);
 
                 // And return start of page
-                return ((heap_start as usize) + page_start * PAGE_SIZE) as *mut c_void;
+                return ((heap_start as usize) + page_start * PAGE_SIZE) as *mut T;
             }
 
             // Nevermind, we can't use this
@@ -195,7 +195,7 @@ mod test {
         let mut sum = 0;
         for num_pages_to_allocate in [1, 5, 3, 4, 100, 1] {
             assert_eq!(
-                records_page.allocate(null(), PAGES, num_pages_to_allocate) as usize,
+                records_page.allocate::<()>(null(), PAGES, num_pages_to_allocate) as usize,
                 PAGE_SIZE * sum
             );
             sum += num_pages_to_allocate;
@@ -214,7 +214,7 @@ mod test {
 
         let mut sum = 0;
         for num_pages_to_allocate in tv {
-            let address = records_page.allocate(null(), PAGES, num_pages_to_allocate);
+            let address = records_page.allocate::<()>(null(), PAGES, num_pages_to_allocate);
             addresses.push(address);
             assert_eq!(address as usize, PAGE_SIZE * sum);
             sum += num_pages_to_allocate;
@@ -222,7 +222,10 @@ mod test {
 
         // Now deallocate everything
         for (index, address) in addresses.iter().enumerate().rev() {
-            assert_eq!(records_page.deallocate(null(), PAGES, *address), tv[index]);
+            assert_eq!(
+                records_page.deallocate::<()>(null(), PAGES, *address),
+                tv[index]
+            );
         }
     }
 }

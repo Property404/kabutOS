@@ -6,11 +6,11 @@ use bilge::prelude::*;
 use core::{
     cell::{Cell, RefCell},
     ffi::c_void,
-    fmt::Write,
+    fmt::{Debug, Write},
     ptr,
-    sync::atomic::{AtomicUsize, Ordering},
 };
 use critical_section::Mutex;
+use page_alloc::RecordsPage;
 
 /// The root kernel-space page table
 #[link_section = ".kernel_root_page_table"]
@@ -21,7 +21,7 @@ pub static ROOT_PAGE_TABLE: Mutex<RefCell<Sv39PageTable>> =
 pub static PHYSICAL_MEMORY_OFFSET: Mutex<Cell<isize>> = Mutex::new(Cell::new(0));
 
 extern "C" {
-    static table_heap_bottom: c_void;
+    static mut table_heap_bottom: RecordsPage<PAGE_SIZE>;
     static table_heap_top: c_void;
     static kernel_start: c_void;
     static stack_bottom: c_void;
@@ -360,7 +360,9 @@ pub fn map_page(
 
         let mut entry = table.entry(index);
         if !entry.valid() {
-            let addr = zalloc_page().checked_add_signed(pmo).unwrap();
+            let addr = (zalloc_page::<Page<PAGE_SIZE>>(1).leak() as usize)
+                .checked_add_signed(pmo)
+                .unwrap();
             let phys = Sv39PhysicalAddress::try_from(addr)?;
             entry = table.set_entry(
                 index,
@@ -414,42 +416,69 @@ pub fn map_page(
     Ok(())
 }
 
-/// Get a new 4k-aligned page
-fn kalloc_page() -> usize {
-    static PAGES_ALLOCATED: AtomicUsize = AtomicUsize::new(0);
+/// A generic page of any size
+#[repr(transparent)]
+#[derive(Clone, Debug)]
+pub struct Page<const SIZE: usize>([u8; SIZE]);
 
-    let next_page = unsafe { &table_heap_bottom as *const c_void as usize }
-        + PAGES_ALLOCATED.fetch_add(1, Ordering::Relaxed) * PAGE_SIZE;
+/// A self-deallocating page allocation
+#[derive(Debug)]
+pub struct PageAllocation<T> {
+    address: Option<*mut T>,
+}
 
-    if next_page >= unsafe { &table_heap_top as *const c_void as usize } {
-        panic!("Heap overflow!");
+impl<T> PageAllocation<T> {
+    /// Leak allocation without deallocating
+    pub fn leak(mut self) -> *mut T {
+        // Can't leak twice
+        self.address.take().unwrap()
     }
 
-    next_page
+    pub fn as_const(&self) -> *const T {
+        self.address.unwrap() as *const T
+    }
+
+    pub fn as_mut(&mut self) -> *mut T {
+        self.address.unwrap()
+    }
 }
 
-/*
-    critical_section::with(|cs| {
-        let mut heap = PAGES_ALLOCATED.get() * PAGE_SIZE;
-        if let Some(new_page) = *heap {
-            if new_page >= unsafe { &table_heap_top as *const c_void as usize } {
-                panic!("Heap overflow!");
+impl<T> Drop for PageAllocation<T> {
+    fn drop(&mut self) {
+        if let Some(address) = self.address {
+            let records = unsafe { ptr::addr_of_mut!(table_heap_bottom) };
+            let top = unsafe { ptr::from_ref(&table_heap_top) };
+            let first_page_address = records as usize + PAGE_SIZE;
+            let heap_size = (top as usize - first_page_address) / PAGE_SIZE;
+
+            unsafe {
+                (*records).deallocate(first_page_address as *const c_void, heap_size, address);
             }
-            *heap = Some(new_page + PAGE_SIZE);
-            new_page
-        } else {
-            let bottom = unsafe { &table_heap_bottom as *const c_void as usize };
-            *heap = Some(bottom + PAGE_SIZE);
-            bottom
         }
-    })
+    }
 }
-*/
+
+/// Get a new 4k-aligned page
+pub fn kalloc_page<T>(num_pages: usize) -> PageAllocation<T> {
+    assert!(core::mem::size_of::<T>() <= num_pages * PAGE_SIZE);
+
+    let records = unsafe { ptr::addr_of_mut!(table_heap_bottom) };
+    let top = unsafe { ptr::from_ref(&table_heap_top) };
+    let first_page_address = records as usize + PAGE_SIZE;
+    let heap_size = (top as usize - first_page_address) / PAGE_SIZE;
+
+    PageAllocation {
+        address: Some(unsafe {
+            (*records).allocate(first_page_address as *const c_void, heap_size, num_pages)
+        }),
+    }
+}
 
 /// Get a new ZEROED 4k-aligned page
-fn zalloc_page() -> usize {
-    let page: usize = kalloc_page();
+pub fn zalloc_page<T>(num_pages: usize) -> PageAllocation<T> {
+    let mut page = kalloc_page(num_pages);
     {
+        let page = page.as_mut() as usize;
         for byte in page..(page + PAGE_SIZE) {
             let byte = byte as *mut u8;
             unsafe {

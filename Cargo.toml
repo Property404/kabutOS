@@ -3,7 +3,7 @@ resolver = "2"
 members = [
     "embedded-line-edit",
     "krabby"
-]
+, "page-alloc"]
 
 # Printing the device tree without optimizations overruns the stack
 [profile.dev.package.fdt]

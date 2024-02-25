@@ -1,5 +1,12 @@
-use core::{cell::RefCell, ptr};
+use crate::mmu::{zalloc_page, Page, PageAllocation, PAGE_SIZE};
+use core::{
+    cell::RefCell,
+    ptr,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 use critical_section::Mutex;
+
+const STACK_PAGES_PER_PROCESS: usize = 2;
 
 /// Put trap frame in scratch register
 pub fn set_kernel_trap_frame(hart: usize) {
@@ -26,4 +33,29 @@ pub struct TrapFrame {
     /// Supervisor Address Translation/Protection register
     /// (Where is the root page table for this process)
     pub satp: usize,
+}
+
+#[derive(Debug)]
+pub struct Process {
+    pub pid: usize,
+    pub code: fn(),
+    pub frame: PageAllocation<TrapFrame>,
+    pub stack: PageAllocation<[Page<PAGE_SIZE>; STACK_PAGES_PER_PROCESS]>,
+}
+
+impl Process {
+    pub fn new(func: fn()) -> Self {
+        static PID: AtomicUsize = AtomicUsize::new(1);
+        // TODO(optimization): pick a proper ordering
+        // SeqCst is the safest
+        let pid = PID.fetch_add(1, Ordering::SeqCst);
+        let frame = zalloc_page(1);
+        let stack = zalloc_page(STACK_PAGES_PER_PROCESS);
+        Self {
+            pid,
+            code: func,
+            frame,
+            stack,
+        }
+    }
 }

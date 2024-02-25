@@ -144,6 +144,7 @@ dependencies = [
  "embedded-line-edit",
  "fdt",
  "owo-colors",
+ "page-alloc",
  "riscv",
  "schmargs",
  "spin",
@@ -172,6 +173,10 @@ name = "owo-colors"
 version = "4.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "caff54706df99d2a78a5a4e3455ff45448d81ef1bb63c22cd14052ca0e993a3f"
+
+[[package]]
+name = "page-alloc"
+version = "0.1.0"
 
 [[package]]
 name = "ppv-lite86"

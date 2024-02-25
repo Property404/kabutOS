@@ -16,7 +16,8 @@ unsafe_op_in_unsafe_fn = "deny"
 bilge = "0.2.0"
 critical-section = "1.1.2"
 derive_more = { version = "0.99.17", default-features = false, features = ["from", "display"] }
-embedded-line-edit = { version = "0.0.0", path = "../embedded-line-edit", default-features = false }
+embedded-line-edit = { path = "../embedded-line-edit", default-features = false }
+page-alloc = { path = "../page-alloc" }
 # TODO: Switch to upstream when changes are merged
 # upstream currently cannot pretty-print individual nodes
 fdt = { git = "https://github.com/Property404/fdt", rev="5abb24aed8e5ae0ca4c0ed8a2510355c92ea7b8c", features = ["pretty-printing"] }
