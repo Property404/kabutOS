@@ -196,7 +196,7 @@ pub fn init_mmu(pmo: isize) -> KernelResult<()> {
     }
 
     // Fence
-    unsafe { riscv::asm::sfence_vma_all() };
+    riscv::asm::sfence_vma_all();
 
     // Set PMO
     critical_section::with(|cs| {

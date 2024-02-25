@@ -9,8 +9,6 @@ fn panic(info: &PanicInfo) -> ! {
     println!("{}", "KERNEL PANIC!".red());
     println!("{info}");
     loop {
-        unsafe {
-            riscv::asm::wfi();
-        }
+        riscv::asm::wfi();
     }
 }
