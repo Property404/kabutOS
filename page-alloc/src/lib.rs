@@ -1,5 +1,5 @@
 //! A page-grain allocator for embedded systems
-#![cfg_attr(not(any(test, feature = "std")), no_std)]
+#![cfg_attr(not(test), no_std)]
 mod record;
 use core::ffi::c_void;
 use record::Record;
