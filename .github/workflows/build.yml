@@ -36,3 +36,6 @@ jobs:
 
       - name: Test line edit crate
         run: cd embedded-line-edit && cargo test
+
+      - name: Test page-alloc crate
+        run: cd page-alloc && cargo test
