@@ -9,28 +9,28 @@ use utf8_parser::Utf8ParserError;
 #[derive(From, Debug, Display)]
 pub enum KernelError {
     /// Generic error
-    #[display(fmt = "{}", _0)]
+    #[display("{}", _0)]
     Generic(&'static str),
     /// Argument is invalid
-    #[display(fmt = "Argument is invalid")]
+    #[display("Argument is invalid")]
     InvalidArguments,
     /// Driver is uninitialized
-    #[display(fmt = "Driver is uninitialized")]
+    #[display("Driver is uninitialized")]
     DriverUninitialized,
     /// Invalid address
-    #[display(fmt = "Invalid virtual address: {}", _0)]
+    #[display("Invalid virtual address: {}", _0)]
     InvalidVirtualAddress(usize),
     /// Invalid address
-    #[display(fmt = "Invalid physical address: {}", _0)]
+    #[display("Invalid physical address: {}", _0)]
     InvalidPhysicalAddress(usize),
     /// Address is misaligned
-    #[display(fmt = "Address not page aligned: {}", _0)]
+    #[display("Address not page aligned: {}", _0)]
     AddressNotPageAligned(usize),
     /// Misaligned size
-    #[display(fmt = "Size is misaligned: {}", _0)]
+    #[display("Size is misaligned: {}", _0)]
     SizeMisaligned(usize),
     /// Missing FDT node property
-    #[display(fmt = "Missing FDT node property: {}", _0)]
+    #[display("Missing FDT node property: {}", _0)]
     MissingProperty(&'static str),
     /// Converted from [core::fmt::Error]
     #[from]

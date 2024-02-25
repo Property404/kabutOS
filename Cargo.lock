@@ -40,7 +40,7 @@ dependencies = [
  "proc-macro-error",
  "proc-macro2",
  "quote",
- "syn 2.0.50",
+ "syn",
 ]
 
 [[package]]
@@ -54,17 +54,6 @@ name = "critical-section"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7059fff8937831a9ae6f0fe4d658ffabf58f2ca96aa9dec1c889f936f705f216"
-
-[[package]]
-name = "derive_more"
-version = "0.99.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fb810d30a7c1953f91334de7244731fc3f3c10d7fe163338a35b9f640960321"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 1.0.109",
-]
 
 [[package]]
 name = "derive_more"
@@ -83,7 +72,7 @@ checksum = "2bba3e9872d7c58ce7ef0fcf1844fcc3e23ef2a58377b50df35dd98e42a5726e"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.50",
+ "syn",
  "unicode-xid",
 ]
 
@@ -103,7 +92,7 @@ checksum = "361a90feb7004eca4019fb28352a9465666b24f840f5c3cddf0ff13920590b89"
 name = "embedded-line-edit"
 version = "0.0.0"
 dependencies = [
- "derive_more 0.99.17",
+ "derive_more",
  "rand",
  "ringbuffer",
  "utf8-parser",
@@ -140,7 +129,7 @@ version = "0.0.0"
 dependencies = [
  "bilge",
  "critical-section",
- "derive_more 0.99.17",
+ "derive_more",
  "embedded-line-edit",
  "fdt",
  "owo-colors",
@@ -276,7 +265,7 @@ name = "schmargs"
 version = "0.0.0"
 source = "git+https://github.com/Property404/schmargs?rev=b919fab#b919faba5435d58669e681e341aa8997019e5590"
 dependencies = [
- "derive_more 1.0.0-beta.6",
+ "derive_more",
  "schmargs-derive",
 ]
 
@@ -289,7 +278,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "snailquote",
- "syn 2.0.50",
+ "syn",
 ]
 
 [[package]]
@@ -315,17 +304,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
 dependencies = [
  "lock_api",
-]
-
-[[package]]
-name = "syn"
-version = "1.0.109"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72b64191b275b66ffe2469e8af2c1cfe3bafa67b529ead792a6d0160888b4237"
-dependencies = [
- "proc-macro2",
- "quote",
- "unicode-ident",
 ]
 
 [[package]]
@@ -365,7 +343,7 @@ checksum = "a953cb265bef375dae3de6663da4d3804eee9682ea80d8e2542529b73c531c81"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.50",
+ "syn",
 ]
 
 [[package]]

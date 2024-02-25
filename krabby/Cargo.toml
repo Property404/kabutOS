@@ -15,7 +15,7 @@ unsafe_op_in_unsafe_fn = "deny"
 [dependencies]
 bilge = "0.2.0"
 critical-section = "1.1.2"
-derive_more = { version = "0.99.17", default-features = false, features = ["from", "display"] }
+derive_more = { version = "1.0.0-beta.6", default-features = false, features = ["from", "display"] }
 embedded-line-edit = { path = "../embedded-line-edit", default-features = false }
 # TODO: Switch to upstream when changes are merged
 # upstream currently cannot pretty-print individual nodes
