@@ -15,7 +15,10 @@ pub struct RecordsPage<const PAGE_SIZE: usize>([u8; PAGE_SIZE]);
 impl<const PAGE_SIZE: usize> RecordsPage<PAGE_SIZE> {
     const RECORD_SIZE_IN_BITS: usize = 2;
     const NUM_RECORDS_IN_BYTE: usize = 8 / Self::RECORD_SIZE_IN_BITS;
-    const NUM_RECORDS_IN_PAGE: usize = PAGE_SIZE * Self::NUM_RECORDS_IN_BYTE;
+    const NUM_RECORDS_IN_PAGE: usize = {
+        assert!(PAGE_SIZE.is_power_of_two());
+        PAGE_SIZE * Self::NUM_RECORDS_IN_BYTE
+    };
 
     fn get_record(&self, index: usize) -> Record {
         let byte_index = index / Self::NUM_RECORDS_IN_BYTE;
