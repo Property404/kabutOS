@@ -7,7 +7,6 @@ use record::Record;
 
 /// A single book-keeping page for an upward-growing page allocator
 ///
-/// # Warning
 /// This should transparently point to the beginning of the page heap.
 #[repr(transparent)]
 #[derive(Debug)]
