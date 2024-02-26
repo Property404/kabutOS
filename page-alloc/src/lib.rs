@@ -1,5 +1,6 @@
 //! A page-grain allocator for embedded systems
 #![cfg_attr(not(test), no_std)]
+#[warn(missing_docs)]
 mod record;
 use core::ffi::c_void;
 use record::Record;
