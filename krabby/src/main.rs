@@ -18,6 +18,7 @@ pub mod globals;
 pub mod handlers;
 pub mod mmu;
 pub mod panic;
+pub mod process;
 pub mod readline;
 pub mod serial;
 

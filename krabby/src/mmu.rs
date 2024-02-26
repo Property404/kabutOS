@@ -75,6 +75,7 @@ impl Sv39PageTableEntry {
 }
 
 #[repr(align(4096))]
+#[derive(Debug)]
 pub struct Sv39PageTable {
     pub entries: [Sv39PageTableEntry; ENTRIES_IN_PAGE_TABLE],
 }
@@ -434,12 +435,26 @@ impl<T> PageAllocation<T> {
         self.address.take().unwrap()
     }
 
-    pub fn as_const(&self) -> *const T {
+    /// Return as const pointer
+    pub fn as_const_ptr(&self) -> *const T {
         self.address.unwrap() as *const T
     }
 
-    pub fn as_mut(&mut self) -> *mut T {
+    /// Return as mutable pointer
+    pub fn as_mut_ptr(&mut self) -> *mut T {
         self.address.unwrap()
+    }
+}
+
+impl<T> AsRef<T> for PageAllocation<T> {
+    fn as_ref(&self) -> &T {
+        unsafe { &*self.address.unwrap() }
+    }
+}
+
+impl<T> AsMut<T> for PageAllocation<T> {
+    fn as_mut(&mut self) -> &mut T {
+        unsafe { &mut *self.address.unwrap() }
     }
 }
 
@@ -478,7 +493,7 @@ pub fn kalloc_page<T>(num_pages: usize) -> PageAllocation<T> {
 pub fn zalloc_page<T>(num_pages: usize) -> PageAllocation<T> {
     let mut page = kalloc_page(num_pages);
     {
-        let page = page.as_mut() as usize;
+        let page = page.as_mut_ptr() as usize;
         for byte in page..(page + PAGE_SIZE) {
             let byte = byte as *mut u8;
             unsafe {
