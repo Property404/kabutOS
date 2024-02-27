@@ -26,6 +26,9 @@ pub enum KernelError {
     /// Address is misaligned
     #[display("Address not page aligned: {}", _0)]
     AddressNotPageAligned(usize),
+    /// Address is not mapped to kernel space
+    #[display("Not mapped: {}", _0)]
+    NotMapped(usize),
     /// Misaligned size
     #[display("Size is misaligned: {}", _0)]
     SizeMisaligned(usize),
