@@ -143,7 +143,7 @@ impl From<Sv39VirtualAddress> for usize {
 }
 
 #[bitsize(64)]
-#[derive(TryFromBits, Copy, Clone)]
+#[derive(TryFromBits, Copy, Clone, DebugBits)]
 pub struct Sv39PhysicalAddress {
     page_offset: u12,
     ppn0: u9,
@@ -273,6 +273,7 @@ fn set_root_page_table() {
 /// Get physical mapping by walking page table
 pub fn vaddr_to_paddr(mut table: &Sv39PageTable, vaddr: usize) -> KernelResult<Option<usize>> {
     let vaddr = Sv39VirtualAddress::try_from(vaddr)?;
+    let pmo = critical_section::with(|cs| PHYSICAL_MEMORY_OFFSET.borrow(cs).get());
 
     // Walk page tables
     for step in 0..=2 {
@@ -288,7 +289,9 @@ pub fn vaddr_to_paddr(mut table: &Sv39PageTable, vaddr: usize) -> KernelResult<O
             return Ok(Some(entry.physical_address()));
         }
 
-        table = unsafe { Sv39PageTable::mut_from_addr(entry.physical_address()) };
+        table = unsafe {
+            Sv39PageTable::mut_from_addr(entry.physical_address().checked_add_signed(-pmo).unwrap())
+        };
     }
     panic!("Walked right off the table!");
 }
@@ -332,6 +335,8 @@ pub fn map_range(
 
     for _ in 0..size / PAGE_SIZE {
         map_page(table, vaddr, paddr)?;
+        assert_eq!(vaddr_to_paddr(table, vaddr.into())?.unwrap(), paddr.into());
+
         vaddr = vaddr.offset(PAGE_SIZE as isize)?;
         paddr = paddr.offset(PAGE_SIZE as isize)?;
     }
