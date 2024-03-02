@@ -518,7 +518,7 @@ pub fn zalloc<T>() -> PageAllocation<T> {
     }
 }
 
-/// Allocate and zero a new [T], with page-grain allocation
+/// Allocate and zero a new `[T]`, with page-grain allocation
 pub fn zalloc_slice<T>(num_pages: usize) -> PageAllocation<[T]> {
     let records = unsafe { ptr::addr_of_mut!(table_heap_bottom) };
     let top = unsafe { ptr::from_ref(&table_heap_top) };
