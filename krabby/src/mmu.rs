@@ -378,7 +378,7 @@ pub fn map_page(
 
         let mut entry = table.entry(index);
         if !entry.valid() {
-            let addr = (zalloc_page::<Page<PAGE_SIZE>>(1).leak() as usize)
+            let addr = (zalloc::<Page<PAGE_SIZE>>().leak() as usize)
                 .checked_add_signed(pmo)
                 .unwrap();
             let phys = Sv39PhysicalAddress::try_from(addr)?;
@@ -441,11 +441,12 @@ pub struct Page<const SIZE: usize>([u8; SIZE]);
 
 /// A self-deallocating page allocation
 #[derive(Debug)]
-pub struct PageAllocation<T> {
+pub struct PageAllocation<T: ?Sized> {
     address: Option<*mut T>,
+    num_pages: usize,
 }
 
-impl<T> PageAllocation<T> {
+impl<T: ?Sized> PageAllocation<T> {
     /// Leak allocation without deallocating
     pub fn leak(mut self) -> *mut T {
         // Can't leak twice
@@ -461,21 +462,31 @@ impl<T> PageAllocation<T> {
     pub fn as_mut_ptr(&mut self) -> *mut T {
         self.address.unwrap()
     }
+
+    /// Return raw address
+    pub fn addr(&self) -> usize {
+        self.address.unwrap() as *const () as usize
+    }
+
+    /// Get number of pages
+    pub fn num_pages(&self) -> usize {
+        self.num_pages
+    }
 }
 
-impl<T> AsRef<T> for PageAllocation<T> {
+impl<T: ?Sized> AsRef<T> for PageAllocation<T> {
     fn as_ref(&self) -> &T {
         unsafe { &*self.address.unwrap() }
     }
 }
 
-impl<T> AsMut<T> for PageAllocation<T> {
+impl<T: ?Sized> AsMut<T> for PageAllocation<T> {
     fn as_mut(&mut self) -> &mut T {
         unsafe { &mut *self.address.unwrap() }
     }
 }
 
-impl<T> Drop for PageAllocation<T> {
+impl<T: ?Sized> Drop for PageAllocation<T> {
     fn drop(&mut self) {
         if let Some(address) = self.address {
             let records = unsafe { ptr::addr_of_mut!(table_heap_bottom) };
@@ -490,36 +501,52 @@ impl<T> Drop for PageAllocation<T> {
     }
 }
 
-/// Get a new 4k-aligned page
-pub fn kalloc_page<T>(num_pages: usize) -> PageAllocation<T> {
-    assert!(core::mem::size_of::<T>() <= num_pages * PAGE_SIZE);
-
+/// Allocate and zero a new T, with page-grain allocation
+pub fn zalloc<T>() -> PageAllocation<T> {
     let records = unsafe { ptr::addr_of_mut!(table_heap_bottom) };
     let top = unsafe { ptr::from_ref(&table_heap_top) };
     let first_page_address = records as usize + PAGE_SIZE;
     let heap_size = (top as usize - first_page_address) / PAGE_SIZE;
 
+    let allocation = unsafe { (*records).allocate(first_page_address as *const c_void, heap_size) };
+
+    zero_out(allocation.0, PAGE_SIZE * allocation.1);
+
     PageAllocation {
-        address: Some(unsafe {
-            (*records).allocate(first_page_address as *const c_void, heap_size, num_pages)
-        }),
+        address: Some(allocation.0),
+        num_pages: allocation.1,
     }
 }
 
-/// Get a new ZEROED 4k-aligned page
-pub fn zalloc_page<T>(num_pages: usize) -> PageAllocation<T> {
-    let mut page = kalloc_page(num_pages);
-    {
-        let page = page.as_mut_ptr() as usize;
-        for byte in page..(page + PAGE_SIZE) {
-            let byte = byte as *mut u8;
-            unsafe {
-                *byte = 0;
-            }
+/// Allocate and zero a new [T], with page-grain allocation
+pub fn zalloc_slice<T>(num_pages: usize) -> PageAllocation<[T]> {
+    let records = unsafe { ptr::addr_of_mut!(table_heap_bottom) };
+    let top = unsafe { ptr::from_ref(&table_heap_top) };
+    let first_page_address = records as usize + PAGE_SIZE;
+    let heap_size = (top as usize - first_page_address) / PAGE_SIZE;
+
+    let address = unsafe {
+        (*records).allocate_slice(first_page_address as *const c_void, heap_size, num_pages)
+    };
+    zero_out(address, num_pages * PAGE_SIZE);
+
+    PageAllocation {
+        address: Some(address),
+        num_pages,
+    }
+}
+
+// Zero-out bytes
+fn zero_out<T: ?Sized>(address: *const T, size: usize) {
+    let address = address as *const () as usize;
+    assert!(size > 0);
+    assert!(address > 0);
+    for byte in address..(address + size) {
+        let byte = byte as *mut u8;
+        unsafe {
+            *byte = 0;
         }
     }
-
-    page
 }
 
 fn self_test() {

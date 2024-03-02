@@ -188,10 +188,13 @@ impl<const PAGE_SIZE: usize> RecordsPage<PAGE_SIZE> {
     /// * `heap_start` is not page-aligned
     ///
     /// # Returns
-    /// The address of the first allocated page
-    pub fn allocate<T>(&mut self, heap_start: *const c_void, heap_size: usize) -> *mut T {
-        let num_pages = align_up::<PAGE_SIZE>(mem::size_of::<T>());
-        self.allocate_inner(heap_start, heap_size, num_pages) as *mut T
+    /// The address of the first allocated page, and the number of pages
+    pub fn allocate<T>(&mut self, heap_start: *const c_void, heap_size: usize) -> (*mut T, usize) {
+        let num_pages = align_up::<PAGE_SIZE>(mem::size_of::<T>()) / PAGE_SIZE;
+        (
+            self.allocate_inner(heap_start, heap_size, num_pages) as *mut T,
+            num_pages,
+        )
     }
 
     /// Same as [allocate], but for slices. This is typically used to dynamically allocate multiple
@@ -200,6 +203,9 @@ impl<const PAGE_SIZE: usize> RecordsPage<PAGE_SIZE> {
     /// # Panics
     /// If T is not page-sized (might be lifted in future)
     /// If any of the invariants of [allocate] are not met
+    ///
+    /// # Returns
+    /// The address of the first allocated page
     pub fn allocate_slice<T>(
         &mut self,
         heap_start: *const c_void,
