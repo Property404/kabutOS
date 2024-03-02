@@ -2,6 +2,7 @@
 use crate::{
     functions::{self, GroupBytesBy},
     globals, println,
+    process::Process,
     readline::Readline,
     KernelError, KernelResult,
 };
@@ -123,6 +124,13 @@ fn parse_line(line: &str) -> KernelResult<()> {
             functions::show_csr_registers(&registers, false)?;
         }
 
+        // Run process
+        RunArgs::NAME => {
+            let RunArgs { address } = RunArgs::parse(args)?;
+            let mut process = unsafe { Process::new(address, 0x1000)? };
+            process.run();
+        }
+
         _ => {
             return Err(KernelError::Generic("Command not found"));
         }
@@ -188,4 +196,12 @@ struct PokeArgs {
 struct CsrArgs<'a> {
     /// The CSR registers to show
     registers: Option<alloc::vec::Vec<&'a str>>,
+}
+
+/// Run process at address
+#[derive(Schmargs)]
+#[schmargs(name = "run")]
+struct RunArgs {
+    /// The address of the code
+    address: *const u8,
 }

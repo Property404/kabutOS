@@ -1,15 +1,20 @@
 use crate::{
     frame::TrapFrame,
-    mmu::{self, Page, PageAllocation, Sv39PageTable, PAGE_SIZE},
-    KernelResult,
+    mmu::{self, Page, PageAllocation, PageType, Sv39PageTable, PAGE_SIZE},
+    println, KernelResult,
 };
 use core::{
     ptr,
     sync::atomic::{AtomicUsize, Ordering},
 };
+use riscv::register::sstatus;
 
 const STACK_PAGES_PER_PROCESS: usize = 2;
-const USERSPACE_VADDR_START: usize = 0x1000_0000;
+const USERSPACE_VADDR_START: usize = 0xf000_0000;
+
+extern "C" {
+    fn run_process(addr: usize, frame: *mut TrapFrame);
+}
 
 const fn align_up<const SIZE: usize>(val: usize) -> usize {
     let mut rv = align_down::<SIZE>(val);
@@ -36,7 +41,10 @@ pub struct Process {
 
 impl Process {
     /// Construct a new [Process]
-    pub fn new(code_src: *const (), code_size: usize) -> KernelResult<Self> {
+    ///
+    /// # Safety
+    /// `code_src` and `code_size` must be valid
+    pub unsafe fn new(code_src: *const u8, code_size: usize) -> KernelResult<Self> {
         // TODO(optimization): pick a proper ordering
         // SeqCst is the safest
         static PID: AtomicUsize = AtomicUsize::new(1);
@@ -45,36 +53,50 @@ impl Process {
         let mut root_page_table = mmu::zalloc();
 
         // Map code
+        println!("Mapping code!");
         let mut code = mmu::zalloc_slice(align_up::<PAGE_SIZE>(code_size) / PAGE_SIZE);
         unsafe {
-            ptr::copy(
-                code_src as *const u8,
-                code.as_mut_ptr() as *mut u8,
-                code.num_pages() * PAGE_SIZE,
-            );
+            ptr::copy(code_src, code.as_mut_ptr() as *mut u8, code_size);
         }
         let code_paddr = mmu::ks_vaddr_to_paddr(code.addr())?;
-        mmu::map_page(
+        mmu::map_range(
             root_page_table.as_mut(),
             USERSPACE_VADDR_START.try_into()?,
             code_paddr,
+            PageType::UserExecute,
+            code.num_pages() * PAGE_SIZE,
         )?;
 
         // Map stack
-        // TODO: make slice
         let stack = mmu::zalloc();
         let stack_paddr = mmu::ks_vaddr_to_paddr(stack.as_const_ptr() as usize)?;
+        let stack_vaddr = (USERSPACE_VADDR_START + code.num_pages() * PAGE_SIZE).try_into()?;
         mmu::map_range(
             root_page_table.as_mut(),
-            (USERSPACE_VADDR_START + PAGE_SIZE).try_into()?,
+            stack_vaddr,
             stack_paddr,
-            STACK_PAGES_PER_PROCESS,
+            PageType::UserReadWrite,
+            STACK_PAGES_PER_PROCESS * PAGE_SIZE,
         )?;
 
         // This doesn't need to be mapped - it's only accessed by the kernel
         let mut frame: PageAllocation<TrapFrame> = mmu::zalloc();
         frame.as_mut().satp =
             mmu::ks_vaddr_to_paddr(root_page_table.as_const_ptr() as usize)?.into();
+        frame.as_mut().set_stack_pointer(usize::from(stack_vaddr));
+
+        // Map kernel space so we can context switch
+        println!("Mapping kernel space");
+        mmu::map_kernel_space(root_page_table.as_mut())?;
+
+        // TODO: Remove this hardcoded address
+        mmu::map_range(
+            root_page_table.as_mut(),
+            (0x1000_0000_usize).try_into().unwrap(),
+            (0x1000_0000_usize).try_into().unwrap(),
+            PageType::Kernel,
+            PAGE_SIZE,
+        )?;
 
         Ok(Self {
             pid,
@@ -87,6 +109,19 @@ impl Process {
 
     /// Run the process
     pub fn run(&mut self) {
-        todo!("Set PC to code")
+        let kernel_trap_frame = riscv::register::sscratch::read();
+        assert_ne!(kernel_trap_frame, 0);
+        println!("Frame: {kernel_trap_frame:08x}");
+        self.frame.as_mut().kernel_frame = kernel_trap_frame;
+
+        // Set page tables
+        let satp = self.frame.as_ref().satp.try_into().unwrap();
+        let pid = u16::try_from(self.pid).unwrap();
+        mmu::set_root_page_table(pid, satp);
+
+        unsafe {
+            sstatus::set_spp(sstatus::SPP::User);
+            run_process(USERSPACE_VADDR_START, self.frame.as_mut_ptr());
+        }
     }
 }
