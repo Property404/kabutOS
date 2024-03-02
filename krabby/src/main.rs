@@ -20,6 +20,7 @@ pub mod mmu;
 pub mod panic;
 pub mod process;
 pub mod readline;
+pub mod scheduler;
 pub mod serial;
 
 pub use crate::errors::{KernelError, KernelResult};
@@ -74,8 +75,15 @@ unsafe fn kmain() {
     // Initialize drivers
     unsafe { DRIVERS.init(&globals::get().device_tree).unwrap() };
 
+    unsafe {
+        riscv::register::sstatus::set_sum();
+        riscv::register::sstatus::set_mxr();
+        riscv::register::sstatus::set_sie();
+    }
+
     println!("{}", "Welcome to KabutOS!!!".cyan().bold());
 
+    scheduler::run_scheduler();
     loop {
         run_console();
     }

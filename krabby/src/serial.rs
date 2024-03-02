@@ -62,6 +62,7 @@ macro_rules! println
 	($($args:tt)+) => ({
         use core::fmt::Write;
         use $crate::{drivers::DRIVERS, serial::Serial};
+        #[allow(unused_unsafe)]
         if unsafe { DRIVERS.uart.is_some() } {
 			let _ = write!(Serial::new(), $($args)+);
             let _ = write!(Serial::new(), "\n");

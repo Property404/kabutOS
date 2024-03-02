@@ -33,6 +33,36 @@ const MAX_VIRTUAL_ADDRESS: usize = (1 << 39) - 1;
 const MAX_PHYSICAL_ADDRESS: usize = (1 << 56) - 1;
 const ENTRIES_IN_PAGE_TABLE: usize = 512;
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum PageType {
+    UserReadOnly,
+    UserReadWrite,
+    UserExecute,
+    Kernel,
+}
+
+impl PageType {
+    const fn read(self) -> bool {
+        true
+    }
+
+    const fn write(self) -> bool {
+        matches!(self, Self::UserReadWrite | Self::Kernel)
+    }
+
+    const fn execute(self) -> bool {
+        matches!(self, Self::UserExecute | Self::Kernel)
+    }
+
+    const fn user(self) -> bool {
+        !matches!(self, Self::Kernel)
+    }
+
+    const fn global(self) -> bool {
+        !self.user()
+    }
+}
+
 #[bitsize(64)]
 #[derive(Copy, Clone, DebugBits)]
 pub struct Sv39PageTableEntry {
@@ -40,7 +70,9 @@ pub struct Sv39PageTableEntry {
     read: bool,
     write: bool,
     execute: bool,
-    _unused: u6,
+    user: bool,
+    global: bool,
+    _unused: u4,
     ppn0: u9,
     ppn1: u9,
     ppn2: u26,
@@ -211,17 +243,33 @@ pub fn init_mmu(pmo: isize) -> KernelResult<()> {
 pub fn init_page_tables(pmo: isize) -> KernelResult<()> {
     self_test();
 
-    set_root_page_table();
+    let page_table_paddr = critical_section::with(|cs| {
+        // We have to make sure we're actually getting the table address here
+        let table = ROOT_PAGE_TABLE.borrow(cs);
+        let table: &Sv39PageTable = &table.borrow();
+        ptr::from_ref(table) as usize
+    });
+
+    set_root_page_table(0, page_table_paddr.try_into()?);
 
     critical_section::with(|cs| {
         let mut root_page_table = ROOT_PAGE_TABLE.borrow_ref_mut(cs);
-        map_kernel_space(&mut root_page_table, pmo)
+        map_kernel_space_with_pmo_offset(&mut root_page_table, pmo)
     })?;
 
     Ok(())
 }
 
-pub fn map_kernel_space(table: &mut Sv39PageTable, pmo: isize) -> KernelResult<()> {
+/// Map kernel space onto page table
+pub fn map_kernel_space(table: &mut Sv39PageTable) -> KernelResult<()> {
+    map_kernel_space_with_pmo_offset(table, 0)
+}
+
+fn map_kernel_space_with_pmo_offset(
+    table: &mut Sv39PageTable,
+    pmo_offset: isize,
+) -> KernelResult<()> {
+    let pmo = critical_section::with(|cs| PHYSICAL_MEMORY_OFFSET.borrow(cs).get());
     unsafe {
         let kernel_start_addr = ptr::from_ref(&kernel_start) as usize;
         assert!((kernel_start_addr as isize) >= pmo);
@@ -229,8 +277,11 @@ pub fn map_kernel_space(table: &mut Sv39PageTable, pmo: isize) -> KernelResult<(
             table,
             // The GOT table was offshifted by PMO in asm, so we have to shift the virtual pages
             // back
-            Sv39VirtualAddress::try_from(kernel_start_addr.checked_add_signed(-pmo).unwrap())?,
-            Sv39PhysicalAddress::try_from(kernel_start_addr)?,
+            Sv39VirtualAddress::try_from(
+                kernel_start_addr.checked_add_signed(-pmo_offset).unwrap(),
+            )?,
+            Sv39PhysicalAddress::try_from(kernel_start_addr.checked_add_signed(pmo).unwrap())?,
+            PageType::Kernel,
             ptr::from_ref(&table_heap_top) as usize - kernel_start_addr,
         )?;
     }
@@ -240,8 +291,11 @@ pub fn map_kernel_space(table: &mut Sv39PageTable, pmo: isize) -> KernelResult<(
         let stack_top_addr = ptr::from_ref(&stack_top) as usize;
         map_range(
             table,
-            Sv39VirtualAddress::try_from(stack_bottom_addr.checked_add_signed(-pmo).unwrap())?,
-            Sv39PhysicalAddress::try_from(stack_bottom_addr)?,
+            Sv39VirtualAddress::try_from(
+                stack_bottom_addr.checked_add_signed(-pmo_offset).unwrap(),
+            )?,
+            Sv39PhysicalAddress::try_from(stack_bottom_addr.checked_add_signed(pmo).unwrap())?,
+            PageType::Kernel,
             stack_top_addr - stack_bottom_addr,
         )?;
     }
@@ -250,24 +304,12 @@ pub fn map_kernel_space(table: &mut Sv39PageTable, pmo: isize) -> KernelResult<(
 }
 
 /// Set the root page table address
-fn set_root_page_table() {
-    let paddr = critical_section::with(|cs| {
-        // We have to make sure we're actually getting the table address here
-        let table = ROOT_PAGE_TABLE.borrow(cs);
-        let table: &Sv39PageTable = &table.borrow();
-        ptr::from_ref(table) as usize
-    });
-
-    assert!(paddr < MAX_PHYSICAL_ADDRESS);
-    assert_eq!(
-        paddr & (PAGE_SIZE - 1),
-        0,
-        "Physical address not 4k-aligned"
-    );
-
+pub fn set_root_page_table(asid: u16, paddr: Sv39PhysicalAddress) {
     // PPN is 4k-aligned, and we don't store the trailing zeroes
-    let paddr = (paddr) >> 12;
-    riscv::register::satp::write((8 << 60) | paddr);
+    let paddr = usize::from(paddr) >> 12;
+    unsafe {
+        riscv::register::satp::set(riscv::register::satp::Mode::Sv39, asid as usize, paddr);
+    }
 }
 
 /// Get physical address from kernel space virtual address
@@ -319,6 +361,7 @@ pub fn map_device(phys_address: usize, size: usize) -> KernelResult<usize> {
             &mut root_page_table,
             phys_address.try_into()?,
             virt_address.try_into()?,
+            PageType::Kernel,
             size,
         )
     })?;
@@ -330,6 +373,7 @@ pub fn map_range(
     table: &mut Sv39PageTable,
     mut vaddr: Sv39VirtualAddress,
     mut paddr: Sv39PhysicalAddress,
+    page_type: PageType,
     size: usize,
 ) -> KernelResult<()> {
     println!("<map_range table={:?}>", table as *mut Sv39PageTable);
@@ -346,7 +390,7 @@ pub fn map_range(
     }
 
     for _ in 0..size / PAGE_SIZE {
-        map_page(table, vaddr, paddr)?;
+        map_page(table, vaddr, paddr, page_type)?;
         assert_eq!(vaddr_to_paddr(table, vaddr.into())?.unwrap(), paddr);
 
         vaddr = vaddr.offset(PAGE_SIZE as isize)?;
@@ -361,8 +405,14 @@ pub fn map_page(
     mut table: &mut Sv39PageTable,
     vaddr: Sv39VirtualAddress,
     paddr: Sv39PhysicalAddress,
+    page_type: PageType,
 ) -> KernelResult<()> {
-    println!("<map_page table={:?}>", table as *mut Sv39PageTable);
+    println!(
+        "map@{:?}: v{:08x}-> p{:08x}",
+        table as *mut Sv39PageTable,
+        usize::from(vaddr),
+        usize::from(paddr)
+    );
     if !vaddr.is_page_aligned() {
         return Err(KernelError::AddressNotPageAligned(usize::from(vaddr)));
     }
@@ -389,6 +439,8 @@ pub fn map_page(
                     false,
                     false,
                     false,
+                    page_type.user(),
+                    page_type.global(),
                     Default::default(),
                     phys.ppn0(),
                     phys.ppn1(),
@@ -409,7 +461,6 @@ pub fn map_page(
                     .expect("Table address translation overflow!!"),
             )
         };
-        println!("\ttable={:?}", table as *mut Sv39PageTable);
     }
 
     let index = u16::from(vaddr.vpn0()) as usize;
@@ -421,9 +472,11 @@ pub fn map_page(
         index,
         Sv39PageTableEntry::new(
             true,
-            true,
-            true,
-            true,
+            page_type.read(),
+            page_type.write(),
+            page_type.execute(),
+            page_type.user(),
+            page_type.global(),
             Default::default(),
             paddr.ppn0(),
             paddr.ppn1(),

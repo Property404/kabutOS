@@ -1,17 +1,14 @@
-// Some of this code is taken from https://osblog.stephenmarz.com/ch4.html
 .option norvc
 .section .text
 
-.type asm_exception_handler, @function
-.global asm_exception_handler
+.type run_process, @function
+.global run_process
+.global enter_user_mode
 
-.set TF_GP_REG_STORE_SIZE, 0
-.set REG_SIZE, 8 // in bytes
-
-asm_exception_handler:
+run_process:
 	.cfi_startproc
+    // Save kernel context
     csrrw t6, sscratch, t6
-
     sd x1, (TF_GP_REG_STORE_SIZE + 1 * REG_SIZE)(t6)
     sd x2, (TF_GP_REG_STORE_SIZE + 2 * REG_SIZE)(t6)
     sd x3, (TF_GP_REG_STORE_SIZE + 3 * REG_SIZE)(t6)
@@ -42,16 +39,17 @@ asm_exception_handler:
     sd x28, (TF_GP_REG_STORE_SIZE + 28 * REG_SIZE)(t6)
     sd x29, (TF_GP_REG_STORE_SIZE + 29 * REG_SIZE)(t6)
     sd x30, (TF_GP_REG_STORE_SIZE + 30 * REG_SIZE)(t6)
-
-    // Store our temp register
     mv s5, t6
     csrrw t6, sscratch, t6
     sd x31, (TF_GP_REG_STORE_SIZE + 31 * REG_SIZE)(s5)
 
-    call exception_handler
+    // Return to PC
+    csrw sepc, a0
 
-    // Restore registers and return
-    mv t6, s5
+    // Load user trap frame
+    /*
+    mv t6, a1
+    csrw sscratch, t6
     ld x1, (TF_GP_REG_STORE_SIZE + 1 * REG_SIZE)(t6)
     ld x2, (TF_GP_REG_STORE_SIZE + 2 * REG_SIZE)(t6)
     ld x3, (TF_GP_REG_STORE_SIZE + 3 * REG_SIZE)(t6)
@@ -82,8 +80,14 @@ asm_exception_handler:
     ld x28, (TF_GP_REG_STORE_SIZE + 28 * REG_SIZE)(t6)
     ld x29, (TF_GP_REG_STORE_SIZE + 29 * REG_SIZE)(t6)
     ld x30, (TF_GP_REG_STORE_SIZE + 30 * REG_SIZE)(t6)
+    ld x31, (TF_GP_REG_STORE_SIZE + 30 * REG_SIZE)(t6)
+    */
 
+
+    // Branch to user mode
+    enter_user_mode:
+    sfence.vma
     sret
+
+    // Switch to process context
 	.cfi_endproc
-
-
