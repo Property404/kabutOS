@@ -197,12 +197,12 @@ impl<const PAGE_SIZE: usize> RecordsPage<PAGE_SIZE> {
         )
     }
 
-    /// Same as [allocate], but for slices. This is typically used to dynamically allocate multiple
+    /// Same as [RecordsPage::allocate], but for slices. This is typically used to dynamically allocate multiple
     /// pages
     ///
     /// # Panics
     /// If T is not page-sized (might be lifted in future)
-    /// If any of the invariants of [allocate] are not met
+    /// If any of the invariants of [RecordsPage::allocate] are not met
     ///
     /// # Returns
     /// The address of the first allocated page
