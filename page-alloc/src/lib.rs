@@ -2,8 +2,21 @@
 #![cfg_attr(not(test), no_std)]
 #[warn(missing_docs)]
 mod record;
-use core::ffi::c_void;
+use core::{ffi::c_void, mem, ptr};
 use record::Record;
+
+const fn align_up<const SIZE: usize>(val: usize) -> usize {
+    let mut rv = align_down::<SIZE>(val);
+    if val % SIZE != 0 {
+        rv += SIZE;
+    }
+    rv
+}
+
+const fn align_down<const SIZE: usize>(val: usize) -> usize {
+    assert!(SIZE.is_power_of_two());
+    SIZE * (val / SIZE)
+}
 
 /// A single book-keeping page for an upward-growing page allocator
 ///
@@ -106,26 +119,12 @@ impl<const PAGE_SIZE: usize> RecordsPage<PAGE_SIZE> {
         num_deallocated
     }
 
-    /// Allocate some pages
-    ///
-    /// # Arguments
-    /// `heap_start` - The start of the page heap
-    /// `heap_size` - The size of the page heap IN PAGES
-    /// `num_pages` - The number of pages to be allocated
-    ///
-    /// # Panics
-    /// * If `heap_size` or `num_pages` is zero
-    /// * If there is a heap overflow
-    /// * `heap_start` is not page-aligned
-    ///
-    /// # Returns
-    /// The address of the first allocated page
-    pub fn allocate<T>(
+    fn allocate_inner(
         &mut self,
         heap_start: *const c_void,
         heap_size: usize,
         num_pages: usize,
-    ) -> *mut T {
+    ) -> *mut () {
         assert_eq!(
             heap_start as usize & (PAGE_SIZE - 1),
             0,
@@ -164,7 +163,7 @@ impl<const PAGE_SIZE: usize> RecordsPage<PAGE_SIZE> {
                 self.set_last(page_start + count - 1, true);
 
                 // And return start of page
-                return ((heap_start as usize) + page_start * PAGE_SIZE) as *mut T;
+                return ((heap_start as usize) + page_start * PAGE_SIZE) as *mut ();
             }
 
             // Nevermind, we can't use this
@@ -175,6 +174,44 @@ impl<const PAGE_SIZE: usize> RecordsPage<PAGE_SIZE> {
 
         panic!("Heap overflow(book-keeping overrun)!");
     }
+
+    /// Allocate some pages
+    ///
+    /// # Arguments
+    /// `heap_start` - The start of the page heap
+    /// `heap_size` - The size of the page heap IN PAGES
+    ///
+    /// # Panics
+    /// * If `heap_size` is zero
+    /// * If size of T is zero
+    /// * If there is a heap overflow
+    /// * `heap_start` is not page-aligned
+    ///
+    /// # Returns
+    /// The address of the first allocated page
+    pub fn allocate<T>(&mut self, heap_start: *const c_void, heap_size: usize) -> *mut T {
+        let num_pages = align_up::<PAGE_SIZE>(mem::size_of::<T>());
+        self.allocate_inner(heap_start, heap_size, num_pages) as *mut T
+    }
+
+    /// Same as [allocate], but for slices. This is typically used to dynamically allocate multiple
+    /// pages
+    ///
+    /// # Panics
+    /// If T is not page-sized (might be lifted in future)
+    /// If any of the invariants of [allocate] are not met
+    pub fn allocate_slice<T>(
+        &mut self,
+        heap_start: *const c_void,
+        heap_size: usize,
+        num_pages: usize,
+    ) -> *mut [T] {
+        assert_eq!(mem::size_of::<T>(), PAGE_SIZE);
+
+        let ptr = self.allocate_inner(heap_start, heap_size, num_pages) as *mut T;
+        let size = num_pages * PAGE_SIZE;
+        ptr::slice_from_raw_parts_mut(ptr, size)
+    }
 }
 
 #[cfg(test)]
@@ -182,9 +219,13 @@ mod test {
     use super::*;
     use core::ptr::null;
 
+    const PAGE_SIZE: usize = 2048;
+    #[derive(Debug)]
+    #[allow(dead_code)]
+    struct Page([u8; PAGE_SIZE]);
+
     #[test]
     fn allocate() {
-        const PAGE_SIZE: usize = 4096;
         const PAGES: usize = 1024;
 
         let mut records_page = RecordsPage([Default::default(); PAGE_SIZE]);
@@ -192,7 +233,8 @@ mod test {
         let mut sum = 0;
         for num_pages_to_allocate in [1, 5, 3, 4, 100, 1] {
             assert_eq!(
-                records_page.allocate::<()>(null(), PAGES, num_pages_to_allocate) as usize,
+                records_page.allocate_slice::<Page>(null(), PAGES, num_pages_to_allocate)
+                    as *const () as usize,
                 PAGE_SIZE * sum
             );
             sum += num_pages_to_allocate;
@@ -201,7 +243,6 @@ mod test {
 
     #[test]
     fn alloc_dealloc() {
-        const PAGE_SIZE: usize = 4096;
         const PAGES: usize = 1024;
 
         let mut records_page = RecordsPage([Default::default(); PAGE_SIZE]);
@@ -211,18 +252,15 @@ mod test {
 
         let mut sum = 0;
         for num_pages_to_allocate in tv {
-            let address = records_page.allocate::<()>(null(), PAGES, num_pages_to_allocate);
+            let address = records_page.allocate_slice::<Page>(null(), PAGES, num_pages_to_allocate);
             addresses.push(address);
-            assert_eq!(address as usize, PAGE_SIZE * sum);
+            assert_eq!(address as *const () as usize, PAGE_SIZE * sum);
             sum += num_pages_to_allocate;
         }
 
         // Now deallocate everything
         for (index, address) in addresses.iter().enumerate().rev() {
-            assert_eq!(
-                records_page.deallocate::<()>(null(), PAGES, *address),
-                tv[index]
-            );
+            assert_eq!(records_page.deallocate(null(), PAGES, *address), tv[index]);
         }
     }
 }
