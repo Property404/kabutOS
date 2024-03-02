@@ -56,33 +56,27 @@ impl<const PAGE_SIZE: usize> RecordsPage<PAGE_SIZE> {
     ///
     /// # Returns
     /// The number of pages deallocated
-    pub fn deallocate<T>(
+    pub fn deallocate<T: ?Sized>(
         &mut self,
         heap_start: *const c_void,
         heap_size: usize,
         address: *const T,
     ) -> usize {
+        let address = address as *const () as usize;
         assert_eq!(
             heap_start as usize & (PAGE_SIZE - 1),
             0,
             "`heap_start` not page-aligned"
         );
-        assert_eq!(
-            address as usize & (PAGE_SIZE - 1),
-            0,
-            "Address not page-aligned"
-        );
+        assert_eq!(address & (PAGE_SIZE - 1), 0, "Address not page-aligned");
+        assert!((address) >= heap_start as usize, "Address below range");
         assert!(
-            (address as usize) >= heap_start as usize,
-            "Address below range"
-        );
-        assert!(
-            (address as usize) < (heap_start as usize + heap_size * PAGE_SIZE),
+            (address) < (heap_start as usize + heap_size * PAGE_SIZE),
             "Address above range"
         );
         assert_ne!(heap_size, 0);
 
-        let mut record_index = (address as usize)
+        let mut record_index = address
             .checked_sub(heap_start as usize)
             .expect("Address out-of-range")
             / PAGE_SIZE;
