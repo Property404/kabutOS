@@ -10,7 +10,7 @@ use core::{
 use riscv::register::sstatus;
 
 const STACK_PAGES_PER_PROCESS: usize = 2;
-const USERSPACE_VADDR_START: usize = 0x1000_0000;
+const USERSPACE_VADDR_START: usize = 0xf000_0000;
 
 extern "C" {
     fn run_process(addr: usize, frame: *mut TrapFrame);
@@ -88,6 +88,15 @@ impl Process {
         println!("Mapping kernel space");
         mmu::map_kernel_space(root_page_table.as_mut())?;
 
+        // TODO: Remove this hardcoded address
+        mmu::map_range(
+            root_page_table.as_mut(),
+            (0x1000_0000_usize).try_into().unwrap(),
+            (0x1000_0000_usize).try_into().unwrap(),
+            PageType::Kernel,
+            PAGE_SIZE,
+        )?;
+
         Ok(Self {
             pid,
             code,
@@ -106,6 +115,12 @@ impl Process {
             println!("PID: {pid:08x}!");
             mmu::set_root_page_table(pid, satp);
             sstatus::set_spp(sstatus::SPP::User);
+            riscv::asm::sfence_vma_all();
+            unsafe {
+                let ptr: *const u32 = USERSPACE_VADDR_START as *const u32;
+                let val = *ptr;
+                println!("First instr: {val:08x}");
+            }
             run_process(USERSPACE_VADDR_START, self.frame.as_mut_ptr());
         }
     }

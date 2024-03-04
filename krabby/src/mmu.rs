@@ -439,7 +439,7 @@ pub fn map_page(
                     false,
                     false,
                     false,
-                    page_type.user(),
+                    false,
                     page_type.global(),
                     Default::default(),
                     phys.ppn0(),

@@ -77,8 +77,6 @@ unsafe fn kmain() {
 
     unsafe {
         riscv::register::sstatus::set_sum();
-        riscv::register::sstatus::set_mxr();
-        riscv::register::sstatus::set_sie();
     }
 
     println!("{}", "Welcome to KabutOS!!!".cyan().bold());

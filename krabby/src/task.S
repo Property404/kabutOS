@@ -2,8 +2,10 @@
 .section .text
 
 .type run_process, @function
+.type idle, @function
 .global run_process
 .global enter_user_mode
+.global idle
 
 run_process:
 	.cfi_startproc
@@ -89,5 +91,12 @@ run_process:
     sfence.vma
     sret
 
-    // Switch to process context
+	.cfi_endproc
+
+idle:
+	.cfi_startproc
+    #csrrw x31, mstatus, x31
+    #wfi
+    nop
+    j idle
 	.cfi_endproc
