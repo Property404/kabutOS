@@ -110,6 +110,12 @@ impl Process {
 
     /// Run the process
     pub fn run(&mut self) {
+        let kernel_trap_frame = riscv::register::sscratch::read();
+        assert_ne!(kernel_trap_frame, 0);
+        println!("Frame: {kernel_trap_frame:08x}");
+        self.frame.as_mut().kernel_frame = kernel_trap_frame;
+
+        // Set page tables
         let satp = self.frame.as_ref().satp.try_into().unwrap();
         let pid = u16::try_from(self.pid).unwrap();
         mmu::set_root_page_table(pid, satp);

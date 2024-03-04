@@ -1,20 +1,21 @@
-use core::{cell::RefCell, ptr};
-use critical_section::Mutex;
+use crate::mmu;
+use core::sync::atomic::{AtomicU32, Ordering};
 
 /// Put trap frame in scratch register
 pub fn set_kernel_trap_frame(hart: usize) {
-    assert_eq!(hart, 0, "Multiple harts not supported");
+    // Not prepared to deal with more than 32 harts
+    assert!(hart < 32);
 
-    static KERNEL_TRAP_FRAME: Mutex<RefCell<TrapFrame>> = Mutex::new(RefCell::new(TrapFrame {
-        regs: [0; 32],
-        satp: 0,
-    }));
+    // Make sure we only set the trap frame once
+    static HARTS_SET: AtomicU32 = AtomicU32::new(0);
+    let harts_set = HARTS_SET.fetch_or(1 << hart, Ordering::SeqCst);
+    if harts_set & (1 << hart) != 0 {
+        panic!("Hart {hart} already set trap frame");
+    }
 
-    critical_section::with(|cs| {
-        let frame: &mut TrapFrame = &mut KERNEL_TRAP_FRAME.borrow_ref_mut(cs);
-        let frame = ptr::from_mut(frame);
-        riscv::register::sscratch::write(frame as usize);
-    });
+    let mut frame = mmu::zalloc::<TrapFrame>();
+    frame.as_mut().kernel_frame = 0xDEADBEEF;
+    riscv::register::sscratch::write(frame.leak() as usize);
 }
 
 /// Trap frame used per process (or by the kernel)
@@ -23,6 +24,8 @@ pub fn set_kernel_trap_frame(hart: usize) {
 pub struct TrapFrame {
     /// General purpose registers
     pub regs: [usize; 32],
+    /// Kernel trap frame (None for kernels)
+    pub kernel_frame: usize,
     /// Supervisor Address Translation/Protection register
     /// (Where is the root page table for this process)
     pub satp: usize,

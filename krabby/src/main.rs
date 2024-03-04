@@ -68,7 +68,7 @@ unsafe fn boot(_hart_id: usize, fdt_ptr: *const u8, pmo: isize) {
 /// Supervisor entry point
 #[no_mangle]
 unsafe fn kmain() {
-    // TODO: set hart automatically
+    // TODO: set hart ID
     // Set trap frame
     frame::set_kernel_trap_frame(0);
 
