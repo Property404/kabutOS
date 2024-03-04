@@ -12,7 +12,7 @@ fn exception_handler() {
 
     println!("Registers:");
     for i in 1..=31 {
-        println!("\tr{i}: {:08x}", trap_frame.regs[i]);
+        println!("\tx{i}: {:08x}", trap_frame.regs[i]);
     }
 
     panic!(

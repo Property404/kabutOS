@@ -27,3 +27,15 @@ pub struct TrapFrame {
     /// (Where is the root page table for this process)
     pub satp: usize,
 }
+
+impl TrapFrame {
+    /// Set the stack pointer (x2 general purpose register)
+    pub fn set_stack_pointer(&mut self, val: usize) {
+        self.regs[2] = val
+    }
+
+    /// Set the global pointer (x3 general purpose register)
+    pub fn set_global_pointer(&mut self, val: usize) {
+        self.regs[3] = val
+    }
+}

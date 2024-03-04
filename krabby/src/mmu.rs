@@ -1,12 +1,12 @@
 //! MMU and paging setup
 //!
 //! Most of this is based off <https://osblog.stephenmarz.com/ch3.2.html>
-use crate::{println, serial::Serial, KernelError, KernelResult};
+use crate::{KernelError, KernelResult};
 use bilge::prelude::*;
 use core::{
     cell::{Cell, RefCell},
     ffi::c_void,
-    fmt::{Debug, Write},
+    fmt::Debug,
     ptr,
 };
 use critical_section::Mutex;
@@ -228,9 +228,6 @@ pub fn init_mmu(pmo: isize) -> KernelResult<()> {
         riscv::register::pmpaddr0::write(0xFFFF_FFFF_FFFF_FFFF);
     }
 
-    // Fence
-    riscv::asm::sfence_vma_all();
-
     // Set PMO
     critical_section::with(|cs| {
         PHYSICAL_MEMORY_OFFSET.borrow(cs).set(pmo);
@@ -310,6 +307,7 @@ pub fn set_root_page_table(asid: u16, paddr: Sv39PhysicalAddress) {
     unsafe {
         riscv::register::satp::set(riscv::register::satp::Mode::Sv39, asid as usize, paddr);
     }
+    riscv::asm::sfence_vma_all();
 }
 
 /// Get physical address from kernel space virtual address
@@ -352,7 +350,6 @@ pub fn vaddr_to_paddr(
 
 /// Map a memory-mapped device to kernel space
 pub fn map_device(phys_address: usize, size: usize) -> KernelResult<usize> {
-    Serial::new().write_str("<map_device>\n")?;
     assert!(size >= 0x1000);
     let virt_address = phys_address;
     critical_section::with(|cs| {
@@ -376,7 +373,6 @@ pub fn map_range(
     page_type: PageType,
     size: usize,
 ) -> KernelResult<()> {
-    println!("<map_range table={:?}>", table as *mut Sv39PageTable);
     assert!(size > 0);
     if !vaddr.is_page_aligned() {
         return Err(KernelError::AddressNotPageAligned(usize::from(vaddr)));
@@ -407,12 +403,6 @@ pub fn map_page(
     paddr: Sv39PhysicalAddress,
     page_type: PageType,
 ) -> KernelResult<()> {
-    println!(
-        "map@{:?}: v{:08x}-> p{:08x}",
-        table as *mut Sv39PageTable,
-        usize::from(vaddr),
-        usize::from(paddr)
-    );
     if !vaddr.is_page_aligned() {
         return Err(KernelError::AddressNotPageAligned(usize::from(vaddr)));
     }

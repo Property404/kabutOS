@@ -48,10 +48,9 @@ run_process:
     // Return to PC
     csrw sepc, a0
 
-    // Load user trap frame
-    /*
+    // Load registers from user trap frame
     mv t6, a1
-    csrw sscratch, t6
+    /*
     ld x1, (TF_GP_REG_STORE_SIZE + 1 * REG_SIZE)(t6)
     ld x2, (TF_GP_REG_STORE_SIZE + 2 * REG_SIZE)(t6)
     ld x3, (TF_GP_REG_STORE_SIZE + 3 * REG_SIZE)(t6)
@@ -61,6 +60,7 @@ run_process:
     ld x7, (TF_GP_REG_STORE_SIZE + 7 * REG_SIZE)(t6)
     ld x8, (TF_GP_REG_STORE_SIZE + 8 * REG_SIZE)(t6)
     ld x9, (TF_GP_REG_STORE_SIZE + 9 * REG_SIZE)(t6)
+    */
     ld x10, (TF_GP_REG_STORE_SIZE + 10 * REG_SIZE)(t6)
     ld x11, (TF_GP_REG_STORE_SIZE + 11 * REG_SIZE)(t6)
     ld x12, (TF_GP_REG_STORE_SIZE + 12 * REG_SIZE)(t6)
@@ -83,19 +83,18 @@ run_process:
     ld x29, (TF_GP_REG_STORE_SIZE + 29 * REG_SIZE)(t6)
     ld x30, (TF_GP_REG_STORE_SIZE + 30 * REG_SIZE)(t6)
     ld x31, (TF_GP_REG_STORE_SIZE + 30 * REG_SIZE)(t6)
-    */
 
 
     // Branch to user mode
     enter_user_mode:
-    sfence.vma
     sret
 
 	.cfi_endproc
 
 idle:
 	.cfi_startproc
-    #csrrw x31, mstatus, x31
+    ecall
+    #csrrw x31, sstatus, x31
     #wfi
     nop
     j idle

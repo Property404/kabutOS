@@ -71,9 +71,10 @@ impl Process {
         // Map stack
         let stack = mmu::zalloc();
         let stack_paddr = mmu::ks_vaddr_to_paddr(stack.as_const_ptr() as usize)?;
+        let stack_vaddr = (USERSPACE_VADDR_START + code.num_pages() * PAGE_SIZE).try_into()?;
         mmu::map_range(
             root_page_table.as_mut(),
-            (USERSPACE_VADDR_START + code.num_pages() * PAGE_SIZE).try_into()?,
+            stack_vaddr,
             stack_paddr,
             PageType::UserReadWrite,
             STACK_PAGES_PER_PROCESS * PAGE_SIZE,
@@ -83,6 +84,7 @@ impl Process {
         let mut frame: PageAllocation<TrapFrame> = mmu::zalloc();
         frame.as_mut().satp =
             mmu::ks_vaddr_to_paddr(root_page_table.as_const_ptr() as usize)?.into();
+        frame.as_mut().set_stack_pointer(usize::from(stack_vaddr));
 
         // Map kernel space so we can context switch
         println!("Mapping kernel space");
@@ -108,19 +110,12 @@ impl Process {
 
     /// Run the process
     pub fn run(&mut self) {
+        let satp = self.frame.as_ref().satp.try_into().unwrap();
+        let pid = u16::try_from(self.pid).unwrap();
+        mmu::set_root_page_table(pid, satp);
+
         unsafe {
-            let satp = self.frame.as_ref().satp.try_into().unwrap();
-            let pid = u16::try_from(self.pid).unwrap();
-            println!("Setting SATP: {:08x}!", usize::from(satp));
-            println!("PID: {pid:08x}!");
-            mmu::set_root_page_table(pid, satp);
             sstatus::set_spp(sstatus::SPP::User);
-            riscv::asm::sfence_vma_all();
-            unsafe {
-                let ptr: *const u32 = USERSPACE_VADDR_START as *const u32;
-                let val = *ptr;
-                println!("First instr: {val:08x}");
-            }
             run_process(USERSPACE_VADDR_START, self.frame.as_mut_ptr());
         }
     }
