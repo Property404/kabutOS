@@ -74,9 +74,8 @@ fn parse_line(line: &str) -> KernelResult<()> {
                 }
             };
 
-            if (args.start as usize) < 4096 {
-                // This will crash
-                println!("Now you get what you deserve!");
+            if args.start.is_null() {
+                return Err(KernelError::NullPointer);
             }
 
             unsafe {

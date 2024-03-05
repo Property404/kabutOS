@@ -350,7 +350,7 @@ pub fn vaddr_to_paddr(
 
 /// Map a memory-mapped device to kernel space
 pub fn map_device(phys_address: usize, size: usize) -> KernelResult<usize> {
-    assert!(size >= 0x1000);
+    assert!(size >= PAGE_SIZE);
     let virt_address = phys_address;
     critical_section::with(|cs| {
         let mut root_page_table = ROOT_PAGE_TABLE.borrow_ref_mut(cs);

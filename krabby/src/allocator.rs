@@ -1,6 +1,8 @@
+use crate::mmu::PAGE_SIZE;
 use talc::*;
+
 #[link_section = ".heap"]
-static mut ARENA: [u8; 4096] = [0; 4096];
+static mut ARENA: [u8; PAGE_SIZE] = [0; PAGE_SIZE];
 
 #[global_allocator]
 static ALLOCATOR: Talck<spin::Mutex<()>, ClaimOnOom> = Talc::new(unsafe {

@@ -11,9 +11,9 @@ pub enum KernelError {
     /// Generic error
     #[display("{}", _0)]
     Generic(&'static str),
-    /// Argument is invalid
-    #[display("Argument is invalid")]
-    InvalidArguments,
+    /// Attempted to dereference null pointer
+    #[display("Attempted to dereference null pointer")]
+    NullPointer,
     /// Driver is uninitialized
     #[display("Driver is uninitialized")]
     DriverUninitialized,
