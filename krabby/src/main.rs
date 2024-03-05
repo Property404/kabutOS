@@ -21,6 +21,7 @@ pub mod panic;
 pub mod process;
 pub mod readline;
 pub mod serial;
+pub mod util;
 
 pub use crate::errors::{KernelError, KernelResult};
 use crate::{

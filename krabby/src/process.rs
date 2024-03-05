@@ -1,7 +1,9 @@
 use crate::{
     frame::TrapFrame,
     mmu::{self, Page, PageAllocation, PageType, Sv39PageTable, PAGE_SIZE},
-    println, KernelResult,
+    println,
+    util::*,
+    KernelResult,
 };
 use core::{
     ptr,
@@ -14,19 +16,6 @@ const USERSPACE_VADDR_START: usize = 0xf000_0000;
 
 extern "C" {
     fn run_process(addr: usize, frame: *mut TrapFrame);
-}
-
-const fn align_up<const SIZE: usize>(val: usize) -> usize {
-    let mut rv = align_down::<SIZE>(val);
-    if val % SIZE != 0 {
-        rv += SIZE;
-    }
-    rv
-}
-
-const fn align_down<const SIZE: usize>(val: usize) -> usize {
-    assert!(SIZE.is_power_of_two());
-    SIZE * (val / SIZE)
 }
 
 /// Represents a process
