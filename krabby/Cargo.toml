@@ -1,5 +1,6 @@
 [package]
 name = "krabby"
+default-run = "krabby"
 version = "0.0.0"
 edition = "2021"
 rust-version = "1.76"
@@ -27,3 +28,7 @@ schmargs = { default-features = false, git = "https://github.com/Property404/sch
 spin = "0.9.8"
 talc = { version = "4.2.0", default-features = false, features = [ "lock_api" ] }
 utf8-parser = { version = "0.0.4", default-features = false }
+
+[build-dependencies]
+anyhow = "1.0.80"
+elf = "0.7.4"

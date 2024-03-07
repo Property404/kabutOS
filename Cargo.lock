@@ -83,6 +83,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11157ac094ffbdde99aa67b23417ebdd801842852b500e395a45a9c0aac03e4a"
 
 [[package]]
+name = "elf"
+version = "0.7.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4445909572dbd556c457c849c4ca58623d84b27c8fff1e74b0b4227d8b90d17b"
+
+[[package]]
 name = "embedded-hal"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -127,9 +133,11 @@ dependencies = [
 name = "krabby"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
  "bilge",
  "critical-section",
  "derive_more",
+ "elf",
  "embedded-line-edit",
  "fdt",
  "owo-colors",

@@ -4,9 +4,9 @@ use crate::{
     globals, println,
     process::Process,
     readline::Readline,
-    KernelError, KernelResult,
+    userspace, KernelError, KernelResult,
 };
-use core::fmt::Display;
+use core::{fmt::Display, ptr};
 use schmargs::Schmargs;
 
 /// Run the kernel console
@@ -126,6 +126,7 @@ fn parse_line(line: &str) -> KernelResult<()> {
         // Run process
         RunArgs::NAME => {
             let RunArgs { address } = RunArgs::parse(args)?;
+            let address = address.unwrap_or(ptr::addr_of!(userspace::dratinit) as *const u8);
             let mut process = unsafe { Process::new(address, 0x1000)? };
             process.run();
         }
@@ -197,10 +198,10 @@ struct CsrArgs<'a> {
     registers: Option<alloc::vec::Vec<&'a str>>,
 }
 
-/// Run process at address
+/// Run program
 #[derive(Schmargs)]
 #[schmargs(name = "run")]
 struct RunArgs {
     /// The address of the code
-    address: *const u8,
+    address: Option<*const u8>,
 }

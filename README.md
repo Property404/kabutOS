@@ -2,6 +2,13 @@
 
 RISCV kernel.
 
+## Crates
+
+* krabby - The kernel
+* dratinit - The init program (process 1)
+* embedded-line-edit - No-std line editing library
+* page-alloc - Page-grain allocation library
+
 ## Installing Dependencies
 
 Note: This requires Ubuntu or Debian. If you're on another distro, or the
