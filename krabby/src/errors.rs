@@ -11,6 +11,12 @@ pub enum KernelError {
     /// Generic error
     #[display("{}", _0)]
     Generic(&'static str),
+    /// Invalid arguments to syscall
+    #[display("Invalid arguments")]
+    InvalidArguments,
+    /// No such syscall
+    #[display("Invalid syscall: {}", _0)]
+    InvalidSyscall(usize),
     /// Attempted to dereference null pointer
     #[display("Attempted to dereference null pointer")]
     NullPointer,

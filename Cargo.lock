@@ -105,6 +105,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "enumn"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6fd000fd6988e73bbe993ea3db9b1aa64906ab88766d654973924340c8cddb42"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "fdt"
 version = "0.2.0-alpha1"
 source = "git+https://github.com/Property404/fdt?rev=5abb24aed8e5ae0ca4c0ed8a2510355c92ea7b8c#5abb24aed8e5ae0ca4c0ed8a2510355c92ea7b8c"
@@ -139,6 +150,7 @@ dependencies = [
  "derive_more",
  "elf",
  "embedded-line-edit",
+ "enumn",
  "fdt",
  "owo-colors",
  "page-alloc",
