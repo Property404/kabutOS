@@ -4,6 +4,7 @@ use elf::{endian::LittleEndian, ElfStream};
 use std::{
     env,
     fs::{self, File},
+    iter,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -19,11 +20,12 @@ fn main() -> Result<()> {
 
     // Build userspace
     for krate in ["dratinit"] {
-        let file = objcopy(build_crate(krate)?)?;
+        let (entry, file) = objcopy(build_crate(krate)?)?;
         let len = file.len();
 
         let mut contents = format!(
             "// @generated
+pub const ENTRY_OFFSET: usize = 0x{entry:08x};
 pub static BIN: [u8; {len}] = [
 "
         );
@@ -45,9 +47,10 @@ pub static BIN: [u8; {len}] = [
 }
 
 // Extract bits from an ELF file
-fn objcopy(path: impl AsRef<Path>) -> Result<Vec<u8>> {
+fn objcopy(path: impl AsRef<Path>) -> Result<(usize, Vec<u8>)> {
     let mut elf = ElfStream::<LittleEndian, _>::open_stream(File::open(path)?)?;
     let entry = elf.ehdr.e_entry;
+    let mut start = None;
     let mut bytes: Vec<u8> = Vec::new();
 
     const PROGBITS: u32 = 0x1;
@@ -55,6 +58,7 @@ fn objcopy(path: impl AsRef<Path>) -> Result<Vec<u8>> {
         if sh.sh_type != PROGBITS {
             continue;
         }
+
         let sh_name: String = elf
             .section_headers_with_strtab()?
             .1
@@ -65,19 +69,26 @@ fn objcopy(path: impl AsRef<Path>) -> Result<Vec<u8>> {
             continue;
         }
 
-        let addr = sh.sh_addr;
+        let start = *(start.get_or_insert(sh.sh_addr));
+
+        let addr = sh.sh_addr.checked_sub(start).unwrap().try_into()?;
         let size = sh.sh_size;
-        if addr > 0 && addr < entry {
-            bail!("Unexpected start address to section");
-        }
+
         let section = elf.section_data(&sh)?.0;
-        if section.len() != usize::try_from(size).unwrap() {
+        if section.len() != usize::try_from(size)? {
             bail!("Invalid size");
         }
-        println!("Section: {sh_name} {size}");
+
+        if bytes.len() < addr {
+            bytes.extend(iter::repeat(0).take(addr - bytes.len()));
+        }
+        if bytes.len() > addr {
+            panic!("Outside of section!");
+        }
         bytes.extend(section);
     }
-    Ok(bytes)
+
+    Ok(((entry - start.unwrap()).try_into()?, bytes))
 }
 
 // Build a crate and return a path to the binary

@@ -22,6 +22,7 @@ extern "C" {
 #[derive(Debug)]
 pub struct Process {
     pub pid: usize,
+    pub entry: usize,
     pub code: PageAllocation<[Page<PAGE_SIZE>]>,
     pub root_page_table: PageAllocation<Sv39PageTable>,
     pub frame: PageAllocation<TrapFrame>,
@@ -33,7 +34,11 @@ impl Process {
     ///
     /// # Safety
     /// `code_src` and `code_size` must be valid
-    pub unsafe fn new(code_src: *const u8, code_size: usize) -> KernelResult<Self> {
+    pub unsafe fn new(
+        code_src: *const u8,
+        code_size: usize,
+        entry_offset: usize,
+    ) -> KernelResult<Self> {
         // TODO(optimization): pick a proper ordering
         // SeqCst is the safest
         static PID: AtomicUsize = AtomicUsize::new(1);
@@ -93,6 +98,7 @@ impl Process {
 
         Ok(Self {
             pid,
+            entry: USERSPACE_VADDR_START + entry_offset,
             code,
             root_page_table,
             frame,
@@ -114,7 +120,7 @@ impl Process {
 
         unsafe {
             sstatus::set_spp(sstatus::SPP::User);
-            run_process(USERSPACE_VADDR_START, self.frame.as_mut_ptr());
+            run_process(self.entry, self.frame.as_mut_ptr());
         }
     }
 }

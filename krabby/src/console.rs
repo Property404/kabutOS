@@ -126,8 +126,12 @@ fn parse_line(line: &str) -> KernelResult<()> {
         // Run process
         RunArgs::NAME => {
             let RunArgs { address } = RunArgs::parse(args)?;
-            let address = address.unwrap_or(ptr::addr_of!(userspace::dratinit) as *const u8);
-            let mut process = unsafe { Process::new(address, 0x1000)? };
+
+            let size = userspace::dratinit::BIN.len();
+            let address = address.unwrap_or(ptr::addr_of!(userspace::dratinit::BIN) as *const u8);
+            let entry_offset = userspace::dratinit::ENTRY_OFFSET;
+
+            let mut process = unsafe { Process::new(address, size, entry_offset)? };
             process.run();
         }
 
