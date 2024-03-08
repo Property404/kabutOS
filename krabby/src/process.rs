@@ -59,10 +59,11 @@ impl Process {
         // Map stack
         let stack = mmu::zalloc();
         let stack_paddr = mmu::ks_vaddr_to_paddr(stack.as_const_ptr() as usize)?;
-        let stack_vaddr = (USERSPACE_VADDR_START + code.num_pages() * PAGE_SIZE).try_into()?;
+        let stack_vaddr = USERSPACE_VADDR_START + code.num_pages() * PAGE_SIZE;
+        println!("Stack vaddr: {stack_vaddr:08x}");
         mmu::map_range(
             root_page_table.as_mut(),
-            stack_vaddr,
+            stack_vaddr.try_into()?,
             stack_paddr,
             PageType::UserReadWrite,
             STACK_PAGES_PER_PROCESS * PAGE_SIZE,
@@ -72,7 +73,10 @@ impl Process {
         let mut frame: PageAllocation<TrapFrame> = mmu::zalloc();
         frame.as_mut().satp =
             mmu::ks_vaddr_to_paddr(root_page_table.as_const_ptr() as usize)?.into();
-        frame.as_mut().set_stack_pointer(usize::from(stack_vaddr));
+        // Stack grows down, so set to top
+        frame
+            .as_mut()
+            .set_stack_pointer(stack_vaddr + STACK_PAGES_PER_PROCESS * PAGE_SIZE);
 
         // Map kernel space so we can context switch
         println!("Mapping kernel space");
