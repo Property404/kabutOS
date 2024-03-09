@@ -65,6 +65,7 @@ impl PageType {
 
 #[bitsize(64)]
 #[derive(Copy, Clone, DebugBits)]
+#[repr(C)]
 pub struct Sv39PageTableEntry {
     valid: bool,
     read: bool,
@@ -106,7 +107,7 @@ impl Sv39PageTableEntry {
     }
 }
 
-#[repr(align(4096))]
+#[repr(C, align(4096))]
 #[derive(Debug)]
 pub struct Sv39PageTable {
     pub entries: [Sv39PageTableEntry; ENTRIES_IN_PAGE_TABLE],
@@ -310,23 +311,45 @@ pub fn set_root_page_table(asid: u16, paddr: Sv39PhysicalAddress) {
     riscv::asm::sfence_vma_all();
 }
 
+/// Get the kernel space virtual address of a user page
+pub fn get_user_page(
+    table: &Sv39PageTable,
+    addr: Sv39VirtualAddress,
+) -> KernelResult<Sv39VirtualAddress> {
+    let pmo = critical_section::with(|cs| PHYSICAL_MEMORY_OFFSET.borrow(cs).get());
+
+    let addr = usize::from(vaddr_to_paddr_inner(table, addr, pmo, true)?);
+    let addr = addr.checked_add_signed(-pmo).unwrap();
+    let addr = Sv39VirtualAddress::try_from(addr)?;
+
+    // Confirm
+    assert!(ks_vaddr_to_paddr(usize::from(addr)).is_ok());
+
+    Ok(addr)
+}
+
 /// Get physical address from kernel space virtual address
 pub fn ks_vaddr_to_paddr(vaddr: usize) -> KernelResult<Sv39PhysicalAddress> {
     critical_section::with(|cs| {
         let root_page_table = ROOT_PAGE_TABLE.borrow_ref_mut(cs);
-        vaddr_to_paddr(&root_page_table, vaddr)
-    })?
-    .ok_or(KernelError::NotMapped(vaddr))
+        let pmo = PHYSICAL_MEMORY_OFFSET.borrow(cs).get();
+        vaddr_to_paddr_inner(&root_page_table, vaddr.try_into()?, pmo, false)
+    })
 }
 
 /// Get physical mapping by walking page table
-pub fn vaddr_to_paddr(
-    mut table: &Sv39PageTable,
-    vaddr: usize,
-) -> KernelResult<Option<Sv39PhysicalAddress>> {
+pub fn vaddr_to_paddr(table: &Sv39PageTable, vaddr: usize) -> KernelResult<Sv39PhysicalAddress> {
     let vaddr = Sv39VirtualAddress::try_from(vaddr)?;
     let pmo = critical_section::with(|cs| PHYSICAL_MEMORY_OFFSET.borrow(cs).get());
+    vaddr_to_paddr_inner(table, vaddr, pmo, false)
+}
 
+fn vaddr_to_paddr_inner(
+    mut table: &Sv39PageTable,
+    vaddr: Sv39VirtualAddress,
+    pmo: isize,
+    user_only: bool,
+) -> KernelResult<Sv39PhysicalAddress> {
     // Walk page tables
     for step in 0..=2 {
         let index = u16::from([vaddr.vpn2(), vaddr.vpn1(), vaddr.vpn0()][step]) as usize;
@@ -334,11 +357,15 @@ pub fn vaddr_to_paddr(
         let entry = table.entry(index);
 
         if !entry.valid() {
-            return Ok(None);
+            return Err(KernelError::NotMapped(vaddr.into()));
         }
 
         if entry.is_leaf() {
-            return Ok(Some(entry.physical_address().try_into()?));
+            if user_only && !entry.user() {
+                return Err(KernelError::ForbiddenPage);
+            }
+            let paddr = entry.physical_address() + u16::from(vaddr.page_offset()) as usize;
+            return paddr.try_into();
         }
 
         table = unsafe {
@@ -387,7 +414,7 @@ pub fn map_range(
 
     for _ in 0..size / PAGE_SIZE {
         map_page(table, vaddr, paddr, page_type)?;
-        assert_eq!(vaddr_to_paddr(table, vaddr.into())?.unwrap(), paddr);
+        assert_eq!(vaddr_to_paddr(table, vaddr.into())?, paddr);
 
         vaddr = vaddr.offset(PAGE_SIZE as isize)?;
         paddr = paddr.offset(PAGE_SIZE as isize)?;

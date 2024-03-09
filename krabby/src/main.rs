@@ -25,6 +25,10 @@ pub mod syscalls;
 pub mod userspace;
 pub mod util;
 
+pub mod prelude {
+    pub use super::{print, println};
+}
+
 pub use crate::errors::{KernelError, KernelResult};
 use crate::{
     console::run_console,

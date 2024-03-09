@@ -14,6 +14,9 @@ pub enum KernelError {
     /// Invalid arguments to syscall
     #[display("Invalid arguments")]
     InvalidArguments,
+    /// Attempted to access forbidden page
+    #[display("Forbidden page")]
+    ForbiddenPage,
     /// No such syscall
     #[display("Invalid syscall: {}", _0)]
     InvalidSyscall(usize),

@@ -26,19 +26,29 @@ fn putchar(c: char) {
 }
 
 fn puts(s: &str) {
-    for c in s.chars() {
-        putchar(c);
+    unsafe {
+        asm_syscall(
+            core::ptr::from_ref(s) as *const u8 as usize,
+            s.len(),
+            0,
+            0,
+            0,
+            0,
+            0,
+            2,
+        );
     }
 }
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
+    puts("Userspace panicking!\n");
     loop {}
 }
 
 #[no_mangle]
 extern "C" fn main() {
-    puts("Hello, world!\n");
+    puts("Hello, Sweetie!\n");
     for _ in 0..5 {
         putchar('!');
     }

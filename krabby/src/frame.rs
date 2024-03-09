@@ -1,4 +1,4 @@
-use crate::mmu;
+use crate::mmu::{self, Sv39PageTable};
 use core::sync::atomic::{AtomicU32, Ordering};
 
 /// Put trap frame in scratch register
@@ -27,8 +27,10 @@ pub struct TrapFrame {
     /// Kernel trap frame (None for kernels)
     pub kernel_frame: usize,
     /// Supervisor Address Translation/Protection register
-    /// (Where is the root page table for this process)
+    /// (physical address of the root page table)
     pub satp: usize,
+    /// The root page table
+    pub root_page_table: *mut Sv39PageTable,
 }
 
 impl TrapFrame {
@@ -40,5 +42,14 @@ impl TrapFrame {
     /// Set the global pointer (x3 general purpose register)
     pub fn set_global_pointer(&mut self, val: usize) {
         self.regs[3] = val
+    }
+
+    /// Get root page table
+    pub fn root_page_table(&self) -> &Sv39PageTable {
+        unsafe {
+            self.root_page_table
+                .as_ref()
+                .expect("Null dereference attempt")
+        }
     }
 }
