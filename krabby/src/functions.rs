@@ -170,6 +170,13 @@ pub fn show_csr_registers(names: &[&str], machine: bool) -> KernelResult<()> {
             println!("\tstimer: {}", reg.stimer());
             println!("\tsext: {}", reg.sext());
         }),
+        ("sip", || {
+            let reg = riscv::register::sip::read();
+            println!("sip: {:08x}", reg.bits());
+            println!("\tssoft: {}", reg.ssoft());
+            println!("\tstimer: {}", reg.stimer());
+            println!("\tsext: {}", reg.sext());
+        }),
         ("stvec", || {
             let reg = riscv::register::stvec::read();
             println!("stvec: {:08x}", reg.bits());

@@ -60,12 +60,12 @@ impl Ns16550Driver {
     }
 
     unsafe fn write(&self, offset: RegisterOffsets, value: u8) {
-        let address = self.base_address.wrapping_add(offset as usize);
+        let address = self.base_address.wrapping_byte_add(offset as usize);
         unsafe { write_volatile(address, value) }
     }
 
     unsafe fn read(&self, offset: RegisterOffsets) -> u8 {
-        let address = self.base_address.wrapping_add(offset as usize);
+        let address = self.base_address.wrapping_byte_add(offset as usize);
         unsafe { read_volatile(address) }
     }
 }
