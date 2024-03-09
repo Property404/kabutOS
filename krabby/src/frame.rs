@@ -14,7 +14,9 @@ pub fn set_kernel_trap_frame(hart: usize) {
     }
 
     let mut frame = mmu::zalloc::<TrapFrame>();
-    frame.as_mut().kernel_frame = 0xDEADBEEF;
+    // Self referential
+    frame.as_mut().kernel_frame = frame.addr();
+
     riscv::register::sscratch::write(frame.leak() as usize);
 }
 
