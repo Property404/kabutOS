@@ -516,6 +516,10 @@ pub struct PageAllocation<T: ?Sized> {
     num_pages: usize,
 }
 
+// SENDING between threads is safe (sync is not safe)
+// because the pointer is valid for all threads
+unsafe impl<T: ?Sized> Send for PageAllocation<T> {}
+
 impl<T: ?Sized> PageAllocation<T> {
     /// Leak allocation without deallocating
     pub fn leak(mut self) -> *mut T {
