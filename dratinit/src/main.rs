@@ -19,12 +19,6 @@ extern "C" {
     );
 }
 
-fn putchar(c: char) {
-    unsafe {
-        asm_syscall(c as usize, 0, 0, 0, 0, 0, 0, 1);
-    }
-}
-
 fn puts(s: &str) {
     unsafe {
         asm_syscall(
