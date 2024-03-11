@@ -1,8 +1,9 @@
 //! Rust IRQ and exception handlers
-use crate::{frame::TrapFrame, println, syscalls::syscall_handler};
+use crate::{frame::TrapFrame, println, syscalls::syscall_handler, scheduler};
 use riscv::register::{
     self,
     scause::{Exception, Interrupt, Trap},
+    sstatus::SPP
 };
 
 #[no_mangle]
@@ -35,6 +36,9 @@ extern "C" fn exception_handler(
             match interrupt {
                 Interrupt::SupervisorSoft => unsafe {
                     register::sip::clear_ssoft();
+                    if register::sstatus::read().spp() == SPP::User {
+                        scheduler::switch_processes(0);
+                    }
                 },
                 _ => {
                     panic!("Unhandled interrupt!");

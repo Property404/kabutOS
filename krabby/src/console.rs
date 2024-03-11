@@ -3,6 +3,7 @@ use crate::{
     functions::{self, GroupBytesBy},
     globals, println,
     process::Process,
+    scheduler,
     readline::Readline,
     userspace, KernelError, KernelResult,
 };
@@ -131,8 +132,8 @@ fn parse_line(line: &str) -> KernelResult<()> {
             let address = address.unwrap_or(ptr::addr_of!(userspace::dratinit::BIN) as *const u8);
             let entry_offset = userspace::dratinit::ENTRY_OFFSET;
 
-            let mut process = unsafe { Process::new(address, size, entry_offset)? };
-            process.run();
+            let process = unsafe { Process::new(address, size, entry_offset)? };
+            scheduler::start_with(process);
         }
 
         _ => {

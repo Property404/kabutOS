@@ -1,5 +1,5 @@
 use crate::mmu::{self, Sv39PageTable};
-use core::sync::atomic::{AtomicU32, Ordering};
+use core::{arch::asm,sync::atomic::{AtomicU32, Ordering}};
 
 /// Put trap frame in scratch register
 pub fn set_kernel_trap_frame(hart: usize) {
@@ -16,9 +16,26 @@ pub fn set_kernel_trap_frame(hart: usize) {
     let mut frame = mmu::zalloc::<TrapFrame>();
     // Self referential
     frame.as_mut().kernel_frame = frame.addr();
+    // Set stack and global
+    frame.as_mut().set_stack_pointer({
+        let reg: usize;
+        unsafe { asm!("mv {}, sp", out(reg) reg) };
+        reg
+    });
+    frame.as_mut().set_global_pointer({
+        let reg: usize;
+        unsafe { asm!("mv {}, gp", out(reg) reg) };
+        reg
+    });
 
-    riscv::register::sscratch::write(frame.leak() as usize);
+    set_current_trap_frame(frame.leak());
 }
+
+/// Set the current trap frame
+pub fn set_current_trap_frame(frame: *const TrapFrame) {
+    riscv::register::sscratch::write(frame as usize);
+}
+
 
 /// Trap frame used per process (or by the kernel)
 #[repr(C)]

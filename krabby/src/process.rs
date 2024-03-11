@@ -1,5 +1,5 @@
 use crate::{
-    frame::TrapFrame,
+    frame::{TrapFrame, self},
     mmu::{self, Page, PageAllocation, PageType, Sv39PageTable, PAGE_SIZE},
     println,
     util::*,
@@ -9,20 +9,13 @@ use core::{
     ptr,
     sync::atomic::{AtomicUsize, Ordering},
 };
-use riscv::register::sstatus;
 
 const STACK_PAGES_PER_PROCESS: usize = 2;
 const USERSPACE_VADDR_START: usize = 0xf000_0000;
 
-extern "C" {
-    fn run_process(addr: usize, frame: *mut TrapFrame);
-}
-
 /// Process state
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ProcessState {
-    // Process has yet to be started
-    CREATED,
     // Process is waiting to be run
     READY,
     // Process is running
@@ -34,7 +27,7 @@ pub enum ProcessState {
 pub struct Process {
     pub pid: usize,
     pub state: ProcessState,
-    pub entry: usize,
+    pub pc: usize,
     pub code: PageAllocation<[Page<PAGE_SIZE>]>,
     pub root_page_table: PageAllocation<Sv39PageTable>,
     pub frame: PageAllocation<TrapFrame>,
@@ -111,8 +104,8 @@ impl Process {
 
         Ok(Self {
             pid,
-            state: ProcessState::CREATED,
-            entry: USERSPACE_VADDR_START + entry_offset,
+            state: ProcessState::READY,
+            pc: USERSPACE_VADDR_START + entry_offset,
             code,
             root_page_table,
             frame,
@@ -120,23 +113,25 @@ impl Process {
         })
     }
 
-    /// Run the process
-    pub fn run(&mut self) {
-        let kernel_trap_frame = riscv::register::sscratch::read();
-        assert_ne!(kernel_trap_frame, 0);
-        println!("Frame: {kernel_trap_frame:08x}");
-        self.frame.as_mut().kernel_frame = kernel_trap_frame;
+    /// Switch process to ready
+    pub fn pause(&mut self) {
+        self.state = ProcessState::READY;
+    }
+
+    /// Switch process to running
+    pub fn switch(&mut self) {
+        let kernel_trap_frame = riscv::register::sscratch::read() as *const TrapFrame;
+        assert!(!kernel_trap_frame.is_null());
+        println!("Frame: {kernel_trap_frame:p}");
+        self.frame.as_mut().kernel_frame = unsafe{(*kernel_trap_frame).kernel_frame};
 
         // Set page tables
         let satp = self.frame.as_ref().satp.try_into().unwrap();
         let pid = u16::try_from(self.pid).unwrap();
         mmu::set_root_page_table(pid, satp);
 
-        self.state = ProcessState::RUNNING;
+        frame::set_current_trap_frame(self.frame.as_mut_ptr());
 
-        unsafe {
-            sstatus::set_spp(sstatus::SPP::User);
-            run_process(self.entry, self.frame.as_mut_ptr());
-        }
+        self.state = ProcessState::RUNNING;
     }
 }

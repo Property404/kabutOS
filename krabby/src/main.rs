@@ -20,6 +20,7 @@ pub mod panic;
 pub mod process;
 pub mod readline;
 pub mod serial;
+pub mod scheduler;
 pub mod syscalls;
 pub mod trap;
 pub mod userspace;
