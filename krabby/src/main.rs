@@ -90,7 +90,11 @@ unsafe fn kmain() {
     unsafe { DRIVERS.init(&globals::get().device_tree).unwrap() };
 
     unsafe {
+        riscv::register::sstatus::set_sie();
         riscv::register::sstatus::set_sum();
+        // Timer interrupts are triggered using ssoft instead of stimer because we can clear ssoft
+        // from supervisor mode
+        riscv::register::sie::set_ssoft();
     }
 
     println!("{}", "Welcome to KabutOS!!!".cyan().bold());

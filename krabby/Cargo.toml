@@ -24,7 +24,7 @@ enumn = "0.1.13"
 fdt = { git = "https://github.com/Property404/fdt", rev="5abb24aed8e5ae0ca4c0ed8a2510355c92ea7b8c", features = ["pretty-printing"] }
 owo-colors = "4.0.0"
 page-alloc = { path = "../page-alloc" }
-riscv = { version = "0.11.0", features = [ "critical-section-single-hart", "s-mode" ] }
+riscv = { git = "https://github.com/Property404/riscv", branch="Property404/ssoft-fix", version = "0.11.0", features = [ "critical-section-single-hart", "s-mode" ] }
 schmargs = { default-features = false, git = "https://github.com/Property404/schmargs", rev="b919fab", features = [ "alloc" ] }
 spin = "0.9.8"
 talc = { version = "4.2.0", default-features = false, features = [ "lock_api" ] }

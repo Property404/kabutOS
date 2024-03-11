@@ -4,6 +4,8 @@ break asm_exception_handler
 break run_process
 break enter_user_mode
 break idle
+break mtrap
+break dagan
 #break kmain
 break *0xf0000000
 layout asm

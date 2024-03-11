@@ -96,6 +96,12 @@ bss_clear:
 enter_supervisor_mode:
 	.cfi_startproc
 
+    # Machine trap used to forward interrupts to supervisor
+    # Needs to happen before fixing up GOT because we use the physical address
+    # here
+    la      t0, mtrap
+    csrw    mtvec, t0
+
     # We messed up the global offset table, no now we have to fix it again
     la t0, got_start
     la t1, got_end
@@ -120,17 +126,41 @@ enter_supervisor_mode:
     # Handle all traps in supervisor mode
     li t0, 0xFFFFFFFF
     csrw medeleg, t0
+    li t0, 0xFFFFFFFF
     csrw mideleg, t0
 
     la t5, sv_entry
     csrw mepc, t5
 
+    # Set initial timer value
+    li      t0, 0xFFFFFFFF
+    li      t1, 0x2004000
+    sd      t0, 0(t1)
+
+    # Enable interrupts
+    la      t0, 0xa0
+    csrs    mie, t0
+
     mret
 
     sv_entry:
-    la t5, asm_exception_handler
-    csrw stvec, t5
-    call kmain
+        la t5, asm_exception_handler
+        csrw stvec, t5
+        call kmain
+
+    mtrap:
+        csrrw t6, mscratch, t6
+
+        # Set SIP
+        li t6, 0x02
+        csrs mip, t6
+
+        # Reset timer
+        li t6, 0x0200BFF8
+        sd x0, 0(t6)
+
+        csrrw t6, mscratch, t6
+        mret
 
 	.cfi_endproc
 

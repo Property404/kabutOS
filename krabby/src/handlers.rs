@@ -2,7 +2,7 @@
 use crate::{frame::TrapFrame, println, syscalls::syscall_handler};
 use riscv::register::{
     self,
-    scause::{Exception, Trap},
+    scause::{Exception, Interrupt, Trap},
 };
 
 #[no_mangle]
@@ -31,8 +31,16 @@ extern "C" fn exception_handler(
                 _ => unhandled_exception(trap_frame),
             }
         }
-        _ => {
-            unimplemented!("Interrupt!")
+        Trap::Interrupt(interrupt) => {
+            match interrupt {
+                Interrupt::SupervisorSoft => unsafe {
+                    register::sip::clear_ssoft();
+                },
+                _ => {
+                    panic!("Unhandled interrupt!");
+                }
+            }
+            Ok(())
         }
     };
 
