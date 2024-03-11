@@ -18,10 +18,22 @@ extern "C" {
     fn run_process(addr: usize, frame: *mut TrapFrame);
 }
 
+/// Process state
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum ProcessState {
+    // Process has yet to be started
+    CREATED,
+    // Process is waiting to be run
+    READY,
+    // Process is running
+    RUNNING,
+}
+
 /// Represents a process
 #[derive(Debug)]
 pub struct Process {
     pub pid: usize,
+    pub state: ProcessState,
     pub entry: usize,
     pub code: PageAllocation<[Page<PAGE_SIZE>]>,
     pub root_page_table: PageAllocation<Sv39PageTable>,
@@ -99,6 +111,7 @@ impl Process {
 
         Ok(Self {
             pid,
+            state: ProcessState::CREATED,
             entry: USERSPACE_VADDR_START + entry_offset,
             code,
             root_page_table,
@@ -118,6 +131,8 @@ impl Process {
         let satp = self.frame.as_ref().satp.try_into().unwrap();
         let pid = u16::try_from(self.pid).unwrap();
         mmu::set_root_page_table(pid, satp);
+
+        self.state = ProcessState::RUNNING;
 
         unsafe {
             sstatus::set_spp(sstatus::SPP::User);
