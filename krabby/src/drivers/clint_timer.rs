@@ -28,6 +28,7 @@ const CLINT_MTIME_REG: usize = 0xbff8;
 #[derive(Debug)]
 pub struct ClintTimerDriver {
     freq: usize,
+    // mtime and mtimecmp havew 64-bit precision regardless of architecture
     base_address: *mut u64,
 }
 
