@@ -1,7 +1,7 @@
 use crate::{
-    frame::{TrapFrame, self},
+    frame::{self, TrapFrame},
     mmu::{self, Page, PageAllocation, PageType, Sv39PageTable, PAGE_SIZE},
-    println,
+    prelude::*,
     util::*,
     KernelResult,
 };
@@ -52,7 +52,7 @@ impl Process {
         let mut root_page_table = mmu::zalloc();
 
         // Map code
-        println!("Mapping code!");
+        println!("pcreate{pid}: Mapping code!");
         let mut code = mmu::zalloc_slice(align_up::<PAGE_SIZE>(code_size) / PAGE_SIZE);
         unsafe {
             ptr::copy(code_src, code.as_mut_ptr() as *mut u8, code_size);
@@ -70,7 +70,7 @@ impl Process {
         let stack = mmu::zalloc();
         let stack_paddr = mmu::ks_vaddr_to_paddr(stack.as_const_ptr() as usize)?;
         let stack_vaddr = USERSPACE_VADDR_START + code.num_pages() * PAGE_SIZE;
-        println!("Stack vaddr: {stack_vaddr:08x}");
+        println!("pcreate{pid}: Stack vaddr: {stack_vaddr:08x}");
         mmu::map_range(
             root_page_table.as_mut(),
             stack_vaddr.try_into()?,
@@ -90,7 +90,6 @@ impl Process {
             .set_stack_pointer(stack_vaddr + STACK_PAGES_PER_PROCESS * PAGE_SIZE);
 
         // Map kernel space so we can context switch
-        println!("Mapping kernel space");
         mmu::map_kernel_space(root_page_table.as_mut())?;
 
         // TODO: Remove this hardcoded address
@@ -122,8 +121,7 @@ impl Process {
     pub fn switch(&mut self) {
         let kernel_trap_frame = riscv::register::sscratch::read() as *const TrapFrame;
         assert!(!kernel_trap_frame.is_null());
-        println!("Frame: {kernel_trap_frame:p}");
-        self.frame.as_mut().kernel_frame = unsafe{(*kernel_trap_frame).kernel_frame};
+        self.frame.as_mut().kernel_frame = unsafe { (*kernel_trap_frame).kernel_frame };
 
         // Set page tables
         let satp = self.frame.as_ref().satp.try_into().unwrap();

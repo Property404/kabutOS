@@ -1,6 +1,9 @@
-use crate::process::Process;
+use crate::process::{Process, ProcessState};
 use alloc::vec::Vec;
-use core::{sync::atomic::{Ordering,AtomicUsize},cell::RefCell};
+use core::{
+    cell::RefCell,
+    sync::atomic::{AtomicUsize, Ordering},
+};
 use critical_section::Mutex;
 use riscv::register::sstatus;
 
@@ -22,7 +25,7 @@ pub fn add_process(process: Process) {
 /// Start the scheduler
 pub fn start_with(process: Process) {
     add_process(process);
-    let pc = switch_processes(0);
+    let pc = switch_processes(0, 0xDEADBEEF);
 
     unsafe {
         sstatus::set_spp(sstatus::SPP::User);
@@ -33,14 +36,14 @@ pub fn start_with(process: Process) {
 /// Change up processes
 ///
 /// Returns the new program counter
-pub fn switch_processes(hart_id: usize) -> usize {
-    critical_section::with(|cs| schedule_inner(hart_id, &mut PROCESSES.borrow_ref_mut(cs)))
+pub fn switch_processes(hart_id: usize, pc: usize) -> usize {
+    critical_section::with(|cs| schedule_inner(hart_id, pc, &mut PROCESSES.borrow_ref_mut(cs)))
 }
 
 // Round-robin scheduler
-fn schedule_inner(hart_id: usize, processes: &mut [Process]) -> usize {
+fn schedule_inner(hart_id: usize, pc: usize, processes: &mut [Process]) -> usize {
     assert!(hart_id < MAX_HARTS);
-    assert!(! processes.is_empty());
+    assert!(!processes.is_empty());
 
     // TODO(optimization): pick a proper ordering
     // SeqCst is the safest
@@ -48,10 +51,16 @@ fn schedule_inner(hart_id: usize, processes: &mut [Process]) -> usize {
     let index = INDEX.fetch_add(1, Ordering::SeqCst);
 
     for process in processes.iter_mut() {
-        process.pause();
+        if process.state == ProcessState::RUNNING {
+            process.pc = pc;
+            process.pause();
+            break;
+        }
     }
 
-    let process: &mut Process = processes.get_mut(index%processes.len()).expect("out-of-bounds");
+    let process: &mut Process = processes
+        .get_mut(index % processes.len())
+        .expect("out-of-bounds");
     process.switch();
     process.pc
 }

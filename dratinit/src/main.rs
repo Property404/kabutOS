@@ -49,8 +49,7 @@ fn panic(_info: &PanicInfo) -> ! {
 #[no_mangle]
 extern "C" fn main() {
     puts("Hello, Sweetie!\n");
-    for _ in 0..5 {
-        putchar('!');
+    for _ in 0..4 {
+        puts("Howdy\n");
     }
-    putchar('\n');
 }

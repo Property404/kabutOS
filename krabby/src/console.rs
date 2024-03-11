@@ -3,9 +3,8 @@ use crate::{
     functions::{self, GroupBytesBy},
     globals, println,
     process::Process,
-    scheduler,
     readline::Readline,
-    userspace, KernelError, KernelResult,
+    scheduler, userspace, KernelError, KernelResult,
 };
 use core::{fmt::Display, ptr};
 use schmargs::Schmargs;
@@ -133,6 +132,8 @@ fn parse_line(line: &str) -> KernelResult<()> {
             let entry_offset = userspace::dratinit::ENTRY_OFFSET;
 
             let process = unsafe { Process::new(address, size, entry_offset)? };
+            let process2 = unsafe { Process::new(address, size, entry_offset)? };
+            scheduler::add_process(process2);
             scheduler::start_with(process);
         }
 

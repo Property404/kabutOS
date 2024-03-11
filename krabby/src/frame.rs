@@ -1,5 +1,8 @@
 use crate::mmu::{self, Sv39PageTable};
-use core::{arch::asm,sync::atomic::{AtomicU32, Ordering}};
+use core::{
+    arch::asm,
+    sync::atomic::{AtomicU32, Ordering},
+};
 
 /// Put trap frame in scratch register
 pub fn set_kernel_trap_frame(hart: usize) {
@@ -36,7 +39,6 @@ pub fn set_current_trap_frame(frame: *const TrapFrame) {
     riscv::register::sscratch::write(frame as usize);
 }
 
-
 /// Trap frame used per process (or by the kernel)
 #[repr(C)]
 #[derive(Clone, Debug)]
@@ -53,6 +55,11 @@ pub struct TrapFrame {
 }
 
 impl TrapFrame {
+    /// Get the stack pointer (x2 general purpose register)
+    pub fn stack_pointer(&self) -> usize {
+        self.regs[2]
+    }
+
     /// Set the stack pointer (x2 general purpose register)
     pub fn set_stack_pointer(&mut self, val: usize) {
         self.regs[2] = val

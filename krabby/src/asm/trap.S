@@ -28,7 +28,7 @@ asm_exception_handler:
     call exception_handler
 
     // Restore registers and return
-    mv t6, s5
+    csrr t6, sscratch
     load_x1_to_x30
     load_reg 31 t6
 
