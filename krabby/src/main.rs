@@ -43,7 +43,10 @@ extern "C" {
 
 /// Machine pre-mmu entry point
 #[no_mangle]
-unsafe fn boot(_hart_id: usize, fdt_ptr: *const u8, pmo: isize) {
+unsafe fn boot(hart_id: usize, fdt_ptr: *const u8, pmo: isize) {
+    // Only equipped to deal with a single hart, currently
+    assert_eq!(hart_id, 0);
+
     // Early init uart
     let uart_driver = Ns16550Driver::new(0x1000_0000 as *mut u8);
     uart_driver.send_str("> early uart ON!\n");

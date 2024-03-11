@@ -56,6 +56,15 @@ start:
 	la gp, global_pointer
 .option pop
 
+    # Have all other harts wait on interrupt
+    # (but interrupts are disabled so they'll wait forever)
+    csrr a0, mhartid
+    beq x0, a0, hart0
+nothart0:
+    wfi
+    j nothart0
+hart0:
+
 	/* Reset satp */
 	csrw satp, zero
 
