@@ -33,6 +33,8 @@ pub use crate::errors::{KernelError, KernelResult};
 use crate::{
     console::run_console,
     drivers::{ns16550::Ns16550Driver, UartDriver, DRIVERS},
+    mmu::PAGE_SIZE,
+    util::*,
 };
 use fdt::Fdt;
 use owo_colors::OwoColorize;
@@ -51,21 +53,24 @@ unsafe fn boot(hart_id: usize, fdt_ptr: *const u8, pmo: isize) {
     let uart_driver = Ns16550Driver::new(0x1000_0000 as *mut u8);
     uart_driver.send_str("> early uart ON!\n");
 
-    // Initialize global variables
-    uart_driver.send_str("> initializing globals\n");
-    unsafe {
-        let fdt = Fdt::from_ptr(fdt_ptr).unwrap();
-        globals::initialize(fdt);
-    }
-
     // Initialize paging
-    uart_driver.send_str("> initializing mmu\n");
+    uart_driver.send_str("> initializing page_tabels\n");
     mmu::init_page_tables(pmo).unwrap();
 
+    // Initialize global variables
     uart_driver.send_str("> fdt\n");
-    let fdt_page = fdt_ptr as usize & !(mmu::PAGE_SIZE - 1);
-    mmu::map_device(fdt_page, 0x4000).unwrap();
+    let fdt_size = unsafe { Fdt::from_ptr(fdt_ptr).unwrap().total_size() };
+    let fdt_ptr = mmu::map_device(
+        align_down::<PAGE_SIZE>(fdt_ptr as usize),
+        align_up::<PAGE_SIZE>(fdt_size),
+    )
+    .unwrap();
+    unsafe {
+        let fdt = Fdt::from_ptr(fdt_ptr as *const u8).unwrap();
+        globals::initialize(fdt);
+    };
 
+    uart_driver.send_str("> initializing mmu\n");
     mmu::init_mmu(pmo).unwrap();
 
     unsafe {
