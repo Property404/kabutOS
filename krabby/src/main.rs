@@ -15,13 +15,13 @@ pub mod errors;
 pub mod frame;
 pub mod functions;
 pub mod globals;
-pub mod handlers;
 pub mod mmu;
 pub mod panic;
 pub mod process;
 pub mod readline;
 pub mod serial;
 pub mod syscalls;
+pub mod trap;
 pub mod userspace;
 pub mod util;
 
