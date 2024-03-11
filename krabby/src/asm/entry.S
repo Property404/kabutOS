@@ -21,6 +21,7 @@ preinit:
 start:
 	.cfi_startproc
 
+
 .option push
 # Disables relaxation. The RISC-V assembler and linker opportunistically relax some code sequences, but sometimes this behavior is not desirable.
 #  Linker relaxation is the process of finding shorted opcodes for jumps to addresses nearby.
@@ -31,6 +32,10 @@ start:
 #    alignment of code. Code that was previously aligned might be shifted.
 #    Linker relaxations might cause the opposite effect on jumps whose distance increases due to relaxation. This occurs when jumping over a memory whole between sections.
 .option norelax
+    # Disable interrupts and all that jazz
+    li t0, 0
+    csrw mstatus, t0
+
     # Get virtual/physical offset
     la t0, virtual_base
     sub a2, a2, t0
