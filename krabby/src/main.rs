@@ -26,6 +26,9 @@ pub mod trap;
 pub mod userspace;
 pub mod util;
 
+#[cfg(feature = "test")]
+mod test;
+
 pub mod prelude {
     pub use super::{print, println};
 }
@@ -99,6 +102,9 @@ unsafe fn kmain() {
     }
 
     println!("{}", "Welcome to KabutOS!!!".cyan().bold());
+
+    #[cfg(feature = "test")]
+    test::test_and_exit();
 
     loop {
         run_console();

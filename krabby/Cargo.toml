@@ -24,6 +24,7 @@ enumn = "0.1.13"
 fdt = { git = "https://github.com/Property404/fdt", rev="5abb24aed8e5ae0ca4c0ed8a2510355c92ea7b8c", features = ["pretty-printing"] }
 owo-colors = "4.0.0"
 page-alloc = { path = "../page-alloc" }
+qemu-exit = { version = "3.0.2", optional = true }
 riscv = { git = "https://github.com/Property404/riscv", branch="Property404/ssoft-fix", version = "0.11.0", features = [ "critical-section-single-hart", "s-mode" ] }
 schmargs = { default-features = false, git = "https://github.com/Property404/schmargs", rev="b919fab", features = [ "alloc" ] }
 spin = "0.9.8"
@@ -33,3 +34,7 @@ utf8-parser = { version = "0.0.4", default-features = false }
 [build-dependencies]
 anyhow = "1.0.80"
 elf = "0.7.4"
+
+[features]
+default = []
+test = ["dep:qemu-exit"]
