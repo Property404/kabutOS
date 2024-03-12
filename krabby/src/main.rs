@@ -2,45 +2,16 @@
 // We're building a kernel, so we don't have access to the standard library
 #![no_std]
 #![no_main]
-// Make sure everything's documented by warning when docs are missing
-//#![warn(missing_docs)]
-extern crate alloc;
 
-mod allocator;
-pub mod ansi_codes;
-mod asm;
-pub mod console;
-pub mod drivers;
-pub mod errors;
-pub mod frame;
-pub mod functions;
-pub mod globals;
-pub mod mmu;
-pub mod panic;
-pub mod process;
-pub mod readline;
-pub mod scheduler;
-pub mod serial;
-pub mod syscalls;
-pub mod trap;
-pub mod userspace;
-pub mod util;
-
-#[cfg(feature = "test")]
-mod test;
-
-pub mod prelude {
-    pub use super::{print, println};
-}
-
-pub use crate::errors::{KernelError, KernelResult};
-use crate::{
+use fdt::Fdt;
+use krabby::{
     console::run_console,
     drivers::{ns16550::Ns16550Driver, UartDriver, DRIVERS},
+    frame, globals, mmu,
     mmu::PAGE_SIZE,
+    prelude::*,
     util::*,
 };
-use fdt::Fdt;
 use owo_colors::OwoColorize;
 
 extern "C" {
@@ -104,7 +75,7 @@ unsafe fn kmain() {
     println!("{}", "Welcome to KabutOS!!!".cyan().bold());
 
     #[cfg(feature = "test")]
-    test::test_and_exit();
+    krabby::test::test_and_exit();
 
     loop {
         run_console();
