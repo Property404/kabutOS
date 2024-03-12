@@ -99,9 +99,12 @@ fn build_crate(krate: impl AsRef<str>) -> Result<PathBuf> {
     in_dir(path.clone(), move || {
         let triple = env::var("TARGET")?;
         let profile = env::var("PROFILE")?;
+        let profile_arg = if profile == "debug" { "dev" } else { &profile };
 
         // Build
-        let status = Command::new("cargo").args(["build"]).status()?;
+        let status = Command::new("cargo")
+            .args(["build", "--profile", &profile_arg])
+            .status()?;
         if !status.success() {
             bail!("`cargo build` did not exit successfully");
         }
