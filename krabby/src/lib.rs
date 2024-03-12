@@ -9,6 +9,7 @@ mod allocator;
 pub mod ansi_codes;
 mod asm;
 pub mod console;
+pub mod cpu;
 pub mod drivers;
 pub mod errors;
 pub mod frame;
@@ -29,6 +30,7 @@ pub mod util;
 pub mod test;
 
 pub mod prelude {
+    pub use super::cpu::HartId;
     pub use super::{print, println};
 }
 

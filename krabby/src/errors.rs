@@ -1,5 +1,10 @@
 //! Error and Result type for use in this crate
-use core::{fmt::Error as FmtError, num::ParseIntError, result::Result, str::Utf8Error};
+use core::{
+    fmt::Error as FmtError,
+    num::{ParseIntError, TryFromIntError},
+    result::Result,
+    str::Utf8Error,
+};
 use derive_more::{Display, From};
 use embedded_line_edit::LineEditError;
 use schmargs::{SchmargsError, StrippedSchmargsError};
@@ -62,6 +67,9 @@ pub enum KernelError {
     /// Converted from [schmargs::SchmargsError] or [schmargs::StrippedSchmargsError]
     #[from]
     SchmargsError(StrippedSchmargsError),
+    /// Converted from [core::num::TryFromIntError]
+    #[from]
+    TryFromIntError(TryFromIntError),
 }
 
 impl<T> From<SchmargsError<T>> for KernelError {

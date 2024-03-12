@@ -20,9 +20,9 @@ extern "C" {
 
 /// Machine pre-mmu entry point
 #[no_mangle]
-unsafe fn boot(hart_id: usize, fdt_ptr: *const u8, pmo: isize) {
-    // Only equipped to deal with a single hart, currently
-    assert_eq!(hart_id, 0);
+unsafe fn boot(hart_id: HartId, fdt_ptr: *const u8, pmo: isize) {
+    // Boot should only see the hart 0
+    assert!(hart_id.is_zero());
 
     // Early init uart
     let uart_driver = Ns16550Driver::new(0x1000_0000 as *mut u8);
@@ -59,7 +59,7 @@ unsafe fn boot(hart_id: usize, fdt_ptr: *const u8, pmo: isize) {
 unsafe fn kmain() {
     // TODO: set hart ID
     // Set trap frame
-    frame::set_kernel_trap_frame(0);
+    frame::set_kernel_trap_frame(HartId::zero());
 
     // Initialize drivers
     unsafe { DRIVERS.init(&globals::get().device_tree).unwrap() };

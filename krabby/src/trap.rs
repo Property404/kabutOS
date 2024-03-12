@@ -1,5 +1,5 @@
 //! Rust IRQ and exception handlers
-use crate::{frame::TrapFrame, println, scheduler, syscalls::syscall_handler};
+use crate::{frame::TrapFrame, prelude::*, scheduler, syscalls::syscall_handler};
 use owo_colors::OwoColorize;
 use riscv::register::{
     self,
@@ -38,7 +38,7 @@ extern "C" fn exception_handler(
                 Interrupt::SupervisorSoft => unsafe {
                     register::sip::clear_ssoft();
                     if register::sstatus::read().spp() == SPP::User {
-                        pc = scheduler::switch_processes(0, pc);
+                        pc = scheduler::switch_processes(HartId::zero(), pc);
                     }
                 },
                 _ => {

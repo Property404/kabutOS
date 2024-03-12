@@ -4,6 +4,7 @@
 use crate::{
     drivers::TimerDriver,
     mmu::{map_device, PAGE_SIZE},
+    prelude::*,
     util::*,
     KernelError, KernelResult,
 };
@@ -81,7 +82,8 @@ impl ClintTimerDriver {
 }
 
 impl TimerDriver for ClintTimerDriver {
-    fn set_alarm(&mut self, hart: usize, duration: Duration) {
+    fn set_alarm(&mut self, hart: HartId, duration: Duration) {
+        let hart = usize::from(hart);
         assert!(hart < CLINT_MAX_HARTS);
 
         let cycles = duration.as_nanos() * (self.freq as u128) / NANOS_PER_SECOND;

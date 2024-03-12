@@ -43,7 +43,7 @@ impl Drivers {
         if let Some(_timer) = &mut self.timer {
             println!("[Timer driver loaded]");
             // TODO: Don't automatically set alarm
-            _timer.set_alarm(0, Duration::from_millis(100));
+            _timer.set_alarm(HartId::zero(), Duration::from_millis(100));
         }
 
         Ok(())
@@ -72,7 +72,7 @@ pub static mut DRIVERS: Drivers = Drivers {
 
 /// Driver for a "disk.' This can be NOR flash, an SSD, a hard drive, or just RAM.
 pub trait TimerDriver: Debug {
-    fn set_alarm(&mut self, hart: usize, duration: Duration);
+    fn set_alarm(&mut self, hart: HartId, duration: Duration);
 }
 
 /// A UART/serial driver

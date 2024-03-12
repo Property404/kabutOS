@@ -1,11 +1,15 @@
-use crate::mmu::{self, Sv39PageTable};
+use crate::{
+    mmu::{self, Sv39PageTable},
+    prelude::*,
+};
 use core::{
     arch::asm,
     sync::atomic::{AtomicU32, Ordering},
 };
 
 /// Put trap frame in scratch register
-pub fn set_kernel_trap_frame(hart: usize) {
+pub fn set_kernel_trap_frame(hart: HartId) {
+    let hart = usize::from(hart);
     // Not prepared to deal with more than 32 harts
     assert!(hart < 32);
 
