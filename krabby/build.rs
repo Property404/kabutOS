@@ -26,7 +26,7 @@ fn main() -> Result<()> {
         let mut contents = format!(
             "// @generated
 pub const ENTRY_OFFSET: usize = 0x{entry:08x};
-pub static BIN: [u8; {len}] = [
+pub static BIN: [u8; 0x{len:x}] = [
 "
         );
         for byte in file {
@@ -88,13 +88,14 @@ fn objcopy(path: impl AsRef<Path>) -> Result<(usize, Vec<u8>)> {
         bytes.extend(section);
     }
 
-    Ok(((entry - start.unwrap()).try_into()?, bytes))
+    let start = start.unwrap();
+    Ok(((entry - start).try_into()?, bytes))
 }
 
 // Build a crate and return a path to the binary
 fn build_crate(krate: impl AsRef<str>) -> Result<PathBuf> {
     let krate = String::from(krate.as_ref());
-    let path = format!("../{krate}");
+    let path = format!("../userspace/{krate}");
     in_dir(path.clone(), move || {
         let triple = env::var("TARGET")?;
         let profile = env::var("PROFILE")?;
@@ -106,7 +107,7 @@ fn build_crate(krate: impl AsRef<str>) -> Result<PathBuf> {
         }
 
         Ok(PathBuf::from(format!(
-            "{path}/target/{triple}/{profile}/{krate}"
+            "{path}/../target/{triple}/{profile}/{krate}"
         )))
     })
 }

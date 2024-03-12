@@ -132,8 +132,6 @@ fn parse_line(line: &str) -> KernelResult<()> {
             let entry_offset = userspace::dratinit::ENTRY_OFFSET;
 
             let process = unsafe { Process::new(address, size, entry_offset)? };
-            let process2 = unsafe { Process::new(address, size, entry_offset)? };
-            scheduler::add_process(process2);
             scheduler::start_with(process);
         }
 

@@ -6,7 +6,7 @@ members = [
     "page-alloc"
 ]
 # Having userland in the workspace complicates things
-exclude = [ "dratinit" ]
+exclude = [ "userspace" ]
 
 # Printing the device tree without optimizations overruns the stack
 [profile.dev.package.fdt]

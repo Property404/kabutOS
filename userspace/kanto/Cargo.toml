@@ -1,0 +1,5 @@
+[package]
+name = "kanto"
+description = "Userspace library for KabutOS"
+version = "0.0.0"
+edition = "2021"

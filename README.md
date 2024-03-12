@@ -5,7 +5,8 @@ RISCV kernel.
 ## Crates
 
 * krabby - The kernel
-* dratinit - The init program (process 1)
+* userspace/kanto - Userland library
+* userspace/dratinit - The init program (process 1)
 * embedded-line-edit - No-std line editing library
 * page-alloc - Page-grain allocation library
 
