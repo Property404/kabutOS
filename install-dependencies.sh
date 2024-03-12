@@ -27,17 +27,15 @@ Help:
     fi
 
 
+    local packages=" qemu-system-riscv64 "
     # CI doesn't need quite as much
     if [[ -z "${ci}" ]]; then
-        local packages=" git "
         packages+=" binutils-riscv64-unknown-elf "
-        packages+=" qemu-system-riscv64 "
         packages+=" gdb-multiarch "
-        packages+=" curl "
-
-        # shellcheck disable=SC2086
-        sudo apt-get install -y ${packages}
+        packages+=" git curl "
     fi
+    # shellcheck disable=SC2086
+    sudo apt-get install -y ${packages}
 
 
     # Install RustUp if needed
