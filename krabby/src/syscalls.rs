@@ -13,12 +13,23 @@ use utf8_parser::Utf8Parser;
 enum Syscall {
     PutChar = 1,
     PutString = 2,
+    Pinfo = 3,
 }
 
 /// Handle ecall exception
-pub fn syscall_handler(frame: &TrapFrame, call: usize, args: [usize; 7]) -> KernelResult<()> {
+pub fn syscall_handler(frame: &mut TrapFrame, call: usize, args: [usize; 7]) -> KernelResult<()> {
+    let rv = syscall_inner(frame, call, args)?;
+    frame.set_return_value(usize::from(rv));
+    Ok(())
+}
+
+fn syscall_inner(
+    frame: &mut TrapFrame,
+    call: usize,
+    args: [usize; 7],
+) -> KernelResult<SyscallResult> {
     let call = Syscall::n(call).ok_or(KernelError::InvalidSyscall(call))?;
-    match call {
+    let rv = match call {
         Syscall::PutChar => {
             let ch = char::from_u32(
                 args[0]
@@ -27,6 +38,7 @@ pub fn syscall_handler(frame: &TrapFrame, call: usize, args: [usize; 7]) -> Kern
             )
             .ok_or(KernelError::InvalidArguments)?;
             print!("{ch}");
+            SyscallResult::Success
         }
         Syscall::PutString => {
             let table = frame.root_page_table();
@@ -51,7 +63,27 @@ pub fn syscall_handler(frame: &TrapFrame, call: usize, args: [usize; 7]) -> Kern
                 bytes_left = bytes_left.saturating_sub(PAGE_SIZE);
                 start += PAGE_SIZE;
             }
+            SyscallResult::Success
+        }
+        Syscall::Pinfo => {
+            // Currently just returning the PID, but later we can return all sorts of things
+            SyscallResult::Value(frame.pid)
         }
     };
-    Ok(())
+    Ok(rv)
+}
+
+#[derive(Copy, Clone, Debug)]
+enum SyscallResult {
+    Success,
+    Value(usize),
+}
+
+impl From<SyscallResult> for usize {
+    fn from(res: SyscallResult) -> Self {
+        match res {
+            SyscallResult::Success => 0,
+            SyscallResult::Value(val) => val,
+        }
+    }
 }

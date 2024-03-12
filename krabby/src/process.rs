@@ -81,6 +81,7 @@ impl Process {
 
         // This doesn't need to be mapped - it's only accessed by the kernel
         let mut frame: PageAllocation<TrapFrame> = mmu::zalloc();
+        frame.as_mut().pid = pid;
         frame.as_mut().root_page_table = root_page_table.as_mut_ptr();
         frame.as_mut().satp =
             mmu::ks_vaddr_to_paddr(root_page_table.as_const_ptr() as usize)?.into();

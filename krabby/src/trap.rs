@@ -17,9 +17,9 @@ extern "C" fn exception_handler(
     a5: usize,
     a6: usize,
     a7: usize,
-) -> usize {
-    let trap_frame = register::sscratch::read() as *const TrapFrame;
-    let trap_frame = unsafe { trap_frame.as_ref().unwrap() };
+) {
+    let trap_frame = register::sscratch::read() as *mut TrapFrame;
+    let trap_frame = unsafe { trap_frame.as_mut().unwrap() };
     let scause = register::scause::read().cause();
     let mut pc = register::sepc::read();
 
@@ -49,17 +49,11 @@ extern "C" fn exception_handler(
         }
     };
 
-    // TODO: convert errors into errcodes
-    let rv = if let Err(err) = rv {
+    if let Err(err) = rv {
         println!("<trap error: {err}>");
-        1
-    } else {
-        0
-    };
+    }
 
     register::sepc::write(pc);
-
-    rv
 }
 
 fn unhandled_exception(trap_frame: &TrapFrame) -> ! {

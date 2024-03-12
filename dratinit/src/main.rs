@@ -16,7 +16,7 @@ extern "C" {
         a5: usize,
         a6: usize,
         a7: usize,
-    );
+    ) -> usize;
 }
 
 fn puts(s: &str) {
@@ -34,6 +34,10 @@ fn puts(s: &str) {
     }
 }
 
+fn get_pid() -> usize {
+    unsafe { asm_syscall(0, 0, 0, 0, 0, 0, 0, 3) }
+}
+
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
     puts("Userspace panicking!\n");
@@ -42,8 +46,13 @@ fn panic(_info: &PanicInfo) -> ! {
 
 #[no_mangle]
 extern "C" fn main() {
+    let pid = get_pid();
     puts("Hello, Sweetie!\n");
     for _ in 0..4 {
-        puts("Howdy\n");
+        if pid % 2 == 0 {
+            puts("Howdy\n");
+        } else {
+            puts("Hmm!\n");
+        }
     }
 }

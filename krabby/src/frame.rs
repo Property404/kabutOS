@@ -47,6 +47,8 @@ pub struct TrapFrame {
     pub regs: [usize; 32],
     /// Kernel trap frame (None for kernels)
     pub kernel_frame: usize,
+    /// Process ID
+    pub pid: usize,
     /// Supervisor Address Translation/Protection register
     /// (physical address of the root page table)
     pub satp: usize,
@@ -68,6 +70,11 @@ impl TrapFrame {
     /// Set the global pointer (x3 general purpose register)
     pub fn set_global_pointer(&mut self, val: usize) {
         self.regs[3] = val
+    }
+
+    /// Set the return value (a0)
+    pub fn set_return_value(&mut self, val: usize) {
+        self.regs[10] = val
     }
 
     /// Get root page table
