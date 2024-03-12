@@ -3,6 +3,7 @@
 #![no_std]
 #![warn(missing_docs)]
 global_asm!(include_str!("asm.S"));
+global_asm!(include_str!("crt.S"));
 
 #[doc(hidden)]
 pub mod serial;

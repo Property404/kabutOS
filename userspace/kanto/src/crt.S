@@ -4,7 +4,6 @@
 .type start, @function
 .global start
 
-
 start:
     call main
     1:

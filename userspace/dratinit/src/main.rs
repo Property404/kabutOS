@@ -1,6 +1,5 @@
 #![no_std]
 #![no_main]
-core::arch::global_asm!(include_str!("crt.S"));
 use kanto::{prelude::*, sys};
 
 #[no_mangle]
