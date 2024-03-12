@@ -14,6 +14,7 @@ enum Syscall {
     PutChar = 1,
     PutString = 2,
     Pinfo = 3,
+    Fork = 4,
 }
 
 /// Handle ecall exception
@@ -68,6 +69,9 @@ fn syscall_inner(
         Syscall::Pinfo => {
             // Currently just returning the PID, but later we can return all sorts of things
             SyscallResult::Value(frame.pid)
+        }
+        Syscall::Fork => {
+            unimplemented!("To implement");
         }
     };
     Ok(rv)
