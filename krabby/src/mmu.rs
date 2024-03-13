@@ -507,7 +507,7 @@ pub fn map_page(
 /// A generic page of any size
 #[repr(transparent)]
 #[derive(Clone, Debug)]
-pub struct Page<const SIZE: usize>([u8; SIZE]);
+pub struct Page<const SIZE: usize>(pub [u8; SIZE]);
 
 /// A self-deallocating page allocation
 #[derive(Debug)]
@@ -545,6 +545,12 @@ impl<T: ?Sized> PageAllocation<T> {
     /// Get number of pages
     pub fn num_pages(&self) -> usize {
         self.num_pages
+    }
+
+    /// Get length
+    #[allow(clippy::len_without_is_empty)] // empty doesn't make sense here
+    pub fn len(&self) -> usize {
+        self.num_pages * PAGE_SIZE
     }
 }
 

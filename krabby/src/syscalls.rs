@@ -2,6 +2,7 @@ use crate::{
     frame::TrapFrame,
     mmu::{self, PAGE_SIZE},
     prelude::*,
+    scheduler,
     util::*,
     KernelError, KernelResult,
 };
@@ -71,7 +72,12 @@ fn syscall_inner(
             SyscallResult::Value(frame.pid)
         }
         Syscall::Fork => {
-            unimplemented!("To implement");
+            let mut child = scheduler::with_process(frame.pid, |p| p.fork())?;
+            child.frame.as_mut().set_return_value(0);
+            child.pc += 4;
+            let child_pid = child.pid;
+            scheduler::add_process(child);
+            SyscallResult::Value(child_pid)
         }
     };
     Ok(rv)

@@ -47,8 +47,7 @@ SECTIONS {
     }
     .table_heap : ALIGN(4K) {
         PROVIDE(table_heap_bottom = .);
-        . += 65536;
-        . += 65536;
+        . += 256*1024;
         PROVIDE(table_heap_top = .);
     }
     /* Stack guard should be unmapped in virtual memory */
@@ -57,7 +56,7 @@ SECTIONS {
     }
     .stack : ALIGN(4K) {
         PROVIDE(stack_bottom = .);
-        . += 16384;
+        . += 32*1024;
         PROVIDE(stack_top = .);
     }
 }

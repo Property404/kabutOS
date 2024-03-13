@@ -23,6 +23,12 @@ extern "C" fn exception_handler(
     let scause = register::scause::read().cause();
     let mut pc = register::sepc::read();
 
+    // set PC
+    let _ = scheduler::with_process(trap_frame.pid, |p| {
+        p.pc = pc;
+        Ok(())
+    });
+
     let rv = match scause {
         Trap::Exception(exception) => {
             pc += 4;

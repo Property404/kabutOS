@@ -3,7 +3,6 @@ use crate::{
     mmu::{self, Page, PageAllocation, PageType, Sv39PageTable, PAGE_SIZE},
     prelude::*,
     util::*,
-    KernelResult,
 };
 use core::{
     ptr,
@@ -52,7 +51,6 @@ impl Process {
         let mut root_page_table = mmu::zalloc();
 
         // Map code
-        println!("pcreate{pid}: Mapping code!");
         let mut code = mmu::zalloc_slice(align_up::<PAGE_SIZE>(code_size) / PAGE_SIZE);
         unsafe {
             ptr::copy(code_src, code.as_mut_ptr() as *mut u8, code_size);
@@ -70,7 +68,6 @@ impl Process {
         let stack = mmu::zalloc();
         let stack_paddr = mmu::ks_vaddr_to_paddr(stack.as_const_ptr() as usize)?;
         let stack_vaddr = USERSPACE_VADDR_START + code.num_pages() * PAGE_SIZE;
-        println!("pcreate{pid}: Stack vaddr: {stack_vaddr:08x}");
         mmu::map_range(
             root_page_table.as_mut(),
             stack_vaddr.try_into()?,
@@ -132,5 +129,31 @@ impl Process {
         frame::set_current_trap_frame(self.frame.as_mut_ptr());
 
         self.state = ProcessState::RUNNING;
+    }
+
+    /// Fork process
+    pub fn fork(&self) -> KernelResult<Self> {
+        let mut child = unsafe {
+            Process::new(
+                self.code.as_const_ptr() as *const u8,
+                self.code.len(),
+                0xDEADBEEF,
+            )?
+        };
+
+        // Copy over registers
+        child.pc = self.pc;
+        for (i, reg) in self.frame.as_ref().regs.iter().enumerate() {
+            child.frame.as_mut().regs[i] = *reg;
+        }
+
+        // Copy stack
+        for (pindex, page) in self.stack.as_ref().iter().enumerate() {
+            for (bindex, byte) in page.0.iter().enumerate() {
+                child.stack.as_mut()[pindex].0[bindex] = *byte;
+            }
+        }
+
+        Ok(child)
     }
 }

@@ -32,6 +32,7 @@ pub mod test;
 pub mod prelude {
     pub use super::cpu::HartId;
     pub use super::{print, println};
+    pub use super::{KernelError, KernelResult};
 }
 
 pub use crate::errors::{KernelError, KernelResult};

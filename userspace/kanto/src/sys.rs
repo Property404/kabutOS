@@ -33,3 +33,8 @@ pub fn puts(s: &str) {
 pub fn get_pid() -> usize {
     unsafe { asm_syscall(0, 0, 0, 0, 0, 0, 0, 3) }
 }
+
+/// Fork process - return child PID
+pub fn fork() -> usize {
+    unsafe { asm_syscall(0, 0, 0, 0, 0, 0, 0, 4) }
+}
