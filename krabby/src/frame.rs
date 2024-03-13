@@ -2,10 +2,7 @@ use crate::{
     mmu::{self, Sv39PageTable},
     prelude::*,
 };
-use core::{
-    arch::asm,
-    sync::atomic::{AtomicU32, Ordering},
-};
+use core::sync::atomic::{AtomicU32, Ordering};
 
 /// Put trap frame in scratch register
 pub fn set_kernel_trap_frame(hart: HartId) {
@@ -24,16 +21,12 @@ pub fn set_kernel_trap_frame(hart: HartId) {
     // Self referential
     frame.as_mut().kernel_frame = frame.addr();
     // Set stack and global
-    frame.as_mut().set_stack_pointer({
-        let reg: usize;
-        unsafe { asm!("mv {}, sp", out(reg) reg) };
-        reg
-    });
-    frame.as_mut().set_global_pointer({
-        let reg: usize;
-        unsafe { asm!("mv {}, gp", out(reg) reg) };
-        reg
-    });
+    frame
+        .as_mut()
+        .set_stack_pointer(Register::StackPointer.value());
+    frame
+        .as_mut()
+        .set_reg(Register::GlobalPointer, Register::GlobalPointer.value());
 
     set_current_trap_frame(frame.leak());
 }
@@ -61,24 +54,29 @@ pub struct TrapFrame {
 }
 
 impl TrapFrame {
+    /// Get register
+    pub fn get_reg(&self, reg: Register) -> usize {
+        self.regs[reg as usize]
+    }
+
+    /// Set register
+    pub fn set_reg(&mut self, reg: Register, value: usize) {
+        self.regs[reg as usize] = value;
+    }
+
     /// Get the stack pointer (x2 general purpose register)
     pub fn stack_pointer(&self) -> usize {
-        self.regs[2]
+        self.get_reg(Register::StackPointer)
     }
 
     /// Set the stack pointer (x2 general purpose register)
     pub fn set_stack_pointer(&mut self, val: usize) {
-        self.regs[2] = val
-    }
-
-    /// Set the global pointer (x3 general purpose register)
-    pub fn set_global_pointer(&mut self, val: usize) {
-        self.regs[3] = val
+        self.set_reg(Register::StackPointer, val)
     }
 
     /// Set the return value (a0)
     pub fn set_return_value(&mut self, val: usize) {
-        self.regs[10] = val
+        self.set_reg(Register::Arg0, val)
     }
 
     /// Get root page table
