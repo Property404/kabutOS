@@ -1,6 +1,7 @@
 use crate::{
     prelude::*,
     process::{Process, ProcessState},
+    KernelError, KernelResult,
 };
 use alloc::vec::Vec;
 use core::{
@@ -41,6 +42,19 @@ pub fn start_with(process: Process) {
 /// Returns the new program counter
 pub fn switch_processes(hart_id: HartId, pc: usize) -> usize {
     critical_section::with(|cs| schedule_inner(hart_id, pc, &mut PROCESSES.borrow_ref_mut(cs)))
+}
+
+/// Run method over process `pid`
+pub fn with_process<T>(pid: usize, f: impl Fn(&mut Process) -> KernelResult<T>) -> KernelResult<T> {
+    critical_section::with(|cs| {
+        let processes = &mut PROCESSES.borrow_ref_mut(cs);
+        for proc in processes.iter_mut() {
+            if proc.pid == pid {
+                return f(proc);
+            }
+        }
+        Err(KernelError::ProcessNotFound(pid))
+    })
 }
 
 // Round-robin scheduler
