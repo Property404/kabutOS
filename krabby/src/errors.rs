@@ -25,6 +25,9 @@ pub enum KernelError {
     /// No such syscall
     #[display("Invalid syscall: {}", _0)]
     InvalidSyscall(usize),
+    /// No such process
+    #[display("Process not found: {}", _0)]
+    ProcessNotFound(usize),
     /// Attempted to dereference null pointer
     #[display("Attempted to dereference null pointer")]
     NullPointer,
@@ -79,4 +82,4 @@ impl<T> From<SchmargsError<T>> for KernelError {
 }
 
 /// Result type for use in this crate
-pub type KernelResult<T> = Result<T, KernelError>;
+pub type KernelResult<T = ()> = Result<T, KernelError>;
