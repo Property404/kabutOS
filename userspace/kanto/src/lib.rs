@@ -17,7 +17,7 @@ use core::arch::global_asm;
 use core::panic::PanicInfo;
 
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
-    let _ = sys::puts("Userspace panicking!\n");
+fn panic(info: &PanicInfo) -> ! {
+    println!("{info}");
     loop {}
 }
