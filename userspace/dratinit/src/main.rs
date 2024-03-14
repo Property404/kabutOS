@@ -17,4 +17,7 @@ extern "C" fn main() {
             println!("Hmm!");
         }
     }
+
+    #[allow(clippy::empty_loop)]
+    loop {}
 }

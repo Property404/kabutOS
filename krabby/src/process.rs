@@ -19,6 +19,8 @@ pub enum ProcessState {
     READY,
     // Process is running
     RUNNING,
+    // Process has been terminated but not yet reaped
+    ZOMBIE,
 }
 
 /// Represents a process
@@ -155,5 +157,11 @@ impl Process {
         }
 
         Ok(child)
+    }
+
+    /// Terminate the process
+    pub fn exit(&mut self) -> KernelResult<()> {
+        self.state = ProcessState::ZOMBIE;
+        Ok(())
     }
 }

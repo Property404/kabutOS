@@ -21,3 +21,11 @@ fn panic(info: &PanicInfo) -> ! {
     println!("{info}");
     loop {}
 }
+
+// Automatic exit after program ends
+#[no_mangle]
+extern "C" fn _exit() {
+    sys::exit().unwrap();
+    let pid = sys::get_pid().unwrap();
+    panic!("Process {pid} failed to exit");
+}

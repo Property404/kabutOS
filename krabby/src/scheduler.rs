@@ -57,16 +57,25 @@ pub fn with_process<T>(pid: usize, f: impl Fn(&mut Process) -> KernelResult<T>) 
     })
 }
 
+fn reap(processes: &mut Vec<Process>) {
+    processes.retain(|p|p.state != ProcessState::ZOMBIE);
+}
+
 // Round-robin scheduler
-fn schedule_inner(hart_id: HartId, pc: usize, processes: &mut [Process]) -> usize {
+fn schedule_inner(hart_id: HartId, pc: usize, processes: &mut Vec<Process>) -> usize {
     assert!(usize::from(hart_id) < MAX_HARTS);
     assert!(!processes.is_empty());
+
 
     // TODO(optimization): pick a proper ordering
     // SeqCst is the safest
     static INDEX: AtomicUsize = AtomicUsize::new(1);
     let index = INDEX.fetch_add(1, Ordering::SeqCst);
 
+    // Reap any zombie processes
+    reap(processes);
+
+    // Pause all processes
     for process in processes.iter_mut() {
         if process.state == ProcessState::RUNNING {
             process.pc = pc;
@@ -75,8 +84,9 @@ fn schedule_inner(hart_id: HartId, pc: usize, processes: &mut [Process]) -> usiz
         }
     }
 
+    let len = processes.len();
     let process: &mut Process = processes
-        .get_mut(index % processes.len())
+        .get_mut(index % len)
         .expect("out-of-bounds");
     process.switch();
     process.pc

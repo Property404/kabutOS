@@ -6,6 +6,7 @@
 
 start:
     call main
+    call _exit
     1:
         nop
-    j 1b
+        j 1b

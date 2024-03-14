@@ -51,3 +51,9 @@ pub fn get_pid() -> SyscallResult<usize> {
 pub fn fork() -> SyscallResult<usize> {
     syscall(4, 0, 0)
 }
+
+/// Exit process
+pub fn exit() -> SyscallResult<()> {
+    syscall(5, 0, 0)?;
+    Ok(())
+}

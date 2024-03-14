@@ -16,6 +16,7 @@ enum Syscall {
     PutString = 2,
     Pinfo = 3,
     Fork = 4,
+    Exit = 5,
 }
 
 /// Handle ecall exception
@@ -81,6 +82,10 @@ fn syscall_inner(
             let child_pid = child.pid;
             scheduler::add_process(child);
             SyscallResult::Value(child_pid)
+        },
+        Syscall::Exit => {
+            scheduler::with_process(frame.pid, |p| p.exit())?;
+            SyscallResult::Success
         }
     };
     Ok(rv)
