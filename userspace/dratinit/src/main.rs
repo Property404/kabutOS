@@ -4,8 +4,8 @@ use kanto::{prelude::*, sys};
 
 #[no_mangle]
 extern "C" fn main() {
-    let child_pid = sys::fork();
-    let pid = sys::get_pid();
+    let child_pid = sys::fork().unwrap();
+    let pid = sys::get_pid().unwrap();
 
     let speaker = if child_pid == 0 { "child" } else { "mother" };
     println!("{speaker}: Hello, Sweetie, from pid {pid}!");

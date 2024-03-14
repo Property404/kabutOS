@@ -18,6 +18,6 @@ use core::panic::PanicInfo;
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
-    sys::puts("Userspace panicking!\n");
+    let _ = sys::puts("Userspace panicking!\n");
     loop {}
 }

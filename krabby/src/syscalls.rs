@@ -20,9 +20,9 @@ enum Syscall {
 
 /// Handle ecall exception
 pub fn syscall_handler(frame: &mut TrapFrame, call: usize, args: [usize; 7]) -> KernelResult<()> {
-    let rv = syscall_inner(frame, call, args)?;
-    frame.set_return_value(usize::from(rv));
-    Ok(())
+    let rv = syscall_inner(frame, call, args);
+    frame.set_return_value(&rv);
+    rv.map(|_| ())
 }
 
 fn syscall_inner(
@@ -73,7 +73,10 @@ fn syscall_inner(
         }
         Syscall::Fork => {
             let mut child = scheduler::with_process(frame.pid, |p| p.fork())?;
-            child.frame.as_mut().set_return_value(0);
+            child
+                .frame
+                .as_mut()
+                .set_return_value(&Ok(SyscallResult::Value(0)));
             child.pc += 4;
             let child_pid = child.pid;
             scheduler::add_process(child);

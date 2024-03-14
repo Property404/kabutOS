@@ -75,8 +75,14 @@ impl TrapFrame {
     }
 
     /// Set the return value (a0)
-    pub fn set_return_value(&mut self, val: usize) {
-        self.set_reg(Register::Arg0, val)
+    pub fn set_return_value<T: Into<usize> + Copy>(&mut self, val: &KernelResult<T>) {
+        if let Ok(val) = val {
+            self.set_reg(Register::Arg0, (*val).into());
+            self.set_reg(Register::Arg1, 0);
+        } else {
+            self.set_reg(Register::Arg0, 0);
+            self.set_reg(Register::Arg1, 1);
+        }
     }
 
     /// Get root page table

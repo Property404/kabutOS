@@ -8,7 +8,7 @@ pub struct Serial {}
 
 impl Write for Serial {
     fn write_str(&mut self, s: &str) -> Result<(), Error> {
-        puts(s);
+        let _ = puts(s);
         Ok(())
     }
 }
