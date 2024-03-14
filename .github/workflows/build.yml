@@ -28,8 +28,14 @@ jobs:
       - name: Clippy
         run: cargo clippy -- -D warnings
 
+      - name: Clippy (userspace)
+        run: cd userspace && cargo clippy -- -D warnings
+
       - name: Lint
         run: cargo fmt --check
+
+      - name: Lint (userspace)
+        run: cd userspace && cargo fmt --check
 
       - name: Check docs
         run: RUSTDOCFLAGS="-D warnings" cargo doc --no-deps
