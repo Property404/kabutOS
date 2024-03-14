@@ -18,6 +18,9 @@ extern "C" fn main() {
         }
     }
 
-    #[allow(clippy::empty_loop)]
-    loop {}
+    // Don't exit init
+    if child_pid != 0 {
+        #[allow(clippy::empty_loop)]
+        loop {}
+    }
 }

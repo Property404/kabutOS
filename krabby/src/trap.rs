@@ -34,7 +34,9 @@ extern "C" fn exception_handler(
             pc += 4;
             match exception {
                 Exception::UserEnvCall => {
-                    syscall_handler(trap_frame, a7, [a0, a1, a2, a3, a4, a5, a6])
+                    let rv = syscall_handler(trap_frame, a7, [a0, a1, a2, a3, a4, a5, a6]);
+                    pc = scheduler::switch_processes(HartId::zero(), pc);
+                    rv
                 }
                 _ => unhandled_exception(trap_frame),
             }

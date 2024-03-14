@@ -82,7 +82,7 @@ fn syscall_inner(
             let child_pid = child.pid;
             scheduler::add_process(child);
             SyscallResult::Value(child_pid)
-        },
+        }
         Syscall::Exit => {
             scheduler::with_process(frame.pid, |p| p.exit())?;
             SyscallResult::Success
