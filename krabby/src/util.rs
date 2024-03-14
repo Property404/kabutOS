@@ -6,7 +6,7 @@
 /// If `SIZE` is not a power of two
 pub const fn align_up<const SIZE: usize>(val: usize) -> usize {
     let mut rv = align_down::<SIZE>(val);
-    if val % SIZE != 0 {
+    if !aligned::<SIZE>(val) {
         rv += SIZE;
     }
     rv
@@ -26,7 +26,7 @@ pub const fn align_next<const SIZE: usize>(val: usize) -> usize {
 /// If `SIZE` is not a power of two
 pub const fn align_down<const SIZE: usize>(val: usize) -> usize {
     assert!(SIZE.is_power_of_two());
-    SIZE * (val / SIZE)
+    val & !(SIZE - 1)
 }
 
 /// Return true if `val` is aligned to `SIZE`
@@ -35,7 +35,7 @@ pub const fn align_down<const SIZE: usize>(val: usize) -> usize {
 /// If `SIZE` is not a power of two
 pub const fn aligned<const SIZE: usize>(val: usize) -> bool {
     assert!(SIZE.is_power_of_two());
-    val % SIZE == 0
+    val & (SIZE - 1) == 0
 }
 
 #[cfg(feature = "test")]
