@@ -96,7 +96,7 @@ impl Sv39PageTableEntry {
     }
 
     /// Physical address of what this entry points to
-    pub fn physical_address(&self) -> usize {
+    pub fn physical_address(&self) -> Sv39PhysicalAddress {
         assert!(self.valid());
         let ppn2: u64 = self.ppn2().into();
         let ppn1: u64 = self.ppn1().into();
@@ -195,6 +195,12 @@ impl Sv39PhysicalAddress {
         let val: usize = (*self).into();
         // Saturating is OK here, because `try_from` will error out if it's actually saturated
         Self::try_from(val.saturating_add_signed(offset))
+    }
+
+    /// Convert into virtual address with specified PMO
+    fn to_vaddr_with_pmo(&self, pmo: isize) -> KernelResult<Sv39VirtualAddress> {
+        let val: usize = (*self).into();
+        Sv39VirtualAddress::try_from(val.saturating_add_signed(-pmo))
     }
 }
 
@@ -365,12 +371,21 @@ fn vaddr_to_paddr_inner(
             if user_only && !entry.user() {
                 return Err(KernelError::ForbiddenPage);
             }
-            let paddr = entry.physical_address() + u16::from(vaddr.page_offset()) as usize;
-            return paddr.try_into();
+            return entry.physical_address().offset(
+                u16::from(vaddr.page_offset())
+                    .try_into()
+                    .expect("isize should hold u16"),
+            );
         }
 
         table = unsafe {
-            Sv39PageTable::mut_from_addr(entry.physical_address().checked_add_signed(-pmo).unwrap())
+            Sv39PageTable::mut_from_addr(
+                entry
+                    .physical_address()
+                    .to_vaddr_with_pmo(pmo)
+                    .unwrap()
+                    .into(),
+            )
         };
     }
     panic!("Walked right off the table!");
@@ -465,7 +480,7 @@ pub fn map_page(
                     phys.ppn2(),
                 ),
             );
-            assert_eq!(addr, entry.physical_address())
+            assert_eq!(addr, entry.physical_address().into())
         }
         if entry.is_leaf() {
             panic!("Unexpected leaf node in page table! (step {step}): {entry:?}");
@@ -475,8 +490,9 @@ pub fn map_page(
             Sv39PageTable::mut_from_addr(
                 entry
                     .physical_address()
-                    .checked_add_signed(-pmo)
-                    .expect("Table address translation overflow!!"),
+                    .to_vaddr_with_pmo(pmo)
+                    .expect("Table address translation overflow!!")
+                    .into(),
             )
         };
     }
