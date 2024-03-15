@@ -6,8 +6,9 @@
 #[repr(usize)]
 pub enum Syscall {
     PutChar = 1,
-    PutString = 2,
-    Pinfo = 3,
-    Fork = 4,
-    Exit = 5,
+    PutString,
+    Pinfo,
+    Fork,
+    Exit,
+    WaitPid,
 }

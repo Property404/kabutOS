@@ -80,6 +80,10 @@ fn syscall_inner(
             scheduler::with_process(pid, |p| p.exit())?;
             SyscallResult::Success
         }
+        Syscall::WaitPid => {
+            let _pid = Pid::try_from(args[0])?;
+            todo!("Implement");
+        }
     };
     Ok(rv)
 }

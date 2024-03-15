@@ -66,11 +66,6 @@ fn schedule_inner(hart_id: HartId, pc: usize, processes: &mut Vec<Process>) -> u
     assert!(usize::from(hart_id) < MAX_HARTS);
     assert!(!processes.is_empty());
 
-    // TODO(optimization): pick a proper ordering
-    // SeqCst is the safest
-    static INDEX: AtomicUsize = AtomicUsize::new(1);
-    let index = INDEX.fetch_add(1, Ordering::SeqCst);
-
     // Reap any zombie processes
     reap(processes);
 
@@ -83,8 +78,22 @@ fn schedule_inner(hart_id: HartId, pc: usize, processes: &mut Vec<Process>) -> u
         }
     }
 
+    // TODO(optimization): pick a proper ordering
+    // SeqCst is the safest
+    static INDEX: AtomicUsize = AtomicUsize::new(1);
+    let mut index = INDEX.fetch_add(1, Ordering::SeqCst);
     let len = processes.len();
-    let process: &mut Process = processes.get_mut(index % len).expect("out-of-bounds");
-    process.switch();
-    process.pc
+
+    // Run the next non-blocked process
+    for _ in 0..len {
+        let process: &mut Process = processes.get_mut(index % len).expect("out-of-bounds");
+        if process.is_blocked() {
+            index += 1;
+            continue;
+        }
+        process.switch();
+        return process.pc;
+    }
+
+    panic!("No process available");
 }

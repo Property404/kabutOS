@@ -202,4 +202,21 @@ impl Process {
         self.state = ProcessState::Zombie;
         Ok(())
     }
+
+    /// Return true if blocked
+    pub fn is_blocked(&mut self) -> bool {
+        matches!(self.state, ProcessState::Blocked(_))
+    }
+
+    /// Block process on some condition
+    pub fn block(&mut self, condition: BlockCondition) {
+        self.pause();
+        self.state = ProcessState::Blocked(condition);
+    }
+
+    /// Unblock process
+    pub fn unblock(&mut self) {
+        assert!(self.is_blocked());
+        self.state = ProcessState::Ready;
+    }
 }
