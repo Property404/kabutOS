@@ -1,9 +1,10 @@
 use crate::{
     frame::{self, TrapFrame},
-    mmu::{self, Page, PageAllocation, PageType, Sv39PageTable, PAGE_SIZE},
+    mmu::{self, Page, PageAllocation, PageType, SharedAllocation, Sv39PageTable, PAGE_SIZE},
     prelude::*,
     util::*,
 };
+use alloc::sync::Arc;
 use core::{
     ptr,
     sync::atomic::{AtomicU16, Ordering},
@@ -38,7 +39,7 @@ pub struct Process {
     pub pid: Pid,
     pub state: ProcessState,
     pub pc: usize,
-    pub code: PageAllocation<[Page<PAGE_SIZE>]>,
+    pub code: Arc<SharedAllocation<[Page<PAGE_SIZE>]>>,
     pub root_page_table: PageAllocation<Sv39PageTable>,
     pub frame: PageAllocation<TrapFrame>,
     pub stack: PageAllocation<[Page<PAGE_SIZE>; STACK_PAGES_PER_PROCESS]>,
@@ -54,6 +55,20 @@ impl Process {
         code_size: usize,
         entry_offset: usize,
     ) -> KernelResult<Self> {
+        // Map code
+        let mut code = mmu::zalloc_slice(align_up::<PAGE_SIZE>(code_size) / PAGE_SIZE);
+        unsafe {
+            ptr::copy(code_src, code.as_mut_ptr() as *mut u8, code_size);
+        }
+        let code = code.into_shared();
+        let pc = USERSPACE_VADDR_START + entry_offset;
+        Self::with_code_and_pc(code, pc)
+    }
+
+    fn with_code_and_pc(
+        code: Arc<SharedAllocation<[Page<PAGE_SIZE>]>>,
+        pc: usize,
+    ) -> KernelResult<Self> {
         let pid: Pid = {
             // TODO(optimization): pick a proper ordering
             // SeqCst is the safest
@@ -63,11 +78,6 @@ impl Process {
 
         let mut root_page_table = mmu::zalloc();
 
-        // Map code
-        let mut code = mmu::zalloc_slice(align_up::<PAGE_SIZE>(code_size) / PAGE_SIZE);
-        unsafe {
-            ptr::copy(code_src, code.as_mut_ptr() as *mut u8, code_size);
-        }
         let code_paddr = mmu::ks_vaddr_to_paddr(code.addr())?;
         mmu::map_range(
             root_page_table.as_mut(),
@@ -115,7 +125,7 @@ impl Process {
         Ok(Self {
             pid,
             state: ProcessState::Ready,
-            pc: USERSPACE_VADDR_START + entry_offset,
+            pc,
             code,
             root_page_table,
             frame,
@@ -146,13 +156,7 @@ impl Process {
 
     /// Fork process
     pub fn fork(&self) -> KernelResult<Self> {
-        let mut child = unsafe {
-            Process::new(
-                self.code.as_const_ptr() as *const u8,
-                self.code.len(),
-                0xDEADBEEF,
-            )?
-        };
+        let mut child = Process::with_code_and_pc(self.code.clone(), 0xDEADBEEF)?;
 
         // Copy over registers
         child.pc = self.pc;

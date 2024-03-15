@@ -3,6 +3,7 @@
 //!
 //! Most of this is based off <https://osblog.stephenmarz.com/ch3.2.html>
 use crate::{prelude::*, util::aligned};
+use alloc::sync::Arc;
 use bilge::prelude::*;
 use core::{
     cell::{Cell, RefCell},
@@ -587,6 +588,14 @@ impl<T: ?Sized> PageAllocation<T> {
     pub fn len(&self) -> usize {
         self.num_pages * PAGE_SIZE
     }
+
+    /// Convert into a shared allocation
+    pub fn into_shared(mut self) -> Arc<SharedAllocation<T>> {
+        Arc::new(SharedAllocation {
+            address: self.address.take().map(|a| a as *const T),
+            num_pages: self.num_pages,
+        })
+    }
 }
 
 impl<T: ?Sized> AsRef<T> for PageAllocation<T> {
@@ -605,6 +614,47 @@ impl<T: ?Sized> Drop for PageAllocation<T> {
     fn drop(&mut self) {
         if let Some(address) = self.address {
             free(address);
+        }
+    }
+}
+
+/// A self-deallocating read-only sharable page allocation
+#[derive(Debug)]
+pub struct SharedAllocation<T: ?Sized> {
+    address: Option<*const T>,
+    num_pages: usize,
+}
+
+unsafe impl<T: ?Sized> Send for SharedAllocation<T> {}
+unsafe impl<T: ?Sized> Sync for SharedAllocation<T> {}
+
+impl<T: ?Sized> SharedAllocation<T> {
+    /// Return as const pointer
+    pub fn as_const_ptr(&self) -> *const T {
+        self.address.unwrap()
+    }
+
+    /// Return raw address
+    pub fn addr(&self) -> usize {
+        self.address.unwrap() as *const () as usize
+    }
+
+    /// Return number of pages
+    pub fn num_pages(&self) -> usize {
+        self.num_pages
+    }
+
+    /// Get length
+    #[allow(clippy::len_without_is_empty)] // empty doesn't make sense here
+    pub fn len(&self) -> usize {
+        self.num_pages * PAGE_SIZE
+    }
+}
+
+impl<T: ?Sized> Drop for SharedAllocation<T> {
+    fn drop(&mut self) {
+        if let Some(address) = self.address {
+            free(address as *mut T);
         }
     }
 }

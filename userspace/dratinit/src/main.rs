@@ -11,7 +11,7 @@ fn shell() {
 extern "C" fn main() {
     println!("[dratinit] starting forks!");
 
-    for _ in 0..16 {
+    for _ in 0..4 {
         if let Some(cpid) = sys::fork().unwrap() {
             sys::wait_pid(cpid).unwrap();
         } else {
