@@ -1,4 +1,5 @@
 use crate::{
+    idle,
     prelude::*,
     process::{BlockCondition, Process, ProcessState},
     KernelError, KernelResult,
@@ -120,5 +121,5 @@ fn schedule_inner(hart_id: HartId, processes: &mut Vec<Process>) -> usize {
         return process.pc;
     }
 
-    panic!("No process available");
+    idle::chill()
 }

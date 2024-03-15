@@ -1,5 +1,6 @@
 #![no_std]
 #![no_main]
+use core::time::Duration;
 use kanto::{prelude::*, sys};
 
 fn shell() {
@@ -23,5 +24,7 @@ extern "C" fn main() {
 
     // Don't exit init
     #[allow(clippy::empty_loop)]
-    loop {}
+    loop {
+        sys::sleep(Duration::from_secs(1)).unwrap();
+    }
 }

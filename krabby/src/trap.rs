@@ -4,7 +4,6 @@ use owo_colors::OwoColorize;
 use riscv::register::{
     self,
     scause::{Exception, Interrupt, Trap},
-    sstatus::SPP,
 };
 
 #[no_mangle]
@@ -51,9 +50,7 @@ extern "C" fn exception_handler(
             match interrupt {
                 Interrupt::SupervisorSoft => unsafe {
                     register::sip::clear_ssoft();
-                    if register::sstatus::read().spp() == SPP::User {
-                        pc = scheduler::switch_processes(HartId::zero());
-                    }
+                    pc = scheduler::switch_processes(HartId::zero());
                 },
                 _ => {
                     panic!("Unhandled interrupt!");

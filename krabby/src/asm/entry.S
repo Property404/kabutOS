@@ -138,7 +138,7 @@ enter_supervisor_mode:
     sd      t0, 0(t1)
 
     # Enable interrupts
-    la      t0, 0xa0
+    la      t0, 0x80
     csrs    mie, t0
 
     mret

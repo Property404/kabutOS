@@ -15,6 +15,7 @@ pub mod errors;
 pub mod frame;
 pub mod functions;
 pub mod globals;
+pub mod idle;
 pub mod mmu;
 pub mod panic;
 pub mod process;
