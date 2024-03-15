@@ -5,8 +5,9 @@ use crate::{
     util::*,
 };
 use core::{
+    num::NonZeroU16,
     ptr,
-    sync::atomic::{AtomicUsize, Ordering},
+    sync::atomic::{AtomicU16, Ordering},
 };
 
 const STACK_PAGES_PER_PROCESS: usize = 2;
@@ -25,6 +26,37 @@ pub enum ProcessState {
     Blocked(BlockCondition),
 }
 
+/// Process ID type
+#[derive(Copy, Clone, Debug, PartialEq, Eq, derive_more::Into, derive_more::Display)]
+#[into(u16)]
+pub struct Pid(NonZeroU16);
+
+impl From<Pid> for usize {
+    fn from(pid: Pid) -> Self {
+        u16::from(pid).into()
+    }
+}
+
+impl TryFrom<usize> for Pid {
+    type Error = KernelError;
+    fn try_from(pid: usize) -> KernelResult<Self> {
+        let pid = pid.try_into().map_err(|_| KernelError::InvalidPid(pid))?;
+        let pid = NonZeroU16::new(pid).ok_or(KernelError::InvalidPid(pid.into()))?;
+        Ok(Self(pid))
+    }
+}
+
+impl Pid {
+    // Generate next PID
+    fn next() -> Self {
+        // TODO(optimization): pick a proper ordering
+        // SeqCst is the safest
+        static PID: AtomicU16 = AtomicU16::new(1);
+        let pid = PID.fetch_add(1, Ordering::SeqCst);
+        Self(pid.try_into().unwrap())
+    }
+}
+
 /// Condition on which a process is blocked
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum BlockCondition {
@@ -35,7 +67,7 @@ pub enum BlockCondition {
 /// Represents a process
 #[derive(Debug)]
 pub struct Process {
-    pub pid: usize,
+    pub pid: Pid,
     pub state: ProcessState,
     pub pc: usize,
     pub code: PageAllocation<[Page<PAGE_SIZE>]>,
@@ -54,10 +86,7 @@ impl Process {
         code_size: usize,
         entry_offset: usize,
     ) -> KernelResult<Self> {
-        // TODO(optimization): pick a proper ordering
-        // SeqCst is the safest
-        static PID: AtomicUsize = AtomicUsize::new(1);
-        let pid = PID.fetch_add(1, Ordering::SeqCst);
+        let pid = Pid::next();
 
         let mut root_page_table = mmu::zalloc();
 
@@ -89,7 +118,7 @@ impl Process {
 
         // This doesn't need to be mapped - it's only accessed by the kernel
         let mut frame: PageAllocation<TrapFrame> = mmu::zalloc();
-        frame.as_mut().pid = pid;
+        frame.as_mut().pid = Some(pid);
         frame.as_mut().root_page_table = root_page_table.as_mut_ptr();
         frame.as_mut().satp =
             mmu::ks_vaddr_to_paddr(root_page_table.as_const_ptr() as usize)?.into();
@@ -134,7 +163,7 @@ impl Process {
 
         // Set page tables
         let satp = self.frame.as_ref().satp.try_into().unwrap();
-        let pid = u16::try_from(self.pid).unwrap();
+        let pid = u16::from(self.pid);
         mmu::set_root_page_table(pid, satp);
 
         frame::set_current_trap_frame(self.frame.as_mut_ptr());

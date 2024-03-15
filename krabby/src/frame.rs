@@ -44,8 +44,8 @@ pub struct TrapFrame {
     pub regs: [usize; 32],
     /// Kernel trap frame (None for kernels)
     pub kernel_frame: usize,
-    /// Process ID
-    pub pid: usize,
+    /// Process ID (0 if kernel)
+    pub pid: Option<Pid>,
     /// Supervisor Address Translation/Protection register
     /// (physical address of the root page table)
     pub satp: usize,

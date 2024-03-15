@@ -45,7 +45,7 @@ pub fn switch_processes(hart_id: HartId, pc: usize) -> usize {
 }
 
 /// Run method over process `pid`
-pub fn with_process<T>(pid: usize, f: impl Fn(&mut Process) -> KernelResult<T>) -> KernelResult<T> {
+pub fn with_process<T>(pid: Pid, f: impl Fn(&mut Process) -> KernelResult<T>) -> KernelResult<T> {
     critical_section::with(|cs| {
         let processes = &mut PROCESSES.borrow_ref_mut(cs);
         for proc in processes.iter_mut() {

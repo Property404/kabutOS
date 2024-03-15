@@ -32,6 +32,8 @@ fn syscall_inner(
     args: [usize; 7],
 ) -> KernelResult<SyscallResult> {
     let call = Syscall::n(call).ok_or(KernelError::InvalidSyscall(call))?;
+    let pid = frame.pid.expect("Process without PID!");
+
     let rv = match call {
         Syscall::PutChar => {
             let ch = char::from_u32(
@@ -70,10 +72,10 @@ fn syscall_inner(
         }
         Syscall::Pinfo => {
             // Currently just returning the PID, but later we can return all sorts of things
-            SyscallResult::Value(frame.pid)
+            SyscallResult::Value(pid.into())
         }
         Syscall::Fork => {
-            let mut child = scheduler::with_process(frame.pid, |p| p.fork())?;
+            let mut child = scheduler::with_process(pid, |p| p.fork())?;
             child
                 .frame
                 .as_mut()
@@ -81,10 +83,10 @@ fn syscall_inner(
             child.pc += 4;
             let child_pid = child.pid;
             scheduler::add_process(child);
-            SyscallResult::Value(child_pid)
+            SyscallResult::Value(child_pid.into())
         }
         Syscall::Exit => {
-            scheduler::with_process(frame.pid, |p| p.exit())?;
+            scheduler::with_process(pid, |p| p.exit())?;
             SyscallResult::Success
         }
     };

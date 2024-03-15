@@ -24,10 +24,12 @@ extern "C" fn exception_handler(
     let mut pc = register::sepc::read();
 
     // set PC
-    let _ = scheduler::with_process(trap_frame.pid, |p| {
-        p.pc = pc;
-        Ok(())
-    });
+    if let Some(pid) = trap_frame.pid {
+        let _ = scheduler::with_process(pid, |p| {
+            p.pc = pc;
+            Ok(())
+        });
+    }
 
     let rv = match scause {
         Trap::Exception(exception) => {

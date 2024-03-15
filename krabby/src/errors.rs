@@ -1,4 +1,5 @@
 //! Error and Result type for use in this crate
+use crate::prelude::*;
 use core::{
     fmt::Error as FmtError,
     num::{ParseIntError, TryFromIntError},
@@ -27,7 +28,10 @@ pub enum KernelError {
     InvalidSyscall(usize),
     /// No such process
     #[display("Process not found: {}", _0)]
-    ProcessNotFound(usize),
+    ProcessNotFound(Pid),
+    /// Invalid PID
+    #[display("Invalid PID: {}", _0)]
+    InvalidPid(usize),
     /// Attempted to dereference null pointer
     #[display("Attempted to dereference null pointer")]
     NullPointer,
