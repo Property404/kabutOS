@@ -15,12 +15,21 @@ const USERSPACE_VADDR_START: usize = 0xf000_0000;
 /// Process state
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ProcessState {
-    // Process is waiting to be run
+    /// Process is waiting to be run
     Ready,
-    // Process is running
+    /// Process is running
     Running,
-    // Process has been terminated but not yet reaped
+    /// Process has been terminated but not yet reaped
     Zombie,
+    /// Process is blocked on some condition
+    Blocked(BlockCondition),
+}
+
+/// Condition on which a process is blocked
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum BlockCondition {
+    /// Waiting on the death of some PID
+    OnDeathOfPid(usize),
 }
 
 /// Represents a process
