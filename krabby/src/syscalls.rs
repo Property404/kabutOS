@@ -71,7 +71,6 @@ fn syscall_inner(
                 .frame
                 .as_mut()
                 .set_return_value(&Ok(SyscallResult::Value(0)));
-            child.pc += 4;
             let child_pid = child.pid;
             scheduler::add_process(child);
             SyscallResult::Value(child_pid.into())

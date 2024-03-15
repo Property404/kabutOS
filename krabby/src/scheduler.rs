@@ -29,7 +29,7 @@ pub fn add_process(process: Process) {
 /// Start the scheduler
 pub fn start_with(process: Process) {
     add_process(process);
-    let pc = switch_processes(HartId::zero(), 0xDEADBEEF);
+    let pc = switch_processes(HartId::zero());
 
     unsafe {
         sstatus::set_spp(sstatus::SPP::User);
@@ -40,8 +40,8 @@ pub fn start_with(process: Process) {
 /// Change up processes
 ///
 /// Returns the new program counter
-pub fn switch_processes(hart_id: HartId, pc: usize) -> usize {
-    critical_section::with(|cs| schedule_inner(hart_id, pc, &mut PROCESSES.borrow_ref_mut(cs)))
+pub fn switch_processes(hart_id: HartId) -> usize {
+    critical_section::with(|cs| schedule_inner(hart_id, &mut PROCESSES.borrow_ref_mut(cs)))
 }
 
 /// Run method over process `pid`
@@ -62,7 +62,7 @@ fn reap(processes: &mut Vec<Process>) {
 }
 
 // Round-robin scheduler
-fn schedule_inner(hart_id: HartId, pc: usize, processes: &mut Vec<Process>) -> usize {
+fn schedule_inner(hart_id: HartId, processes: &mut Vec<Process>) -> usize {
     assert!(usize::from(hart_id) < MAX_HARTS);
     assert!(!processes.is_empty());
 
@@ -72,7 +72,6 @@ fn schedule_inner(hart_id: HartId, pc: usize, processes: &mut Vec<Process>) -> u
     // Pause all processes
     for process in processes.iter_mut() {
         if process.state == ProcessState::Running {
-            process.pc = pc;
             process.pause();
             break;
         }

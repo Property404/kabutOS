@@ -23,6 +23,10 @@ extern "C" fn exception_handler(
     let scause = register::scause::read().cause();
     let mut pc = register::sepc::read();
 
+    if matches!(scause, Trap::Exception(_)) {
+        pc += 4;
+    }
+
     // set PC
     if let Some(pid) = trap_frame.pid {
         let _ = scheduler::with_process(pid, |p| {
@@ -32,23 +36,20 @@ extern "C" fn exception_handler(
     }
 
     let rv = match scause {
-        Trap::Exception(exception) => {
-            pc += 4;
-            match exception {
-                Exception::UserEnvCall => {
-                    let rv = syscall_handler(trap_frame, a7, [a0, a1, a2, a3, a4, a5, a6]);
-                    pc = scheduler::switch_processes(HartId::zero(), pc);
-                    rv
-                }
-                _ => unhandled_exception(trap_frame),
+        Trap::Exception(exception) => match exception {
+            Exception::UserEnvCall => {
+                let rv = syscall_handler(trap_frame, a7, [a0, a1, a2, a3, a4, a5, a6]);
+                pc = scheduler::switch_processes(HartId::zero());
+                rv
             }
-        }
+            _ => unhandled_exception(trap_frame),
+        },
         Trap::Interrupt(interrupt) => {
             match interrupt {
                 Interrupt::SupervisorSoft => unsafe {
                     register::sip::clear_ssoft();
                     if register::sstatus::read().spp() == SPP::User {
-                        pc = scheduler::switch_processes(HartId::zero(), pc);
+                        pc = scheduler::switch_processes(HartId::zero());
                     }
                 },
                 _ => {
