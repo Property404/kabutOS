@@ -61,7 +61,7 @@ impl Pid {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum BlockCondition {
     /// Waiting on the death of some PID
-    OnDeathOfPid(usize),
+    OnDeathOfPid(Pid),
 }
 
 /// Represents a process
