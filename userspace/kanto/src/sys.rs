@@ -1,5 +1,6 @@
 //! KabutOS syscalls
 use core::result::Result;
+use krabby_abi::Syscall;
 
 #[repr(C)]
 struct RawSyscallResult {
@@ -27,8 +28,8 @@ pub struct SyscallError;
 /// Result type for syscalls
 pub type SyscallResult<T = ()> = Result<T, SyscallError>;
 
-fn syscall(id: usize, arg0: usize, arg1: usize) -> SyscallResult<usize> {
-    let res = unsafe { asm_syscall(arg0, arg1, 0, 0, 0, 0, 0, id) };
+fn syscall(id: Syscall, arg0: usize, arg1: usize) -> SyscallResult<usize> {
+    let res = unsafe { asm_syscall(arg0, arg1, 0, 0, 0, 0, 0, id as usize) };
     if res.err == 0 {
         Ok(res.val)
     } else {
@@ -38,22 +39,26 @@ fn syscall(id: usize, arg0: usize, arg1: usize) -> SyscallResult<usize> {
 
 /// Print a string (newline sold separately)
 pub fn puts(s: &str) -> SyscallResult {
-    syscall(2, core::ptr::from_ref(s) as *const u8 as usize, s.len())?;
+    syscall(
+        Syscall::PutString,
+        core::ptr::from_ref(s) as *const u8 as usize,
+        s.len(),
+    )?;
     Ok(())
 }
 
 /// Get process PID
 pub fn get_pid() -> SyscallResult<usize> {
-    syscall(3, 0, 0)
+    syscall(Syscall::Pinfo, 0, 0)
 }
 
 /// Fork process - return child PID
 pub fn fork() -> SyscallResult<usize> {
-    syscall(4, 0, 0)
+    syscall(Syscall::Fork, 0, 0)
 }
 
 /// Exit process
 pub fn exit() -> SyscallResult<()> {
-    syscall(5, 0, 0)?;
+    syscall(Syscall::Exit, 0, 0)?;
     Ok(())
 }

@@ -7,17 +7,8 @@ use crate::{
     KernelError, KernelResult,
 };
 use core::cmp;
+use krabby_abi::Syscall;
 use utf8_parser::Utf8Parser;
-
-#[repr(usize)]
-#[derive(Copy, Clone, enumn::N)]
-enum Syscall {
-    PutChar = 1,
-    PutString = 2,
-    Pinfo = 3,
-    Fork = 4,
-    Exit = 5,
-}
 
 /// Handle ecall exception
 pub fn syscall_handler(frame: &mut TrapFrame, call: usize, args: [usize; 7]) -> KernelResult<()> {

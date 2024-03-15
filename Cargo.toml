@@ -2,7 +2,7 @@
 resolver = "2"
 members = [
     "embedded-line-edit",
-    "krabby",
+    "krabby", "krabby-abi",
     "page-alloc"
 ]
 # Having userland in the workspace complicates things

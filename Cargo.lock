@@ -150,8 +150,8 @@ dependencies = [
  "derive_more",
  "elf",
  "embedded-line-edit",
- "enumn",
  "fdt",
+ "krabby-abi",
  "owo-colors",
  "page-alloc",
  "qemu-exit",
@@ -160,6 +160,13 @@ dependencies = [
  "spin",
  "talc",
  "utf8-parser",
+]
+
+[[package]]
+name = "krabby-abi"
+version = "0.1.0"
+dependencies = [
+ "enumn",
 ]
 
 [[package]]

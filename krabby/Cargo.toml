@@ -18,10 +18,10 @@ bilge = "0.2.0"
 critical-section = "1.1.2"
 derive_more = { version = "1.0.0-beta.6", default-features = false, features = [ "into", "from", "display"] }
 embedded-line-edit = { path = "../embedded-line-edit", default-features = false }
-enumn = "0.1.13"
 # TODO: Switch to upstream when changes are merged
 # upstream currently cannot pretty-print individual nodes
 fdt = { git = "https://github.com/Property404/fdt", rev="5abb24aed8e5ae0ca4c0ed8a2510355c92ea7b8c", features = ["pretty-printing"] }
+krabby-abi = { path = "../krabby-abi" }
 owo-colors = "4.0.0"
 page-alloc = { path = "../page-alloc" }
 qemu-exit = { version = "3.0.2", optional = true }

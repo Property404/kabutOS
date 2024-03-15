@@ -1,0 +1,10 @@
+[package]
+name = "krabby-abi"
+description = "Common types between KabutOS userspace and kernel (krabby)"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+enumn = "0.1.13"
