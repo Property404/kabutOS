@@ -10,7 +10,7 @@ exclude = [ "userspace" ]
 
 # Printing the device tree without optimizations overruns the stack
 [profile.dev.package.fdt]
-opt-level = 3
+opt-level = 1
 
 [profile.release]
 lto = "thin"
