@@ -58,7 +58,7 @@ pub fn with_process<T>(pid: usize, f: impl Fn(&mut Process) -> KernelResult<T>) 
 }
 
 fn reap(processes: &mut Vec<Process>) {
-    processes.retain(|p| p.state != ProcessState::ZOMBIE);
+    processes.retain(|p| p.state != ProcessState::Zombie);
 }
 
 // Round-robin scheduler
@@ -76,7 +76,7 @@ fn schedule_inner(hart_id: HartId, pc: usize, processes: &mut Vec<Process>) -> u
 
     // Pause all processes
     for process in processes.iter_mut() {
-        if process.state == ProcessState::RUNNING {
+        if process.state == ProcessState::Running {
             process.pc = pc;
             process.pause();
             break;

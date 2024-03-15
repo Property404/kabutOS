@@ -16,11 +16,11 @@ const USERSPACE_VADDR_START: usize = 0xf000_0000;
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ProcessState {
     // Process is waiting to be run
-    READY,
+    Ready,
     // Process is running
-    RUNNING,
+    Running,
     // Process has been terminated but not yet reaped
-    ZOMBIE,
+    Zombie,
 }
 
 /// Represents a process
@@ -103,7 +103,7 @@ impl Process {
 
         Ok(Self {
             pid,
-            state: ProcessState::READY,
+            state: ProcessState::Ready,
             pc: USERSPACE_VADDR_START + entry_offset,
             code,
             root_page_table,
@@ -114,7 +114,7 @@ impl Process {
 
     /// Switch process to ready
     pub fn pause(&mut self) {
-        self.state = ProcessState::READY;
+        self.state = ProcessState::Ready;
     }
 
     /// Switch process to running
@@ -130,7 +130,7 @@ impl Process {
 
         frame::set_current_trap_frame(self.frame.as_mut_ptr());
 
-        self.state = ProcessState::RUNNING;
+        self.state = ProcessState::Running;
     }
 
     /// Fork process
@@ -161,7 +161,7 @@ impl Process {
 
     /// Terminate the process
     pub fn exit(&mut self) -> KernelResult<()> {
-        self.state = ProcessState::ZOMBIE;
+        self.state = ProcessState::Zombie;
         Ok(())
     }
 }
