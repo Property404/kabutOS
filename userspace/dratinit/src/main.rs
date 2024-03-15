@@ -2,33 +2,26 @@
 #![no_main]
 use kanto::{prelude::*, sys};
 
+fn shell() {
+    println!("Wooh! Shell\n");
+    sys::exit().unwrap();
+}
+
 #[no_mangle]
 extern "C" fn main() {
-    let child_pid = sys::fork().unwrap();
-    let pid = sys::get_pid().unwrap();
+    println!("[dratinit] starting forks!");
 
-    if let Some(child_pid) = child_pid {
-        sys::wait_pid(child_pid).unwrap();
-    }
-
-    let speaker = if child_pid.is_none() {
-        "child"
-    } else {
-        "mother"
-    };
-    println!("{speaker}: Hello, Sweetie, from pid {pid}!");
-
-    for _ in 0..4 {
-        if u16::from(pid) % 2 == 0 {
-            println!("Howdy");
+    for _ in 0..16 {
+        if let Some(cpid) = sys::fork().unwrap() {
+            sys::wait_pid(cpid).unwrap();
         } else {
-            println!("Hmm!");
+            shell();
         }
     }
 
+    println!("[dratinit] Entering eternal loop!");
+
     // Don't exit init
-    if child_pid.is_some() {
-        #[allow(clippy::empty_loop)]
-        loop {}
-    }
+    #[allow(clippy::empty_loop)]
+    loop {}
 }
