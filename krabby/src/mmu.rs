@@ -95,6 +95,7 @@ impl Sv39PageTableEntry {
         !self.is_leaf()
     }
 
+    /// Physical address of what this entry points to
     pub fn physical_address(&self) -> usize {
         assert!(self.valid());
         let ppn2: u64 = self.ppn2().into();
@@ -569,14 +570,7 @@ impl<T: ?Sized> AsMut<T> for PageAllocation<T> {
 impl<T: ?Sized> Drop for PageAllocation<T> {
     fn drop(&mut self) {
         if let Some(address) = self.address {
-            let records = unsafe { ptr::addr_of_mut!(table_heap_bottom) };
-            let top = unsafe { ptr::from_ref(&table_heap_top) };
-            let first_page_address = records as usize + PAGE_SIZE;
-            let heap_size = (top as usize - first_page_address) / PAGE_SIZE;
-
-            unsafe {
-                (*records).deallocate(first_page_address as *const c_void, heap_size, address);
-            }
+            free(address);
         }
     }
 }
@@ -595,6 +589,18 @@ pub fn zalloc<T>() -> PageAllocation<T> {
     PageAllocation {
         address: Some(allocation.0),
         num_pages: allocation.1,
+    }
+}
+
+// Deallocate address
+fn free<T: ?Sized>(address: *mut T) {
+    let records = unsafe { ptr::addr_of_mut!(table_heap_bottom) };
+    let top = unsafe { ptr::from_ref(&table_heap_top) };
+    let first_page_address = records as usize + PAGE_SIZE;
+    let heap_size = (top as usize - first_page_address) / PAGE_SIZE;
+
+    unsafe {
+        (*records).deallocate(first_page_address as *const c_void, heap_size, address);
     }
 }
 
