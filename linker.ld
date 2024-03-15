@@ -52,11 +52,12 @@ SECTIONS {
     }
     /* Stack guard should be unmapped in virtual memory */
     .stack_guard : ALIGN(4K) {
+        PROVIDE(stack_guard = .);
         . += 4096;
     }
     .stack : ALIGN(4K) {
         PROVIDE(stack_bottom = .);
-        . += 128*1024;
+        . += 64*1024;
         PROVIDE(stack_top = .);
     }
 }

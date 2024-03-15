@@ -1,5 +1,6 @@
 //! Rust IRQ and exception handlers
-use crate::{frame::TrapFrame, prelude::*, scheduler, syscalls::syscall_handler};
+use crate::{frame::TrapFrame, mmu::PAGE_SIZE, prelude::*, scheduler, syscalls::syscall_handler};
+use core::{ffi::c_void, ptr};
 use owo_colors::OwoColorize;
 use riscv::register::{
     self,
@@ -22,7 +23,7 @@ extern "C" fn exception_handler(
     let scause = register::scause::read();
     let mut pc = register::sepc::read();
 
-    assert!(!register::sstatus::read().sie());
+    check_for_stack_overflow();
 
     // Exceptions are synchronous so the PC needs to move up
     if scause.is_exception() {
@@ -83,4 +84,18 @@ fn unhandled_exception(trap_frame: &TrapFrame) -> ! {
             scause: {scause:?}
             stval: 0x{stval:08x}"
     );
+}
+
+fn check_for_stack_overflow() {
+    let stval = register::stval::read();
+    let guard = unsafe { ptr::from_ref(&stack_guard) as usize };
+
+    if stval > guard && stval < guard + PAGE_SIZE {
+        println!("[STACK_OVERFLOW]");
+        panic!("Stack overflow");
+    }
+}
+
+extern "C" {
+    static stack_guard: c_void;
 }
