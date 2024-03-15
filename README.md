@@ -1,6 +1,6 @@
 # KabutOS
 
-RISCV kernel.
+RISC-V operating system
 
 ## Crates
 
