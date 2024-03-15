@@ -23,6 +23,8 @@ extern "C" fn exception_handler(
     let scause = register::scause::read().cause();
     let mut pc = register::sepc::read();
 
+    assert_eq!(register::sstatus::read().sie(), false);
+
     if matches!(scause, Trap::Exception(_)) {
         pc += 4;
     }

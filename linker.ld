@@ -56,7 +56,7 @@ SECTIONS {
     }
     .stack : ALIGN(4K) {
         PROVIDE(stack_bottom = .);
-        . += 32*1024;
+        . += 64*1024;
         PROVIDE(stack_top = .);
     }
 }

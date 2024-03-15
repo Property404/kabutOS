@@ -1,7 +1,8 @@
 //! MMU and paging setup
+//! free(entry_addr);
 //!
 //! Most of this is based off <https://osblog.stephenmarz.com/ch3.2.html>
-use crate::{util::aligned, KernelError, KernelResult};
+use crate::{prelude::*, util::aligned};
 use bilge::prelude::*;
 use core::{
     cell::{Cell, RefCell},
@@ -134,6 +135,13 @@ impl Sv39PageTable {
         assert!(index < ENTRIES_IN_PAGE_TABLE);
         self.entries[index] = entry;
         entry
+    }
+}
+
+impl Drop for Sv39PageTable {
+    fn drop(&mut self) {
+        let pmo = critical_section::with(|cs| PHYSICAL_MEMORY_OFFSET.borrow(cs).get());
+        clean_page_table(self, pmo).unwrap();
     }
 }
 
@@ -391,6 +399,16 @@ fn vaddr_to_paddr_inner(
     panic!("Walked right off the table!");
 }
 
+fn clean_page_table(table: &Sv39PageTable, pmo: isize) -> KernelResult<()> {
+    for entry in table.entries {
+        if entry.valid() && !entry.is_leaf() {
+            let entry: usize = entry.physical_address().to_vaddr_with_pmo(pmo)?.into();
+            free(entry as *mut Sv39PageTable);
+        }
+    }
+    Ok(())
+}
+
 /// Map a memory-mapped device to kernel space
 pub fn map_device(phys_address: usize, size: usize) -> KernelResult<usize> {
     assert!(size >= PAGE_SIZE);
@@ -614,6 +632,10 @@ fn free<T: ?Sized>(address: *mut T) {
     let top = unsafe { ptr::from_ref(&table_heap_top) };
     let first_page_address = records as usize + PAGE_SIZE;
     let heap_size = (top as usize - first_page_address) / PAGE_SIZE;
+
+    unsafe {
+        ptr::drop_in_place(address);
+    }
 
     unsafe {
         (*records).deallocate(first_page_address as *const c_void, heap_size, address);
