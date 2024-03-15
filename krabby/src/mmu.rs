@@ -1,7 +1,7 @@
 //! MMU and paging setup
 //!
 //! Most of this is based off <https://osblog.stephenmarz.com/ch3.2.html>
-use crate::{KernelError, KernelResult};
+use crate::{util::aligned, KernelError, KernelResult};
 use bilge::prelude::*;
 use core::{
     cell::{Cell, RefCell},
@@ -148,7 +148,7 @@ pub struct Sv39VirtualAddress {
 
 impl Sv39VirtualAddress {
     fn is_page_aligned(&self) -> bool {
-        usize::from(*self) & (PAGE_SIZE - 1) == 0
+        aligned::<PAGE_SIZE>(usize::from(*self))
     }
 
     fn offset(&self, offset: isize) -> KernelResult<Self> {
@@ -187,7 +187,7 @@ pub struct Sv39PhysicalAddress {
 
 impl Sv39PhysicalAddress {
     fn is_page_aligned(&self) -> bool {
-        usize::from(*self) & (PAGE_SIZE - 1) == 0
+        aligned::<PAGE_SIZE>(usize::from(*self))
     }
 
     fn offset(&self, offset: isize) -> KernelResult<Self> {
