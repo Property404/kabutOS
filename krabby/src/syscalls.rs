@@ -2,6 +2,7 @@ use crate::{
     frame::TrapFrame,
     mmu::{self, PAGE_SIZE},
     prelude::*,
+    process::BlockCondition,
     scheduler,
     util::*,
     KernelError, KernelResult,
@@ -80,8 +81,12 @@ fn syscall_inner(
             SyscallResult::Success
         }
         Syscall::WaitPid => {
-            let _pid = Pid::try_from(args[0])?;
-            todo!("Implement");
+            let target_pid = Pid::try_from(args[0])?;
+            scheduler::with_process(pid, |p| {
+                p.block(BlockCondition::OnDeathOfPid(target_pid));
+                Ok(())
+            })?;
+            SyscallResult::Success
         }
     };
     Ok(rv)

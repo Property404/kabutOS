@@ -1,6 +1,6 @@
 use crate::{
     prelude::*,
-    process::{Process, ProcessState},
+    process::{BlockCondition, Process, ProcessState},
     KernelError, KernelResult,
 };
 use alloc::vec::Vec;
@@ -58,7 +58,33 @@ pub fn with_process<T>(pid: Pid, f: impl Fn(&mut Process) -> KernelResult<T>) ->
 }
 
 fn reap(processes: &mut Vec<Process>) {
-    processes.retain(|p| p.state != ProcessState::Zombie);
+    let mut zombies = Vec::new();
+
+    let mut i = 0;
+    let mut len = processes.len();
+    while i < len {
+        if processes[i].state == ProcessState::Zombie {
+            zombies.push(processes.swap_remove(i));
+            len -= 1;
+        }
+        i += 1;
+    }
+
+    // Unblock processes waiting on deaths
+    for zombie in zombies {
+        for process in processes.iter_mut() {
+            let ProcessState::Blocked(condition) = process.state else {
+                continue;
+            };
+            match condition {
+                BlockCondition::OnDeathOfPid(pid) => {
+                    if zombie.pid == pid {
+                        process.unblock();
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Round-robin scheduler

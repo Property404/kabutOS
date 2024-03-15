@@ -7,6 +7,10 @@ extern "C" fn main() {
     let child_pid = sys::fork().unwrap();
     let pid = sys::get_pid().unwrap();
 
+    if child_pid != 0 {
+        sys::wait_pid(child_pid).unwrap();
+    }
+
     let speaker = if child_pid == 0 { "child" } else { "mother" };
     println!("{speaker}: Hello, Sweetie, from pid {pid}!");
 

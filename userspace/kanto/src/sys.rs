@@ -65,6 +65,6 @@ pub fn exit() -> SyscallResult<()> {
 
 /// Wait for PID
 pub fn wait_pid(pid: usize) -> SyscallResult<()> {
-    syscall(Syscall::Exit, pid, 0)?;
+    syscall(Syscall::WaitPid, pid, 0)?;
     Ok(())
 }
