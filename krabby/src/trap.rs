@@ -38,7 +38,7 @@ extern "C" fn exception_handler(
     let rv = match scause {
         Trap::Exception(exception) => match exception {
             Exception::UserEnvCall => {
-                let rv = syscall_handler(trap_frame, a7, [a0, a1, a2, a3, a4, a5, a6]);
+                let rv = syscall_handler(trap_frame, a7, (a0, a1, a2, a3, a4, a5, a6));
                 pc = scheduler::switch_processes(HartId::zero());
                 rv
             }

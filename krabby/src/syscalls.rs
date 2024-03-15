@@ -11,25 +11,23 @@ use core::cmp;
 use krabby_abi::Syscall;
 use utf8_parser::Utf8Parser;
 
+type Args = (usize, usize, usize, usize, usize, usize, usize);
+
 /// Handle ecall exception
-pub fn syscall_handler(frame: &mut TrapFrame, call: usize, args: [usize; 7]) -> KernelResult<()> {
+pub fn syscall_handler(frame: &mut TrapFrame, call: usize, args: Args) -> KernelResult<()> {
     let rv = syscall_inner(frame, call, args);
     frame.set_return_value(&rv);
     rv.map(|_| ())
 }
 
-fn syscall_inner(
-    frame: &mut TrapFrame,
-    call: usize,
-    args: [usize; 7],
-) -> KernelResult<SyscallResult> {
+fn syscall_inner(frame: &mut TrapFrame, call: usize, args: Args) -> KernelResult<SyscallResult> {
     let call = Syscall::n(call).ok_or(KernelError::InvalidSyscall(call))?;
     let pid = frame.pid.expect("Process without PID!");
 
     let rv = match call {
         Syscall::PutChar => {
             let ch = char::from_u32(
-                args[0]
+                args.0
                     .try_into()
                     .map_err(|_| KernelError::InvalidArguments)?,
             )
@@ -42,8 +40,8 @@ fn syscall_inner(
             let mut parser = Utf8Parser::new();
 
             // This has to be done per page because the pages not may be contiguous in kernel space
-            let mut start = args[0];
-            let mut bytes_left = args[1];
+            let mut start = args.0;
+            let mut bytes_left = args.1;
             while bytes_left > 0 {
                 {
                     let size = cmp::min(bytes_left, align_next::<PAGE_SIZE>(start) - start);
@@ -81,7 +79,7 @@ fn syscall_inner(
             SyscallResult::Success
         }
         Syscall::WaitPid => {
-            let target_pid = Pid::try_from(args[0])?;
+            let target_pid = Pid::try_from(args.0)?;
             scheduler::with_process(pid, |p| {
                 p.block(BlockCondition::OnDeathOfPid(target_pid));
                 Ok(())
