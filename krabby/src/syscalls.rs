@@ -7,7 +7,7 @@ use crate::{
     util::*,
     KernelError, KernelResult,
 };
-use core::cmp;
+use core::{cmp, time::Duration};
 use krabby_abi::Syscall;
 use utf8_parser::Utf8Parser;
 
@@ -82,6 +82,14 @@ fn syscall_inner(frame: &mut TrapFrame, call: usize, args: Args) -> KernelResult
             let target_pid = Pid::try_from(args.0)?;
             scheduler::with_process(pid, |p| {
                 p.block(BlockCondition::OnDeathOfPid(target_pid));
+                Ok(())
+            })?;
+            SyscallResult::Success
+        }
+        Syscall::Sleep => {
+            let duration = Duration::new(args.0.try_into()?, args.1.try_into()?);
+            scheduler::with_process(pid, |p| {
+                p.block(BlockCondition::OnDelay(duration));
                 Ok(())
             })?;
             SyscallResult::Success

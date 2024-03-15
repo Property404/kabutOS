@@ -76,12 +76,12 @@ fn reap(processes: &mut Vec<Process>) {
             let ProcessState::Blocked(condition) = process.state else {
                 continue;
             };
-            match condition {
-                BlockCondition::OnDeathOfPid(pid) => {
-                    if zombie.pid == pid {
-                        process.unblock();
-                    }
-                }
+            let BlockCondition::OnDeathOfPid(blocked_on_pid) = condition else {
+                continue;
+            };
+
+            if zombie.pid == blocked_on_pid {
+                process.unblock();
             }
         }
     }

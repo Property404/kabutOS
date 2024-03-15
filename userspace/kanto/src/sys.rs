@@ -1,5 +1,6 @@
 //! KabutOS syscalls
 use core::result::Result;
+use core::time::Duration;
 use krabby_abi::{KrabbyAbiError, Pid, Syscall};
 
 #[repr(C)]
@@ -72,5 +73,13 @@ pub fn exit() -> SyscallResult<()> {
 /// Wait for PID
 pub fn wait_pid(pid: Pid) -> SyscallResult<()> {
     syscall(Syscall::WaitPid, pid.into(), 0)?;
+    Ok(())
+}
+
+/// Sleep for a duration
+pub fn sleep(duration: Duration) -> SyscallResult<()> {
+    let secs = usize::try_from(duration.as_secs()).map_err(|_| SyscallError)?;
+    let nanos = usize::try_from(duration.subsec_nanos()).expect("usize should hold u32");
+    syscall(Syscall::Sleep, secs, nanos)?;
     Ok(())
 }

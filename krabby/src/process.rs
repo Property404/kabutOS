@@ -8,6 +8,7 @@ use alloc::sync::Arc;
 use core::{
     ptr,
     sync::atomic::{AtomicU16, Ordering},
+    time::Duration,
 };
 
 const STACK_PAGES_PER_PROCESS: usize = 2;
@@ -31,6 +32,8 @@ pub enum ProcessState {
 pub enum BlockCondition {
     /// Waiting on the death of some PID
     OnDeathOfPid(Pid),
+    /// Waiting for the delay to reach 0
+    OnDelay(Duration),
 }
 
 /// Represents a process

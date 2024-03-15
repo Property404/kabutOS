@@ -16,4 +16,5 @@ pub enum Syscall {
     Fork,
     Exit,
     WaitPid,
+    Sleep,
 }
