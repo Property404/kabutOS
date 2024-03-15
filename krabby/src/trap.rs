@@ -20,12 +20,13 @@ extern "C" fn exception_handler(
 ) {
     let trap_frame = register::sscratch::read() as *mut TrapFrame;
     let trap_frame = unsafe { trap_frame.as_mut().unwrap() };
-    let scause = register::scause::read().cause();
+    let scause = register::scause::read();
     let mut pc = register::sepc::read();
 
     assert!(!register::sstatus::read().sie());
 
-    if matches!(scause, Trap::Exception(_)) {
+    // Exceptions are synchronous so the PC needs to move up
+    if scause.is_exception() {
         pc += 4;
     }
 
@@ -37,7 +38,7 @@ extern "C" fn exception_handler(
         });
     }
 
-    let rv = match scause {
+    let rv = match scause.cause() {
         Trap::Exception(exception) => match exception {
             Exception::UserEnvCall => {
                 let rv = syscall_handler(trap_frame, a7, (a0, a1, a2, a3, a4, a5, a6));
