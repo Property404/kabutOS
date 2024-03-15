@@ -31,9 +31,9 @@ pub mod test;
 
 pub mod prelude {
     pub use super::cpu::{HartId, Register};
-    pub use super::process::Pid;
     pub use super::{print, println};
     pub use super::{KernelError, KernelResult};
+    pub use krabby_abi::Pid;
 }
 
 pub use crate::errors::{KernelError, KernelResult};

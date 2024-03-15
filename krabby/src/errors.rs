@@ -8,6 +8,7 @@ use core::{
 };
 use derive_more::{Display, From};
 use embedded_line_edit::LineEditError;
+use krabby_abi::KrabbyAbiError;
 use schmargs::{SchmargsError, StrippedSchmargsError};
 use utf8_parser::Utf8ParserError;
 
@@ -77,6 +78,9 @@ pub enum KernelError {
     /// Converted from [core::num::TryFromIntError]
     #[from]
     TryFromIntError(TryFromIntError),
+    /// Converted from [krabby_abi::KrabbyAbiError]
+    #[from]
+    KrabbyAbiError(KrabbyAbiError),
 }
 
 impl<T> From<SchmargsError<T>> for KernelError {

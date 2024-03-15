@@ -5,7 +5,6 @@ use crate::{
     util::*,
 };
 use core::{
-    num::NonZeroU16,
     ptr,
     sync::atomic::{AtomicU16, Ordering},
 };
@@ -24,37 +23,6 @@ pub enum ProcessState {
     Zombie,
     /// Process is blocked on some condition
     Blocked(BlockCondition),
-}
-
-/// Process ID type
-#[derive(Copy, Clone, Debug, PartialEq, Eq, derive_more::Into, derive_more::Display)]
-#[into(u16)]
-pub struct Pid(NonZeroU16);
-
-impl From<Pid> for usize {
-    fn from(pid: Pid) -> Self {
-        u16::from(pid).into()
-    }
-}
-
-impl TryFrom<usize> for Pid {
-    type Error = KernelError;
-    fn try_from(pid: usize) -> KernelResult<Self> {
-        let pid = pid.try_into().map_err(|_| KernelError::InvalidPid(pid))?;
-        let pid = NonZeroU16::new(pid).ok_or(KernelError::InvalidPid(pid.into()))?;
-        Ok(Self(pid))
-    }
-}
-
-impl Pid {
-    // Generate next PID
-    fn next() -> Self {
-        // TODO(optimization): pick a proper ordering
-        // SeqCst is the safest
-        static PID: AtomicU16 = AtomicU16::new(1);
-        let pid = PID.fetch_add(1, Ordering::SeqCst);
-        Self(pid.try_into().unwrap())
-    }
 }
 
 /// Condition on which a process is blocked
@@ -86,7 +54,12 @@ impl Process {
         code_size: usize,
         entry_offset: usize,
     ) -> KernelResult<Self> {
-        let pid = Pid::next();
+        let pid: Pid = {
+            // TODO(optimization): pick a proper ordering
+            // SeqCst is the safest
+            static PID: AtomicU16 = AtomicU16::new(1);
+            Pid::maybe_from_u16(PID.fetch_add(1, Ordering::SeqCst)).expect("Invalid PID generated")
+        };
 
         let mut root_page_table = mmu::zalloc();
 

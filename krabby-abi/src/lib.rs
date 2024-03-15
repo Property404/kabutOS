@@ -1,5 +1,10 @@
 //! Common types between userspace and Krabby(KabutOS kernel)
 #![no_std]
+mod error;
+mod pid;
+
+pub use error::KrabbyAbiError;
+pub use pid::Pid;
 
 /// Syscall number
 #[derive(Copy, Clone, enumn::N)]
