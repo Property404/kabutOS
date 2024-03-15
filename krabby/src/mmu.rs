@@ -160,8 +160,8 @@ impl Sv39VirtualAddress {
         aligned::<PAGE_SIZE>(usize::from(*self))
     }
 
-    fn offset(&self, offset: isize) -> KernelResult<Self> {
-        let val: usize = (*self).into();
+    fn offset(self, offset: isize) -> KernelResult<Self> {
+        let val: usize = self.into();
         // Saturating is OK here, because `try_from` will error out if it's actually saturated
         Self::try_from(val.saturating_add_signed(offset))
     }
@@ -199,15 +199,15 @@ impl Sv39PhysicalAddress {
         aligned::<PAGE_SIZE>(usize::from(*self))
     }
 
-    fn offset(&self, offset: isize) -> KernelResult<Self> {
-        let val: usize = (*self).into();
+    fn offset(self, offset: isize) -> KernelResult<Self> {
+        let val: usize = self.into();
         // Saturating is OK here, because `try_from` will error out if it's actually saturated
         Self::try_from(val.saturating_add_signed(offset))
     }
 
     /// Convert into virtual address with specified PMO
-    fn to_vaddr_with_pmo(&self, pmo: isize) -> KernelResult<Sv39VirtualAddress> {
-        let val: usize = (*self).into();
+    fn to_vaddr_with_pmo(self, pmo: isize) -> KernelResult<Sv39VirtualAddress> {
+        let val: usize = (self).into();
         Sv39VirtualAddress::try_from(val.saturating_add_signed(-pmo))
     }
 }
