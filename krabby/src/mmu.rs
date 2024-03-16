@@ -15,7 +15,6 @@ use critical_section::Mutex;
 use page_alloc::RecordsPage;
 
 /// The root kernel-space page table
-#[link_section = ".kernel_root_page_table"]
 pub static ROOT_PAGE_TABLE: Mutex<RefCell<Sv39PageTable>> =
     Mutex::new(RefCell::new(Sv39PageTable::new()));
 
