@@ -13,7 +13,6 @@ SECTIONS {
     /* Include entry point at start of binary */
     .text : ALIGN(4K) {
         PROVIDE(kernel_start = .);
-        *(.init);
         *(.text);
     }
     .data : ALIGN(4K) {

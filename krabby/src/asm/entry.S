@@ -12,7 +12,7 @@ preinit:
     j start
     .cfi_endproc
 
-.section .init
+.section .text
 
 .type start, @function
 .type enter_supervisor_mode, @function
