@@ -34,7 +34,6 @@ SECTIONS {
     /* Nothing past this point needs to exist in the binary file */
     .bss : ALIGN(4K) {
         PROVIDE(bss_start = .);
-        *(.bss);
         *(.bss*);
         PROVIDE(global_pointer = .);
         PROVIDE(bss_end = .);
