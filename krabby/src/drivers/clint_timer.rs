@@ -33,6 +33,8 @@ pub struct ClintTimerDriver {
     base_address: *mut u64,
 }
 
+unsafe impl Send for ClintTimerDriver {}
+
 impl ClintTimerDriver {
     const COMPATIBLE_STRING: &'static str = "riscv,clint0";
 

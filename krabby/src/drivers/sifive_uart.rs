@@ -41,6 +41,8 @@ pub struct SifiveUartDriver {
     uart: *mut Uart,
 }
 
+unsafe impl Send for SifiveUartDriver {}
+
 impl SifiveUartDriver {
     const COMPATIBLE_STRING: &'static str = "sifive,uart0";
 
@@ -81,7 +83,7 @@ impl SifiveUartDriver {
 }
 
 impl UartDriver for SifiveUartDriver {
-    fn next_byte(&self) -> u8 {
+    fn next_byte(&mut self) -> u8 {
         loop {
             let rx_fifo = unsafe { (read_volatile(self.uart)).rx_fifo };
             if !rx_fifo.empty() {
@@ -90,7 +92,7 @@ impl UartDriver for SifiveUartDriver {
         }
     }
 
-    fn send_byte(&self, byte: u8) {
+    fn send_byte(&mut self, byte: u8) {
         unsafe {
             write_volatile(ptr::from_mut(&mut (*self.uart).tx_fifo), byte as u32);
         }

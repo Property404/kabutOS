@@ -25,7 +25,7 @@ unsafe fn boot(hart_id: HartId, fdt_ptr: *const u8, pmo: isize) {
     assert!(hart_id.is_zero());
 
     // Early init uart
-    let uart_driver = Ns16550Driver::new(0x1000_0000 as *mut u8);
+    let mut uart_driver = Ns16550Driver::new(0x1000_0000 as *mut u8);
     uart_driver.send_str("> early uart ON!\n");
 
     // Initialize paging
@@ -62,7 +62,7 @@ unsafe fn kmain() {
     frame::set_kernel_trap_frame(HartId::zero());
 
     // Initialize drivers
-    unsafe { DRIVERS.init(&globals::get().device_tree).unwrap() };
+    DRIVERS.init(&globals::get().device_tree).unwrap();
 
     unsafe {
         riscv::register::sstatus::set_spie();

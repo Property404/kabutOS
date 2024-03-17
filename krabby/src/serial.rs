@@ -20,22 +20,36 @@ impl Serial {
         Self {}
     }
 
+    /// Returns true if driver loaded
+    pub fn driver_loaded() -> bool {
+        critical_section::with(|cs| {
+            let uart = DRIVERS.uart.borrow_ref(cs);
+            uart.is_some()
+        })
+    }
+
     /// Read next character
     pub fn next_char(&self) -> KernelResult<char> {
-        if let Some(uart) = unsafe { &DRIVERS.uart } {
-            Ok(uart.next_char())
-        } else {
-            Err(KernelError::DriverUninitialized)
-        }
+        critical_section::with(|cs| {
+            let mut uart = DRIVERS.uart.borrow_ref_mut(cs);
+            if let Some(uart) = &mut *uart {
+                Ok(uart.next_char())
+            } else {
+                Err(KernelError::DriverUninitialized)
+            }
+        })
     }
 }
 
 impl Write for Serial {
     fn write_str(&mut self, s: &str) -> Result<(), Error> {
-        if let Some(uart) = unsafe { &DRIVERS.uart } {
-            uart.send_str(s);
-        }
-        Ok(())
+        critical_section::with(|cs| {
+            let mut uart = DRIVERS.uart.borrow_ref_mut(cs);
+            if let Some(uart) = &mut *uart {
+                uart.send_str(s);
+            }
+            Ok(())
+        })
     }
 }
 
@@ -46,8 +60,8 @@ macro_rules! print
 {
 	($($args:tt)+) => ({
 			use core::fmt::Write;
-            use $crate::{drivers::DRIVERS, serial::Serial};
-            if unsafe { DRIVERS.uart.is_some() } {
+            use $crate::{serial::Serial};
+            if Serial::driver_loaded() {
                 let _ = write!(Serial::new(), $($args)+);
             }
 	});
@@ -61,9 +75,8 @@ macro_rules! println
 	});
 	($($args:tt)+) => ({
         use core::fmt::Write;
-        use $crate::{drivers::DRIVERS, serial::Serial};
-        #[allow(unused_unsafe)]
-        if unsafe { DRIVERS.uart.is_some() } {
+        use $crate::{serial::Serial};
+        if Serial::driver_loaded() {
 			let _ = write!(Serial::new(), $($args)+);
             let _ = write!(Serial::new(), "\n");
         }

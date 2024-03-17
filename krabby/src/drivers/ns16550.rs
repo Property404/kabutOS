@@ -25,6 +25,8 @@ pub struct Ns16550Driver {
     base_address: *mut u8,
 }
 
+unsafe impl Send for Ns16550Driver {}
+
 impl Ns16550Driver {
     const COMPATIBLE_STRING: &'static str = "ns16550a";
 
@@ -48,7 +50,7 @@ impl Ns16550Driver {
 
     /// Initialize the driver
     pub fn new(base_address: *mut u8) -> Self {
-        let driver = Self { base_address };
+        let mut driver = Self { base_address };
 
         unsafe {
             driver.write(RegisterOffsets::LineControlRegister, 0x03);
@@ -59,7 +61,7 @@ impl Ns16550Driver {
         driver
     }
 
-    unsafe fn write(&self, offset: RegisterOffsets, value: u8) {
+    unsafe fn write(&mut self, offset: RegisterOffsets, value: u8) {
         let address = self.base_address.wrapping_byte_add(offset as usize);
         unsafe { write_volatile(address, value) }
     }
@@ -71,14 +73,14 @@ impl Ns16550Driver {
 }
 
 impl UartDriver for Ns16550Driver {
-    fn next_byte(&self) -> u8 {
+    fn next_byte(&mut self) -> u8 {
         // Wait until byte is available
         while unsafe { self.read(RegisterOffsets::LineStatusRegister) & 0x01 == 0 } {}
         // Then read the byte
         unsafe { self.read(RegisterOffsets::Data) }
     }
 
-    fn send_byte(&self, byte: u8) {
+    fn send_byte(&mut self, byte: u8) {
         unsafe {
             self.write(RegisterOffsets::Data, byte);
         }

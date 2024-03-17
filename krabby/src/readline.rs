@@ -5,7 +5,7 @@ use crate::{
     serial::Serial,
     KernelResult,
 };
-use core::{fmt::Write, str};
+use core::str;
 use embedded_line_edit::{LineEditBufferWithHistoryRing, LineEditState};
 use owo_colors::OwoColorize;
 
@@ -41,7 +41,7 @@ impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Default
 impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Readline<BUFFER_SIZE, HISTORY_SIZE> {
     /// Read line of user input
     pub fn get_line<'a>(&'a mut self, prompt: &str) -> KernelResult<&'a str> {
-        let mut serial = Serial::new();
+        let serial = Serial::new();
         if !self.buffer.is_empty() {
             self.buffer.new_history_entry();
         }
@@ -175,16 +175,15 @@ impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Readline<BUFFER_SIZE, 
 
             if shift_only {
                 // Just place the cursor correctly
-                write!(serial, "\r{prompt}{}", self.buffer.head()?)?;
+                print!("\r{prompt}{}", self.buffer.head()?);
             } else {
-                write!(
-                    serial,
+                print!(
                     "{CLEAR_LINE}\r{prompt}{}\r{prompt}{}",
                     // Write whole line
                     self.buffer.as_str()?,
                     // Then place cursor at `byte_ptr`
                     self.buffer.head()?
-                )?;
+                );
             }
         }
     }
