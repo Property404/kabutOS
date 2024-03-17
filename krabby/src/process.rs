@@ -5,7 +5,7 @@ use crate::{
     timer::Instant,
     util::*,
 };
-use alloc::sync::Arc;
+use alloc::{sync::Arc, vec::Vec};
 use core::{
     ptr,
     sync::atomic::{AtomicU16, Ordering},
@@ -42,11 +42,15 @@ pub enum BlockCondition {
 pub struct Process {
     pub pid: Pid,
     pub state: ProcessState,
+    /// The current top of of virtual memory. Grows as heap grows
+    pub breakline: usize,
     pub pc: usize,
     pub code: Arc<SharedAllocation<[Page<PAGE_SIZE>]>>,
     pub root_page_table: PageAllocation<Sv39PageTable>,
     pub frame: PageAllocation<TrapFrame>,
     pub stack: PageAllocation<[Page<PAGE_SIZE>; STACK_PAGES_PER_PROCESS]>,
+    /// Collection of heap allocation pages
+    pub heap: Vec<PageAllocation<[Page<PAGE_SIZE>]>>,
 }
 
 impl Process {
@@ -80,12 +84,13 @@ impl Process {
             Pid::maybe_from_u16(PID.fetch_add(1, Ordering::SeqCst)).expect("Invalid PID generated")
         };
 
+        let mut breakline = USERSPACE_VADDR_START.try_into()?;
         let mut root_page_table = mmu::zalloc();
 
         let code_paddr = mmu::ks_vaddr_to_paddr(code.addr())?;
-        mmu::map_range(
+        breakline = mmu::map_range(
             root_page_table.as_mut(),
-            USERSPACE_VADDR_START.try_into()?,
+            breakline,
             code_paddr,
             PageType::UserExecute,
             code.num_pages() * PAGE_SIZE,
@@ -94,14 +99,14 @@ impl Process {
         // Map stack
         let stack = mmu::zalloc();
         let stack_paddr = mmu::ks_vaddr_to_paddr(stack.as_const_ptr() as usize)?;
-        let stack_vaddr = USERSPACE_VADDR_START + code.num_pages() * PAGE_SIZE;
-        mmu::map_range(
+        breakline = mmu::map_range(
             root_page_table.as_mut(),
-            stack_vaddr.try_into()?,
+            breakline,
             stack_paddr,
             PageType::UserReadWrite,
             STACK_PAGES_PER_PROCESS * PAGE_SIZE,
         )?;
+        let stack_top = breakline;
 
         // This doesn't need to be mapped - it's only accessed by the kernel
         let mut frame: PageAllocation<TrapFrame> = mmu::zalloc();
@@ -110,9 +115,7 @@ impl Process {
         frame.as_mut().satp =
             mmu::ks_vaddr_to_paddr(root_page_table.as_const_ptr() as usize)?.into();
         // Stack grows down, so set to top
-        frame
-            .as_mut()
-            .set_stack_pointer(stack_vaddr + STACK_PAGES_PER_PROCESS * PAGE_SIZE);
+        frame.as_mut().set_stack_pointer(stack_top.into());
 
         // Map kernel space so we can context switch
         mmu::map_kernel_space(root_page_table.as_mut())?;
@@ -129,11 +132,13 @@ impl Process {
         Ok(Self {
             pid,
             state: ProcessState::Ready,
+            breakline: usize::from(breakline),
             pc,
             code,
             root_page_table,
             frame,
             stack,
+            heap: Vec::new(),
         })
     }
 

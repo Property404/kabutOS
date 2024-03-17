@@ -428,13 +428,15 @@ pub fn map_device(phys_address: usize, size: usize) -> KernelResult<usize> {
 }
 
 /// Map a range of addresses
+///
+/// Returns the virtual address immediately after the range
 pub fn map_range(
     table: &mut Sv39PageTable,
     mut vaddr: Sv39VirtualAddress,
     mut paddr: Sv39PhysicalAddress,
     page_type: PageType,
     size: usize,
-) -> KernelResult<()> {
+) -> KernelResult<Sv39VirtualAddress> {
     assert!(size > 0);
     if !vaddr.is_page_aligned() {
         return Err(KernelError::AddressNotPageAligned(usize::from(vaddr)));
@@ -455,7 +457,7 @@ pub fn map_range(
         paddr = paddr.offset(PAGE_SIZE as isize)?;
     }
 
-    Ok(())
+    Ok(vaddr)
 }
 
 /// Map a single virtual page to a physical page
