@@ -27,6 +27,7 @@ pub fn set_kernel_trap_frame(hart: HartId) {
     frame
         .as_mut()
         .set_reg(Register::GlobalPointer, Register::GlobalPointer.value());
+    frame.as_mut().satp = mmu::ks_satp().expect("Failed to get SATP").into();
 
     set_current_trap_frame(frame.leak());
 }

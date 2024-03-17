@@ -9,6 +9,7 @@ use riscv::{asm::wfi, register::sstatus};
 pub fn chill() -> usize {
     // Switch to kernel frame
     let tframe = riscv::register::sscratch::read() as *const TrapFrame;
+    let tframe = unsafe { (*tframe).kernel_frame as *const TrapFrame };
     frame::set_current_trap_frame(tframe);
 
     // Set page tables

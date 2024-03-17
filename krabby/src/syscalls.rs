@@ -4,6 +4,7 @@ use crate::{
     prelude::*,
     process::BlockCondition,
     scheduler,
+    timer::Instant,
     util::*,
     KernelError, KernelResult,
 };
@@ -89,7 +90,7 @@ fn syscall_inner(frame: &mut TrapFrame, call: usize, args: Args) -> KernelResult
         Syscall::Sleep => {
             let duration = Duration::new(args.0.try_into()?, args.1.try_into()?);
             scheduler::with_process(pid, |p| {
-                p.block(BlockCondition::OnDelay(duration));
+                p.block(BlockCondition::Until(Instant::now() + duration));
                 Ok(())
             })?;
             SyscallResult::Success

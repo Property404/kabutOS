@@ -2,14 +2,15 @@ use crate::{
     frame::{self, TrapFrame},
     mmu::{self, Page, PageAllocation, PageType, SharedAllocation, Sv39PageTable, PAGE_SIZE},
     prelude::*,
+    timer::Instant,
     util::*,
 };
 use alloc::sync::Arc;
 use core::{
     ptr,
     sync::atomic::{AtomicU16, Ordering},
-    time::Duration,
 };
+use riscv::register::sstatus;
 
 const STACK_PAGES_PER_PROCESS: usize = 2;
 const USERSPACE_VADDR_START: usize = 0xf000_0000;
@@ -33,7 +34,7 @@ pub enum BlockCondition {
     /// Waiting on the death of some PID
     OnDeathOfPid(Pid),
     /// Waiting for the delay to reach 0
-    OnDelay(Duration),
+    Until(Instant),
 }
 
 /// Represents a process
@@ -153,6 +154,10 @@ impl Process {
         mmu::set_root_page_table(pid, satp);
 
         frame::set_current_trap_frame(self.frame.as_mut_ptr());
+
+        unsafe {
+            sstatus::set_spp(sstatus::SPP::User);
+        }
 
         self.state = ProcessState::Running;
     }

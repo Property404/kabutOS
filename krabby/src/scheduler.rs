@@ -2,6 +2,7 @@ use crate::{
     idle,
     prelude::*,
     process::{BlockCondition, Process, ProcessState},
+    timer::Instant,
     KernelError, KernelResult,
 };
 use alloc::vec::Vec;
@@ -63,9 +64,18 @@ fn reap(processes: &mut Vec<Process>) {
     let mut i = 0;
     let mut len = processes.len();
     while i < len {
-        if processes[i].state == ProcessState::Zombie {
-            zombies.push(processes.swap_remove(i));
-            len -= 1;
+        match processes[i].state {
+            ProcessState::Zombie => {
+                zombies.push(processes.swap_remove(i));
+                len -= 1;
+            }
+            ProcessState::Blocked(BlockCondition::Until(instant)) => {
+                let now = Instant::now();
+                if now >= instant {
+                    processes[i].unblock();
+                }
+            }
+            _ => {}
         }
         i += 1;
     }

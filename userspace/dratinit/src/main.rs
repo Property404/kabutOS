@@ -23,8 +23,8 @@ extern "C" fn main() {
     println!("[dratinit] Entering eternal loop!");
 
     // Don't exit init
-    #[allow(clippy::empty_loop)]
     loop {
-        sys::sleep(Duration::from_secs(1)).unwrap();
+        println!("...");
+        let _ = sys::sleep(Duration::from_millis(1000));
     }
 }

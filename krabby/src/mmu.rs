@@ -246,6 +246,19 @@ pub fn init_mmu(pmo: isize) -> KernelResult<()> {
     Ok(())
 }
 
+/// Get kernel space root page table physical address
+pub fn ks_satp() -> KernelResult<Sv39PhysicalAddress> {
+    let satp = {
+        let root_page_table = ROOT_PAGE_TABLE.lock();
+        let root_page_table = root_page_table.borrow();
+        let satp: &Sv39PageTable = &root_page_table;
+        ptr::from_ref(satp) as usize
+    };
+
+    let pmo = *(PHYSICAL_MEMORY_OFFSET.read());
+    satp.checked_add_signed(pmo).unwrap().try_into()
+}
+
 /// Initialize paging and all that jazz
 pub fn init_page_tables(pmo: isize) -> KernelResult<()> {
     self_test();
