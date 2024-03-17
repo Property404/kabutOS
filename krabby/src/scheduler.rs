@@ -9,8 +9,8 @@ use core::{
     cell::RefCell,
     sync::atomic::{AtomicUsize, Ordering},
 };
-use critical_section::Mutex;
 use riscv::register::sstatus;
+use spin::Mutex;
 
 // Only supporting one hart currently
 const MAX_HARTS: usize = 1;
@@ -24,7 +24,7 @@ extern "C" {
 
 /// Add a process to the scheduler
 pub fn add_process(process: Process) {
-    critical_section::with(|cs| PROCESSES.borrow_ref_mut(cs).push(process));
+    PROCESSES.lock().borrow_mut().push(process);
 }
 
 /// Start the scheduler
@@ -42,20 +42,19 @@ pub fn start_with(process: Process) {
 ///
 /// Returns the new program counter
 pub fn switch_processes(hart_id: HartId) -> usize {
-    critical_section::with(|cs| schedule_inner(hart_id, &mut PROCESSES.borrow_ref_mut(cs)))
+    schedule_inner(hart_id, &mut PROCESSES.lock().borrow_mut())
 }
 
 /// Run method over process `pid`
 pub fn with_process<T>(pid: Pid, f: impl Fn(&mut Process) -> KernelResult<T>) -> KernelResult<T> {
-    critical_section::with(|cs| {
-        let processes = &mut PROCESSES.borrow_ref_mut(cs);
-        for proc in processes.iter_mut() {
-            if proc.pid == pid {
-                return f(proc);
-            }
+    let processes = PROCESSES.lock();
+    let mut processes = processes.borrow_mut();
+    for proc in processes.iter_mut() {
+        if proc.pid == pid {
+            return f(proc);
         }
-        Err(KernelError::ProcessNotFound(pid))
-    })
+    }
+    Err(KernelError::ProcessNotFound(pid))
 }
 
 fn reap(processes: &mut Vec<Process>) {

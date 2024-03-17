@@ -5,21 +5,16 @@
 use crate::{prelude::*, util::aligned};
 use alloc::sync::Arc;
 use bilge::prelude::*;
-use core::{
-    cell::{Cell, RefCell},
-    ffi::c_void,
-    fmt::Debug,
-    ptr,
-};
-use critical_section::Mutex;
+use core::{cell::RefCell, ffi::c_void, fmt::Debug, ptr};
 use page_alloc::RecordsPage;
+use spin::{Mutex, RwLock};
 
 /// The root kernel-space page table
 pub static ROOT_PAGE_TABLE: Mutex<RefCell<Sv39PageTable>> =
     Mutex::new(RefCell::new(Sv39PageTable::new()));
 
 // Offset between kernel space and physical memory
-pub static PHYSICAL_MEMORY_OFFSET: Mutex<Cell<isize>> = Mutex::new(Cell::new(0));
+pub static PHYSICAL_MEMORY_OFFSET: RwLock<isize> = RwLock::new(0);
 
 extern "C" {
     static mut table_heap_bottom: RecordsPage<PAGE_SIZE>;
@@ -140,7 +135,7 @@ impl Sv39PageTable {
 
 impl Drop for Sv39PageTable {
     fn drop(&mut self) {
-        let pmo = critical_section::with(|cs| PHYSICAL_MEMORY_OFFSET.borrow(cs).get());
+        let pmo = *(PHYSICAL_MEMORY_OFFSET.read());
         clean_page_table(self, pmo).unwrap();
     }
 }
@@ -245,9 +240,8 @@ pub fn init_mmu(pmo: isize) -> KernelResult<()> {
     }
 
     // Set PMO
-    critical_section::with(|cs| {
-        PHYSICAL_MEMORY_OFFSET.borrow(cs).set(pmo);
-    });
+    let mut pmo_lock = PHYSICAL_MEMORY_OFFSET.write();
+    *pmo_lock = pmo;
 
     Ok(())
 }
@@ -256,19 +250,13 @@ pub fn init_mmu(pmo: isize) -> KernelResult<()> {
 pub fn init_page_tables(pmo: isize) -> KernelResult<()> {
     self_test();
 
-    let page_table_paddr = critical_section::with(|cs| {
-        // We have to make sure we're actually getting the table address here
-        let table = ROOT_PAGE_TABLE.borrow(cs);
-        let table: &Sv39PageTable = &table.borrow();
-        ptr::from_ref(table) as usize
-    });
+    let root_page_table = ROOT_PAGE_TABLE.lock();
+    let mut root_page_table = root_page_table.borrow_mut();
 
-    set_root_page_table(0, page_table_paddr.try_into()?);
+    let satp: &Sv39PageTable = &root_page_table;
+    set_root_page_table(0, (ptr::from_ref(satp) as usize).try_into()?);
 
-    critical_section::with(|cs| {
-        let mut root_page_table = ROOT_PAGE_TABLE.borrow_ref_mut(cs);
-        map_kernel_space_with_pmo_offset(&mut root_page_table, pmo)
-    })?;
+    map_kernel_space_with_pmo_offset(&mut root_page_table, pmo)?;
 
     Ok(())
 }
@@ -282,7 +270,7 @@ fn map_kernel_space_with_pmo_offset(
     table: &mut Sv39PageTable,
     pmo_offset: isize,
 ) -> KernelResult<()> {
-    let pmo = critical_section::with(|cs| PHYSICAL_MEMORY_OFFSET.borrow(cs).get());
+    let pmo = *(PHYSICAL_MEMORY_OFFSET.read());
     unsafe {
         let kernel_start_addr = ptr::from_ref(&kernel_start) as usize;
         assert!((kernel_start_addr as isize) >= pmo);
@@ -331,7 +319,7 @@ pub fn get_user_page(
     table: &Sv39PageTable,
     addr: Sv39VirtualAddress,
 ) -> KernelResult<Sv39VirtualAddress> {
-    let pmo = critical_section::with(|cs| PHYSICAL_MEMORY_OFFSET.borrow(cs).get());
+    let pmo = *(PHYSICAL_MEMORY_OFFSET.read());
 
     let addr = usize::from(vaddr_to_paddr_inner(table, addr, pmo, true)?);
     let addr = addr.checked_add_signed(-pmo).unwrap();
@@ -345,17 +333,16 @@ pub fn get_user_page(
 
 /// Get physical address from kernel space virtual address
 pub fn ks_vaddr_to_paddr(vaddr: usize) -> KernelResult<Sv39PhysicalAddress> {
-    critical_section::with(|cs| {
-        let root_page_table = ROOT_PAGE_TABLE.borrow_ref_mut(cs);
-        let pmo = PHYSICAL_MEMORY_OFFSET.borrow(cs).get();
-        vaddr_to_paddr_inner(&root_page_table, vaddr.try_into()?, pmo, false)
-    })
+    let root_page_table = ROOT_PAGE_TABLE.lock();
+    let root_page_table = root_page_table.borrow();
+    let pmo = *(PHYSICAL_MEMORY_OFFSET.read());
+    vaddr_to_paddr_inner(&root_page_table, vaddr.try_into()?, pmo, false)
 }
 
 /// Get physical mapping by walking page table
 pub fn vaddr_to_paddr(table: &Sv39PageTable, vaddr: usize) -> KernelResult<Sv39PhysicalAddress> {
     let vaddr = Sv39VirtualAddress::try_from(vaddr)?;
-    let pmo = critical_section::with(|cs| PHYSICAL_MEMORY_OFFSET.borrow(cs).get());
+    let pmo = *(PHYSICAL_MEMORY_OFFSET.read());
     vaddr_to_paddr_inner(table, vaddr, pmo, false)
 }
 
@@ -413,16 +400,17 @@ fn clean_page_table(table: &Sv39PageTable, pmo: isize) -> KernelResult<()> {
 pub fn map_device(phys_address: usize, size: usize) -> KernelResult<usize> {
     assert!(size >= PAGE_SIZE);
     let virt_address = phys_address;
-    critical_section::with(|cs| {
-        let mut root_page_table = ROOT_PAGE_TABLE.borrow_ref_mut(cs);
-        map_range(
-            &mut root_page_table,
-            phys_address.try_into()?,
-            virt_address.try_into()?,
-            PageType::Kernel,
-            size,
-        )
-    })?;
+    let root_page_table = ROOT_PAGE_TABLE.lock();
+    let mut root_page_table = root_page_table.borrow_mut();
+
+    map_range(
+        &mut root_page_table,
+        phys_address.try_into()?,
+        virt_address.try_into()?,
+        PageType::Kernel,
+        size,
+    )?;
+
     Ok(virt_address)
 }
 
@@ -471,7 +459,7 @@ pub fn map_page(
         return Err(KernelError::AddressNotPageAligned(usize::from(paddr)));
     }
 
-    let pmo = critical_section::with(|cs| PHYSICAL_MEMORY_OFFSET.borrow(cs).get());
+    let pmo = *(PHYSICAL_MEMORY_OFFSET.read());
 
     // Walk page tables
     for step in 0..2 {

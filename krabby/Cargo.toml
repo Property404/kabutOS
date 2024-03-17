@@ -15,7 +15,6 @@ unsafe_op_in_unsafe_fn = "deny"
 
 [dependencies]
 bilge = "0.2.0"
-critical-section = "1.1.2"
 derive_more = { version = "1.0.0-beta.6", default-features = false, features = [ "into", "from", "display"] }
 embedded-line-edit = { path = "../embedded-line-edit", default-features = false }
 # TODO: Switch to upstream when changes are merged
@@ -25,7 +24,7 @@ krabby-abi = { path = "../krabby-abi" }
 owo-colors = "4.0.0"
 page-alloc = { path = "../page-alloc" }
 qemu-exit = { version = "3.0.2", optional = true }
-riscv = { git = "https://github.com/Property404/riscv", branch="Property404/ssoft-fix", version = "0.11.0", features = [ "critical-section-single-hart", "s-mode" ] }
+riscv = { git = "https://github.com/Property404/riscv", branch="Property404/ssoft-fix", version = "0.11.0", features = [ "s-mode" ] }
 schmargs = { default-features = false, git = "https://github.com/Property404/schmargs", rev="b919fab", features = [ "alloc" ] }
 spin = "0.9.8"
 talc = { version = "4.2.0", default-features = false, features = [ "lock_api" ] }

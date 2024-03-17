@@ -22,34 +22,31 @@ impl Serial {
 
     /// Returns true if driver loaded
     pub fn driver_loaded() -> bool {
-        critical_section::with(|cs| {
-            let uart = DRIVERS.uart.borrow_ref(cs);
-            uart.is_some()
-        })
+        let uart = DRIVERS.uart.lock();
+        let uart = uart.borrow();
+        uart.is_some()
     }
 
     /// Read next character
     pub fn next_char(&self) -> KernelResult<char> {
-        critical_section::with(|cs| {
-            let mut uart = DRIVERS.uart.borrow_ref_mut(cs);
-            if let Some(uart) = &mut *uart {
-                Ok(uart.next_char())
-            } else {
-                Err(KernelError::DriverUninitialized)
-            }
-        })
+        let uart = DRIVERS.uart.lock();
+        let mut uart = uart.borrow_mut();
+        if let Some(uart) = &mut *uart {
+            Ok(uart.next_char())
+        } else {
+            Err(KernelError::DriverUninitialized)
+        }
     }
 }
 
 impl Write for Serial {
     fn write_str(&mut self, s: &str) -> Result<(), Error> {
-        critical_section::with(|cs| {
-            let mut uart = DRIVERS.uart.borrow_ref_mut(cs);
-            if let Some(uart) = &mut *uart {
-                uart.send_str(s);
-            }
-            Ok(())
-        })
+        let uart = DRIVERS.uart.lock();
+        let mut uart = uart.borrow_mut();
+        if let Some(uart) = &mut *uart {
+            uart.send_str(s);
+        }
+        Ok(())
     }
 }
 

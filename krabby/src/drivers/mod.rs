@@ -2,8 +2,8 @@
 use crate::{prelude::*, KernelResult};
 use alloc::boxed::Box;
 use core::{cell::RefCell, fmt::Debug, time::Duration};
-use critical_section::Mutex;
 use fdt::{node::FdtNode, Fdt};
+use spin::Mutex;
 pub mod clint_timer;
 pub mod ns16550;
 pub mod sifive_uart;
@@ -22,42 +22,40 @@ pub struct Drivers {
 
 impl Drivers {
     fn init_uart(&self, node: &FdtNode) -> KernelResult<()> {
-        critical_section::with(|cs| {
-            let mut uart = self.uart.borrow_ref_mut(cs);
+        let uart = self.uart.lock();
+        let mut uart = uart.borrow_mut();
 
-            // Don't reinit
-            if uart.is_some() {
-                return Ok(());
-            }
+        // Don't reinit
+        if uart.is_some() {
+            return Ok(());
+        }
 
-            *uart = ns16550::Ns16550Driver::maybe_from_node(node)
-                .transpose()
-                .or_else(|| sifive_uart::SifiveUartDriver::maybe_from_node(node).transpose())
-                .transpose()?;
+        *uart = ns16550::Ns16550Driver::maybe_from_node(node)
+            .transpose()
+            .or_else(|| sifive_uart::SifiveUartDriver::maybe_from_node(node).transpose())
+            .transpose()?;
 
-            Ok(())
-        })
+        Ok(())
     }
 
     fn init_timer(&self, tree: &Fdt, node: &FdtNode) -> KernelResult<()> {
-        critical_section::with(|cs| {
-            let mut timer = self.timer.borrow_ref_mut(cs);
+        let timer = self.timer.lock();
+        let mut timer = timer.borrow_mut();
 
-            // Don't reinit
-            if timer.is_some() {
-                return Ok(());
-            }
+        // Don't reinit
+        if timer.is_some() {
+            return Ok(());
+        }
 
-            *timer = clint_timer::ClintTimerDriver::maybe_from_node(tree, node)?;
+        *timer = clint_timer::ClintTimerDriver::maybe_from_node(tree, node)?;
 
-            if let Some(_timer) = &mut *timer {
-                println!("[Timer driver loaded]");
-                // TODO: Don't automatically set alarm
-                _timer.set_alarm(HartId::zero(), Duration::from_millis(100));
-            }
+        if let Some(_timer) = &mut *timer {
+            println!("[Timer driver loaded]");
+            // TODO: Don't automatically set alarm
+            _timer.set_alarm(HartId::zero(), Duration::from_millis(100));
+        }
 
-            KernelResult::Ok(())
-        })
+        KernelResult::Ok(())
     }
 
     pub fn init(&self, fdt: &Fdt) -> KernelResult<()> {
