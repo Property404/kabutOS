@@ -1,12 +1,15 @@
 //! Drivers and driver accessories
 use crate::{prelude::*, KernelResult};
 use alloc::boxed::Box;
-use core::{fmt::Debug, time::Duration};
+use core::{cell::RefCell, fmt::Debug, time::Duration};
+use critical_section::Mutex;
 use fdt::{node::FdtNode, Fdt};
 pub mod clint_timer;
 pub mod ns16550;
 pub mod sifive_uart;
 use utf8_parser::Utf8Parser;
+
+type DriverBox<T> = Mutex<RefCell<Option<Box<T>>>>;
 
 /// Collection of initialized drivers
 #[derive(Debug)]
@@ -14,7 +17,7 @@ pub struct Drivers {
     /// The UART driver
     pub uart: Option<Box<dyn UartDriver>>,
     /// The timer driver
-    pub timer: Option<Box<dyn TimerDriver>>,
+    pub timer: DriverBox<dyn TimerDriver>,
 }
 
 impl Drivers {
@@ -33,18 +36,24 @@ impl Drivers {
     }
 
     fn init_timer(&mut self, tree: &Fdt, node: &FdtNode) -> KernelResult<()> {
-        // Don't reinit
-        if self.timer.is_some() {
-            return Ok(());
-        }
+        critical_section::with(|cs| {
+            let mut timer = self.timer.borrow_ref_mut(cs);
 
-        self.timer = clint_timer::ClintTimerDriver::maybe_from_node(tree, node)?;
+            // Don't reinit
+            if timer.is_some() {
+                return Ok(());
+            }
 
-        if let Some(_timer) = &mut self.timer {
-            println!("[Timer driver loaded]");
-            // TODO: Don't automatically set alarm
-            _timer.set_alarm(HartId::zero(), Duration::from_millis(100));
-        }
+            *timer = clint_timer::ClintTimerDriver::maybe_from_node(tree, node)?;
+
+            if let Some(_timer) = &mut *timer {
+                println!("[Timer driver loaded]");
+                // TODO: Don't automatically set alarm
+                _timer.set_alarm(HartId::zero(), Duration::from_millis(100));
+            }
+
+            KernelResult::Ok(())
+        })?;
 
         Ok(())
     }
@@ -67,7 +76,7 @@ impl Drivers {
 /// Global object that keeps track of initialized drivers
 pub static mut DRIVERS: Drivers = Drivers {
     uart: None,
-    timer: None,
+    timer: Mutex::new(RefCell::new(None)),
 };
 
 /// Driver for a "disk.' This can be NOR flash, an SSD, a hard drive, or just RAM.
