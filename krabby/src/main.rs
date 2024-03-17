@@ -3,6 +3,7 @@
 #![no_std]
 #![no_main]
 
+use core::time::Duration;
 use fdt::Fdt;
 use krabby::{
     console::run_console,
@@ -10,6 +11,7 @@ use krabby::{
     frame, globals, mmu,
     mmu::PAGE_SIZE,
     prelude::*,
+    timer,
     util::*,
 };
 use owo_colors::OwoColorize;
@@ -71,6 +73,9 @@ unsafe fn kmain() {
         // from supervisor mode
         riscv::register::sie::set_ssoft();
     }
+
+    // Initialize timer
+    timer::set_timer_period(HartId::zero(), Duration::from_millis(100)).unwrap();
 
     println!("{}", "Welcome to KabutOS!!!".cyan().bold());
 

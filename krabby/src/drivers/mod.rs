@@ -51,8 +51,6 @@ impl Drivers {
 
         if let Some(_timer) = &mut *timer {
             println!("[Timer driver loaded]");
-            // TODO: Don't automatically set alarm
-            _timer.set_alarm(HartId::zero(), Duration::from_millis(100));
         }
 
         KernelResult::Ok(())

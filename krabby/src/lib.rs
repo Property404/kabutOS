@@ -23,6 +23,7 @@ pub mod readline;
 pub mod scheduler;
 pub mod serial;
 pub mod syscalls;
+pub mod timer;
 pub mod trap;
 pub mod userspace;
 pub mod util;

@@ -1,5 +1,7 @@
 //! Rust IRQ and exception handlers
-use crate::{frame::TrapFrame, mmu::PAGE_SIZE, prelude::*, scheduler, syscalls::syscall_handler};
+use crate::{
+    frame::TrapFrame, mmu::PAGE_SIZE, prelude::*, scheduler, syscalls::syscall_handler, timer,
+};
 use core::{ffi::c_void, ptr};
 use owo_colors::OwoColorize;
 use riscv::register::{
@@ -50,6 +52,9 @@ extern "C" fn exception_handler(
         Trap::Interrupt(interrupt) => {
             match interrupt {
                 Interrupt::SupervisorSoft => unsafe {
+                    if timer::tick().is_err() {
+                        println!("[kernel: timer tick failed]");
+                    };
                     register::sip::clear_ssoft();
                     pc = scheduler::switch_processes(HartId::zero());
                 },
