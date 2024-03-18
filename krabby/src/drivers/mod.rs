@@ -1,7 +1,11 @@
 //! Drivers and driver accessories
 use crate::{prelude::*, KernelResult};
 use alloc::boxed::Box;
-use core::{fmt::Debug, time::Duration};
+use core::{
+    fmt::{self, Debug, Write},
+    result::Result,
+    time::Duration,
+};
 use fdt::{node::FdtNode, Fdt};
 use spin::Mutex;
 pub mod clint_timer;
@@ -106,5 +110,12 @@ pub trait UartDriver: Debug + Send {
         for byte in s.as_bytes() {
             self.send_byte(*byte)
         }
+    }
+}
+
+impl Write for dyn UartDriver {
+    fn write_str(&mut self, s: &str) -> Result<(), fmt::Error> {
+        self.send_str(s);
+        Ok(())
     }
 }
