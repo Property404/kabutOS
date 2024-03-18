@@ -95,7 +95,7 @@ fn check_for_stack_overflow() {
     let stval = register::stval::read();
     let guard = unsafe { ptr::from_ref(&stack_guard) as usize };
 
-    if stval > guard && stval < guard + PAGE_SIZE {
+    if stval >= guard && stval < guard + PAGE_SIZE {
         println!("[STACK_OVERFLOW]");
         panic!("Stack overflow");
     }
