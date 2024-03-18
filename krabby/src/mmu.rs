@@ -5,7 +5,7 @@
 use crate::{prelude::*, util::aligned};
 use alloc::sync::Arc;
 use bilge::prelude::*;
-use core::{ffi::c_void, fmt::Debug, ptr};
+use core::{ffi::c_void, fmt::Debug, mem, ptr};
 use page_alloc::RecordsPage;
 use spin::{Mutex, RwLock};
 
@@ -110,7 +110,7 @@ pub struct Sv39PageTable {
 }
 
 impl Sv39PageTable {
-    const fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             entries: [Sv39PageTableEntry::zero(); ENTRIES_IN_PAGE_TABLE],
         }
@@ -477,7 +477,7 @@ pub fn map_page(
 
         let mut entry = table.entry(index);
         if !entry.valid() {
-            let addr = (zalloc::<Page<PAGE_SIZE>>().leak() as usize)
+            let addr = (zalloc::<Page<PAGE_SIZE>>(Default::default()).leak() as usize)
                 .checked_add_signed(pmo)
                 .unwrap();
             let phys = Sv39PhysicalAddress::try_from(addr)?;
@@ -541,6 +541,12 @@ pub fn map_page(
 #[repr(transparent)]
 #[derive(Clone, Debug)]
 pub struct Page<const SIZE: usize>(pub [u8; SIZE]);
+
+impl<const SIZE: usize> Default for Page<SIZE> {
+    fn default() -> Self {
+        Self([0; SIZE])
+    }
+}
 
 /// A self-deallocating page allocation
 #[derive(Debug)]
@@ -656,20 +662,26 @@ impl<T: ?Sized> Drop for SharedAllocation<T> {
     }
 }
 
-/// Allocate and zero a new T, with page-grain allocation
-pub fn zalloc<T>() -> PageAllocation<T> {
+/// Allocate a new T, with page-grain allocation
+pub fn zalloc<T>(obj: T) -> PageAllocation<T> {
     let records = unsafe { ptr::addr_of_mut!(table_heap_bottom) };
     let top = unsafe { ptr::from_ref(&table_heap_top) };
     let first_page_address = records as usize + PAGE_SIZE;
     let heap_size = (top as usize - first_page_address) / PAGE_SIZE;
 
-    let allocation = unsafe { (*records).allocate(first_page_address as *const c_void, heap_size) };
+    let (address, num_pages) =
+        unsafe { (*records).allocate(first_page_address as *const c_void, heap_size) };
 
-    zero_out(allocation.0, PAGE_SIZE * allocation.1);
+    zero_out(address, PAGE_SIZE * num_pages);
+
+    unsafe {
+        let obj = ptr::replace(address, obj);
+        mem::forget(obj);
+    }
 
     PageAllocation {
-        address: Some(allocation.0),
-        num_pages: allocation.1,
+        address: Some(address),
+        num_pages,
     }
 }
 

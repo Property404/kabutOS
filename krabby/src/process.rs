@@ -85,7 +85,7 @@ impl Process {
         };
 
         let mut breakline = USERSPACE_VADDR_START.try_into()?;
-        let mut root_page_table = mmu::zalloc();
+        let mut root_page_table = mmu::zalloc(Sv39PageTable::new());
 
         let code_paddr = mmu::ks_vaddr_to_paddr(code.addr())?;
         breakline = mmu::map_range(
@@ -97,7 +97,7 @@ impl Process {
         )?;
 
         // Map stack
-        let stack = mmu::zalloc();
+        let stack = mmu::zalloc(Default::default());
         let stack_paddr = mmu::ks_vaddr_to_paddr(stack.as_const_ptr() as usize)?;
         breakline = mmu::map_range(
             root_page_table.as_mut(),
@@ -109,11 +109,13 @@ impl Process {
         let stack_top = breakline;
 
         // This doesn't need to be mapped - it's only accessed by the kernel
-        let mut frame: PageAllocation<TrapFrame> = mmu::zalloc();
-        frame.as_mut().pid = Some(pid);
-        frame.as_mut().root_page_table = root_page_table.as_mut_ptr();
-        frame.as_mut().satp =
-            mmu::ks_vaddr_to_paddr(root_page_table.as_const_ptr() as usize)?.into();
+        let mut frame: PageAllocation<TrapFrame> = mmu::zalloc(TrapFrame {
+            regs: [Default::default(); 32],
+            pid: Some(pid),
+            root_page_table: root_page_table.as_mut_ptr(),
+            satp: mmu::ks_vaddr_to_paddr(root_page_table.as_const_ptr() as usize)?.into(),
+            kernel_frame: 0xDEADBEEF,
+        });
         // Stack grows down, so set to top
         frame.as_mut().set_stack_pointer(stack_top.into());
 

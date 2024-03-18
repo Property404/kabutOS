@@ -2,7 +2,10 @@ use crate::{
     mmu::{self, Sv39PageTable},
     prelude::*,
 };
-use core::sync::atomic::{AtomicU32, Ordering};
+use core::{
+    ptr,
+    sync::atomic::{AtomicU32, Ordering},
+};
 
 /// Put trap frame in scratch register
 pub fn set_kernel_trap_frame(hart: HartId) {
@@ -17,7 +20,13 @@ pub fn set_kernel_trap_frame(hart: HartId) {
         panic!("Hart {hart} already set trap frame");
     }
 
-    let mut frame = mmu::zalloc::<TrapFrame>();
+    let mut frame = mmu::zalloc::<TrapFrame>(TrapFrame {
+        regs: [Default::default(); 32],
+        pid: None,
+        root_page_table: ptr::null_mut(),
+        satp: mmu::ks_satp().expect("Failed to get SATP").into(),
+        kernel_frame: 0xDEADBEEF,
+    });
     // Self referential
     frame.as_mut().kernel_frame = frame.addr();
     // Set stack and global
@@ -27,7 +36,6 @@ pub fn set_kernel_trap_frame(hart: HartId) {
     frame
         .as_mut()
         .set_reg(Register::GlobalPointer, Register::GlobalPointer.value());
-    frame.as_mut().satp = mmu::ks_satp().expect("Failed to get SATP").into();
 
     set_current_trap_frame(frame.leak());
 }
