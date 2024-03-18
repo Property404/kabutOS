@@ -1,7 +1,7 @@
 //! Drivers and driver accessories
 use crate::{prelude::*, KernelResult};
 use alloc::boxed::Box;
-use core::{cell::RefCell, fmt::Debug, time::Duration};
+use core::{fmt::Debug, time::Duration};
 use fdt::{node::FdtNode, Fdt};
 use spin::Mutex;
 pub mod clint_timer;
@@ -9,7 +9,7 @@ pub mod ns16550;
 pub mod sifive_uart;
 use utf8_parser::Utf8Parser;
 
-type DriverBox<T> = Mutex<RefCell<Option<Box<T>>>>;
+type DriverBox<T> = Mutex<Option<Box<T>>>;
 
 /// Collection of initialized drivers
 #[derive(Debug)]
@@ -22,8 +22,7 @@ pub struct Drivers {
 
 impl Drivers {
     fn init_uart(&self, node: &FdtNode) -> KernelResult<()> {
-        let uart = self.uart.lock();
-        let mut uart = uart.borrow_mut();
+        let mut uart = self.uart.lock();
 
         // Don't reinit
         if uart.is_some() {
@@ -39,8 +38,7 @@ impl Drivers {
     }
 
     fn init_timer(&self, tree: &Fdt, node: &FdtNode) -> KernelResult<()> {
-        let timer = self.timer.lock();
-        let mut timer = timer.borrow_mut();
+        let mut timer = self.timer.lock();
 
         // Don't reinit
         if timer.is_some() {
@@ -73,8 +71,8 @@ impl Drivers {
 
 /// Global object that keeps track of initialized drivers
 pub static DRIVERS: Drivers = Drivers {
-    uart: Mutex::new(RefCell::new(None)),
-    timer: Mutex::new(RefCell::new(None)),
+    uart: Mutex::new(None),
+    timer: Mutex::new(None),
 };
 
 /// Driver for a "disk.' This can be NOR flash, an SSD, a hard drive, or just RAM.

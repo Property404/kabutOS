@@ -33,8 +33,7 @@ pub fn set_timer_period(hart: HartId, duration: Duration) -> KernelResult<()> {
     // want duration_cache and the actual duration in the timer driver to get out-of-sync
     let mut duration_cache = DURATION.write();
 
-    let timer = DRIVERS.timer.lock();
-    let mut timer = timer.borrow_mut();
+    let mut timer = DRIVERS.timer.lock();
     if let Some(timer) = &mut *timer {
         timer.set_alarm(hart, duration);
         *duration_cache = duration;

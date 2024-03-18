@@ -23,14 +23,12 @@ impl Serial {
     /// Returns true if driver loaded
     pub fn driver_loaded() -> bool {
         let uart = DRIVERS.uart.lock();
-        let uart = uart.borrow();
         uart.is_some()
     }
 
     /// Read next character
     pub fn next_char(&self) -> KernelResult<char> {
-        let uart = DRIVERS.uart.lock();
-        let mut uart = uart.borrow_mut();
+        let mut uart = DRIVERS.uart.lock();
         if let Some(uart) = &mut *uart {
             Ok(uart.next_char())
         } else {
@@ -41,8 +39,7 @@ impl Serial {
 
 impl Write for Serial {
     fn write_str(&mut self, s: &str) -> Result<(), Error> {
-        let uart = DRIVERS.uart.lock();
-        let mut uart = uart.borrow_mut();
+        let mut uart = DRIVERS.uart.lock();
         if let Some(uart) = &mut *uart {
             uart.send_str(s);
         }

@@ -5,13 +5,12 @@
 use crate::{prelude::*, util::aligned};
 use alloc::sync::Arc;
 use bilge::prelude::*;
-use core::{cell::RefCell, ffi::c_void, fmt::Debug, ptr};
+use core::{ffi::c_void, fmt::Debug, ptr};
 use page_alloc::RecordsPage;
 use spin::{Mutex, RwLock};
 
 /// The root kernel-space page table
-pub static ROOT_PAGE_TABLE: Mutex<RefCell<Sv39PageTable>> =
-    Mutex::new(RefCell::new(Sv39PageTable::new()));
+pub static ROOT_PAGE_TABLE: Mutex<Sv39PageTable> = Mutex::new(Sv39PageTable::new());
 
 // Offset between kernel space and physical memory
 pub static PHYSICAL_MEMORY_OFFSET: RwLock<isize> = RwLock::new(0);
@@ -250,7 +249,6 @@ pub fn init_mmu(pmo: isize) -> KernelResult<()> {
 pub fn ks_satp() -> KernelResult<Sv39PhysicalAddress> {
     let satp = {
         let root_page_table = ROOT_PAGE_TABLE.lock();
-        let root_page_table = root_page_table.borrow();
         let satp: &Sv39PageTable = &root_page_table;
         ptr::from_ref(satp) as usize
     };
@@ -263,8 +261,7 @@ pub fn ks_satp() -> KernelResult<Sv39PhysicalAddress> {
 pub fn init_page_tables(pmo: isize) -> KernelResult<()> {
     self_test();
 
-    let root_page_table = ROOT_PAGE_TABLE.lock();
-    let mut root_page_table = root_page_table.borrow_mut();
+    let mut root_page_table = ROOT_PAGE_TABLE.lock();
 
     let satp: &Sv39PageTable = &root_page_table;
     set_root_page_table(0, (ptr::from_ref(satp) as usize).try_into()?);
@@ -347,7 +344,6 @@ pub fn get_user_page(
 /// Get physical address from kernel space virtual address
 pub fn ks_vaddr_to_paddr(vaddr: usize) -> KernelResult<Sv39PhysicalAddress> {
     let root_page_table = ROOT_PAGE_TABLE.lock();
-    let root_page_table = root_page_table.borrow();
     let pmo = *(PHYSICAL_MEMORY_OFFSET.read());
     vaddr_to_paddr_inner(&root_page_table, vaddr.try_into()?, pmo, false)
 }
@@ -413,8 +409,7 @@ fn clean_page_table(table: &Sv39PageTable, pmo: isize) -> KernelResult<()> {
 pub fn map_device(phys_address: usize, size: usize) -> KernelResult<usize> {
     assert!(size >= PAGE_SIZE);
     let virt_address = phys_address;
-    let root_page_table = ROOT_PAGE_TABLE.lock();
-    let mut root_page_table = root_page_table.borrow_mut();
+    let mut root_page_table = ROOT_PAGE_TABLE.lock();
 
     map_range(
         &mut root_page_table,

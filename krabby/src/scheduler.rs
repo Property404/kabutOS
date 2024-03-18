@@ -6,10 +6,7 @@ use crate::{
     KernelError, KernelResult,
 };
 use alloc::vec::Vec;
-use core::{
-    cell::RefCell,
-    sync::atomic::{AtomicUsize, Ordering},
-};
+use core::sync::atomic::{AtomicUsize, Ordering};
 use riscv::register::sstatus;
 use spin::Mutex;
 
@@ -17,7 +14,7 @@ use spin::Mutex;
 const MAX_HARTS: usize = 1;
 
 // Processes lists are per CPU core
-static PROCESSES: Mutex<RefCell<Vec<Process>>> = Mutex::new(RefCell::new(Vec::new()));
+static PROCESSES: Mutex<Vec<Process>> = Mutex::new(Vec::new());
 
 extern "C" {
     fn run_process(addr: usize);
@@ -25,7 +22,7 @@ extern "C" {
 
 /// Add a process to the scheduler
 pub fn add_process(process: Process) {
-    PROCESSES.lock().borrow_mut().push(process);
+    PROCESSES.lock().push(process);
 }
 
 /// Start the scheduler
@@ -43,13 +40,12 @@ pub fn start_with(process: Process) {
 ///
 /// Returns the new program counter
 pub fn switch_processes(hart_id: HartId) -> usize {
-    schedule_inner(hart_id, &mut PROCESSES.lock().borrow_mut())
+    schedule_inner(hart_id, &mut PROCESSES.lock())
 }
 
 /// Run method over process `pid`
 pub fn with_process<T>(pid: Pid, f: impl Fn(&mut Process) -> KernelResult<T>) -> KernelResult<T> {
-    let processes = PROCESSES.lock();
-    let mut processes = processes.borrow_mut();
+    let mut processes = PROCESSES.lock();
     for proc in processes.iter_mut() {
         if proc.pid == pid {
             return f(proc);
