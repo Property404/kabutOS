@@ -6,10 +6,7 @@ use crate::{
     util::*,
 };
 use alloc::{sync::Arc, vec::Vec};
-use core::{
-    ptr,
-    sync::atomic::{AtomicU16, Ordering},
-};
+use core::ptr;
 use riscv::register::sstatus;
 
 const STACK_PAGES_PER_PROCESS: usize = 2;
@@ -77,12 +74,7 @@ impl Process {
         code: Arc<SharedAllocation<[Page<PAGE_SIZE>]>>,
         pc: usize,
     ) -> KernelResult<Self> {
-        let pid: Pid = {
-            // TODO(optimization): pick a proper ordering
-            // SeqCst is the safest
-            static PID: AtomicU16 = AtomicU16::new(1);
-            Pid::maybe_from_u16(PID.fetch_add(1, Ordering::SeqCst)).expect("Invalid PID generated")
-        };
+        let pid = Pid::generate();
 
         let mut breakline = USERSPACE_VADDR_START.try_into()?;
         let mut root_page_table = mmu::zalloc(Sv39PageTable::new());

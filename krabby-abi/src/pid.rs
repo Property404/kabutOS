@@ -3,6 +3,7 @@ use core::{
     fmt::{self, Display},
     num::NonZeroU16,
     result::Result,
+    sync::atomic::{AtomicU16, Ordering},
 };
 
 /// Process ID type
@@ -35,6 +36,14 @@ impl Display for Pid {
 }
 
 impl Pid {
+    /// Generate a new PID
+    pub fn generate() -> Self {
+        // TODO(optimization): pick a proper ordering
+        // SeqCst is the safest
+        static PID: AtomicU16 = AtomicU16::new(1);
+        Pid::maybe_from_u16(PID.fetch_add(1, Ordering::SeqCst)).expect("Invalid PID generated")
+    }
+
     /// Return None if zero, else return a Pid
     pub fn maybe_from_u16(val: u16) -> Option<Self> {
         NonZeroU16::new(val).map(Self)
