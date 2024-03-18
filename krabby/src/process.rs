@@ -42,15 +42,15 @@ pub enum BlockCondition {
 pub struct Process {
     pub pid: Pid,
     pub state: ProcessState,
-    /// The current top of of virtual memory. Grows as heap grows
-    pub breakline: usize,
     pub pc: usize,
-    pub code: Arc<SharedAllocation<[Page<PAGE_SIZE>]>>,
-    pub root_page_table: PageAllocation<Sv39PageTable>,
     pub frame: PageAllocation<TrapFrame>,
-    pub stack: PageAllocation<[Page<PAGE_SIZE>; STACK_PAGES_PER_PROCESS]>,
+    // The current top of of virtual memory. Grows as heap grows
+    breakline: usize,
+    code: Arc<SharedAllocation<[Page<PAGE_SIZE>]>>,
+    root_page_table: PageAllocation<Sv39PageTable>,
+    stack: PageAllocation<[Page<PAGE_SIZE>; STACK_PAGES_PER_PROCESS]>,
     /// Collection of heap allocation pages
-    pub heap: Vec<PageAllocation<[Page<PAGE_SIZE>]>>,
+    heap: Vec<PageAllocation<[Page<PAGE_SIZE>]>>,
 }
 
 impl Process {
@@ -208,5 +208,34 @@ impl Process {
     pub fn unblock(&mut self) {
         assert!(self.is_blocked());
         self.state = ProcessState::Ready;
+    }
+
+    /// Get the heap breakline
+    pub fn breakline(&self) -> usize {
+        self.breakline
+    }
+
+    /// Allocate user pages
+    pub fn request_memory(&mut self, bytes: usize) -> KernelResult<()> {
+        if bytes == 0 {
+            return Err(KernelError::InvalidArguments);
+        }
+
+        let num_pages = align_up::<PAGE_SIZE>(bytes) / PAGE_SIZE;
+        let new_allocation = mmu::zalloc_slice(num_pages);
+        let paddr = mmu::ks_vaddr_to_paddr(new_allocation.addr())?;
+
+        self.breakline = mmu::map_range(
+            self.root_page_table.as_mut(),
+            self.breakline.try_into()?,
+            paddr,
+            PageType::UserReadWrite,
+            new_allocation.num_pages() * PAGE_SIZE,
+        )?
+        .into();
+
+        self.heap.push(new_allocation);
+
+        Ok(())
     }
 }

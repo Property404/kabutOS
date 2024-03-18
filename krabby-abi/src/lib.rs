@@ -17,4 +17,5 @@ pub enum Syscall {
     Exit,
     WaitPid,
     Sleep,
+    RequestMemory,
 }

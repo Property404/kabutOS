@@ -83,3 +83,12 @@ pub fn sleep(duration: Duration) -> SyscallResult<()> {
     syscall(Syscall::Sleep, secs, nanos)?;
     Ok(())
 }
+
+/// Request the heap to be extended.
+///
+/// This is similar to `sbrk` and used to implement an allocator. Do not call this directly (unless
+/// you're implementing an allocator)
+pub fn request_memory(bytes: usize) -> SyscallResult<()> {
+    syscall(Syscall::RequestMemory, bytes, 0)?;
+    Ok(())
+}
