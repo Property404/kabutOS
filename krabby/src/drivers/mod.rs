@@ -79,7 +79,7 @@ pub static DRIVERS: Drivers = Drivers {
     timer: Mutex::new(None),
 };
 
-/// Driver for a "disk.' This can be NOR flash, an SSD, a hard drive, or just RAM.
+/// Driver for a CPU timer
 pub trait TimerDriver: Debug + Send {
     fn set_alarm(&mut self, hart: HartId, duration: Duration);
 }
