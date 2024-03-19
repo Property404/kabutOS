@@ -107,6 +107,11 @@ fn syscall_inner(frame: &mut TrapFrame, call: usize, args: Args) -> KernelResult
             let res = scheduler::with_process(pid, |p| p.request_memory(num_bytes))?;
             SyscallResult::Value(res)
         }
+        Syscall::PowerOff => {
+            #[cfg(feature = "test")]
+            crate::test::quit_qemu()?;
+            unimplemented!();
+        }
     };
     Ok(rv)
 }

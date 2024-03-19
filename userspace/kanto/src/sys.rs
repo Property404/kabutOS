@@ -104,3 +104,8 @@ pub fn sleep(duration: Duration) -> SyscallResult<()> {
 pub fn request_memory(bytes: usize) -> SyscallResult<usize> {
     syscall(Syscall::RequestMemory, bytes, 0)
 }
+
+/// Power off the device
+pub fn power_off() -> SyscallResult<usize> {
+    syscall(Syscall::PowerOff, 0, 0)
+}
