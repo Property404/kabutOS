@@ -61,7 +61,7 @@ fn reap(processes: &mut Vec<Process>) {
     let mut len = processes.len();
     while i < len {
         match processes[i].state {
-            ProcessState::Zombie => {
+            ProcessState::Zombie(_) => {
                 zombies.push(processes.swap_remove(i));
                 len -= 1;
             }
@@ -78,6 +78,10 @@ fn reap(processes: &mut Vec<Process>) {
 
     // Unblock processes waiting on deaths
     for zombie in zombies {
+        let ProcessState::Zombie(res) = zombie.state else {
+            panic!("Found non-zombie in zombie list!");
+        };
+
         for process in processes.iter_mut() {
             let ProcessState::Blocked(condition) = process.state else {
                 continue;
@@ -87,6 +91,7 @@ fn reap(processes: &mut Vec<Process>) {
             };
 
             if zombie.pid == blocked_on_pid {
+                process.frame.as_mut().set_exit_value(res);
                 process.unblock();
             }
         }

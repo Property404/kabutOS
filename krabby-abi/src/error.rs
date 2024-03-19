@@ -19,3 +19,19 @@ impl Display for KrabbyAbiError {
         }
     }
 }
+
+/// Exit error code from a process
+#[derive(enumn::N, Copy, Clone, Debug, PartialEq, Eq)]
+#[repr(usize)]
+pub enum ProcessError {
+    /// Generic failure
+    Failure = 1,
+}
+
+impl From<ProcessError> for usize {
+    fn from(err: ProcessError) -> Self {
+        err as usize
+    }
+}
+
+pub type ProcessResult = Result<(), ProcessError>;

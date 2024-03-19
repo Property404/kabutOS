@@ -5,7 +5,7 @@ use kanto::{prelude::*, sys};
 
 fn shell() {
     println!("Wooh! Shell\n");
-    sys::exit().unwrap();
+    sys::exit_ok().unwrap();
 }
 
 #[no_mangle]

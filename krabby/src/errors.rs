@@ -83,6 +83,12 @@ pub enum KernelError {
     KrabbyAbiError(KrabbyAbiError),
 }
 
+impl From<KernelError> for usize {
+    fn from(_: KernelError) -> Self {
+        1
+    }
+}
+
 impl<T> From<SchmargsError<T>> for KernelError {
     fn from(error: SchmargsError<T>) -> KernelError {
         error.strip().into()

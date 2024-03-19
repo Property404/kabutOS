@@ -17,6 +17,8 @@ pub mod prelude {
     pub use alloc::{string::String, vec::Vec};
 }
 
+pub use krabby_abi as abi;
+
 use core::arch::global_asm;
 use core::panic::PanicInfo;
 
@@ -29,7 +31,7 @@ fn panic(info: &PanicInfo) -> ! {
 // Automatic exit after program ends
 #[no_mangle]
 extern "C" fn _exit() {
-    sys::exit().unwrap();
+    sys::exit_ok().unwrap();
     let pid = sys::get_pid().unwrap();
     panic!("Process {pid} failed to exit");
 }

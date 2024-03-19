@@ -1,7 +1,7 @@
 //! KabutOS syscalls
 use core::result::Result;
 use core::time::Duration;
-use krabby_abi::{KrabbyAbiError, Pid, Syscall};
+use krabby_abi::{KrabbyAbiError, Pid, ProcessResult, Syscall};
 
 #[repr(C)]
 struct RawSyscallResult {
@@ -65,9 +65,20 @@ pub fn fork() -> SyscallResult<Option<Pid>> {
 }
 
 /// Exit process
-pub fn exit() -> SyscallResult<()> {
-    syscall(Syscall::Exit, 0, 0)?;
+pub fn exit(res: ProcessResult) -> SyscallResult<()> {
+    let res = if let Err(err) = res {
+        usize::from(err)
+    } else {
+        0
+    };
+
+    syscall(Syscall::Exit, 0, res)?;
     Ok(())
+}
+
+/// Exit with Result::Ok(())
+pub fn exit_ok() -> SyscallResult<()> {
+    exit(Ok(()))
 }
 
 /// Wait for PID

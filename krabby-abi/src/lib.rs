@@ -3,7 +3,7 @@
 mod error;
 mod pid;
 
-pub use error::KrabbyAbiError;
+pub use error::{KrabbyAbiError, ProcessError, ProcessResult};
 pub use pid::Pid;
 
 /// Syscall number

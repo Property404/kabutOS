@@ -7,6 +7,7 @@ use crate::{
 };
 use alloc::{sync::Arc, vec::Vec};
 use core::ptr;
+use krabby_abi::ProcessResult;
 use riscv::register::sstatus;
 
 const STACK_PAGES_PER_PROCESS: usize = 2;
@@ -20,7 +21,7 @@ pub enum ProcessState {
     /// Process is running
     Running,
     /// Process has been terminated but not yet reaped
-    Zombie,
+    Zombie(ProcessResult),
     /// Process is blocked on some condition
     Blocked(BlockCondition),
 }
@@ -182,8 +183,8 @@ impl Process {
     }
 
     /// Terminate the process
-    pub fn exit(&mut self) -> KernelResult<()> {
-        self.state = ProcessState::Zombie;
+    pub fn exit(&mut self, res: ProcessResult) -> KernelResult<()> {
+        self.state = ProcessState::Zombie(res);
         Ok(())
     }
 

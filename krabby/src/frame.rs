@@ -6,6 +6,7 @@ use core::{
     ptr,
     sync::atomic::{AtomicU32, Ordering},
 };
+use krabby_abi::ProcessResult;
 
 /// Put trap frame in scratch register
 pub fn set_kernel_trap_frame(hart: HartId) {
@@ -83,13 +84,23 @@ impl TrapFrame {
         self.set_reg(Register::StackPointer, val)
     }
 
-    /// Set the return value (a0)
+    /// Set the return value (a0/a1)
     pub fn set_return_value<T: Into<usize> + Copy>(&mut self, val: &KernelResult<T>) {
         if let Ok(val) = val {
             self.set_reg(Register::Arg0, (*val).into());
             self.set_reg(Register::Arg1, 0);
         } else {
             self.set_reg(Register::Arg0, 0);
+            self.set_reg(Register::Arg1, 1);
+        }
+    }
+
+    /// Set the return value (a0/a1) from exit result
+    pub fn set_exit_value(&mut self, val: ProcessResult) {
+        self.set_reg(Register::Arg0, 0);
+        if val.is_ok() {
+            self.set_reg(Register::Arg1, 0);
+        } else {
             self.set_reg(Register::Arg1, 1);
         }
     }
