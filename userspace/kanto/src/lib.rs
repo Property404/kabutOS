@@ -5,12 +5,16 @@
 global_asm!(include_str!("asm.S"));
 global_asm!(include_str!("crt.S"));
 
+mod allocator;
+extern crate alloc;
+
 #[doc(hidden)]
 pub mod serial;
 pub mod sys;
 pub mod prelude {
     //! Userspace prelude
     pub use crate::{print, println};
+    pub use alloc::{string::String, vec::Vec};
 }
 
 use core::arch::global_asm;

@@ -210,9 +210,11 @@ impl Process {
     }
 
     /// Allocate user pages
-    pub fn request_memory(&mut self, bytes: usize) -> KernelResult<()> {
+    ///
+    /// Returns the new breakline
+    pub fn request_memory(&mut self, bytes: usize) -> KernelResult<usize> {
         if bytes == 0 {
-            return Err(KernelError::InvalidArguments);
+            return Ok(self.breakline);
         }
 
         let num_pages = align_up::<PAGE_SIZE>(bytes) / PAGE_SIZE;
@@ -230,6 +232,6 @@ impl Process {
 
         self.heap.push(new_allocation);
 
-        Ok(())
+        Ok(self.breakline)
     }
 }

@@ -97,8 +97,8 @@ fn syscall_inner(frame: &mut TrapFrame, call: usize, args: Args) -> KernelResult
         }
         Syscall::RequestMemory => {
             let num_bytes = args.0;
-            scheduler::with_process(pid, |p| p.request_memory(num_bytes))?;
-            SyscallResult::Success
+            let res = scheduler::with_process(pid, |p| p.request_memory(num_bytes))?;
+            SyscallResult::Value(res)
         }
     };
     Ok(rv)

@@ -88,7 +88,8 @@ pub fn sleep(duration: Duration) -> SyscallResult<()> {
 ///
 /// This is similar to `sbrk` and used to implement an allocator. Do not call this directly (unless
 /// you're implementing an allocator)
-pub fn request_memory(bytes: usize) -> SyscallResult<()> {
-    syscall(Syscall::RequestMemory, bytes, 0)?;
-    Ok(())
+///
+/// Returns the new breakline, like sbrk
+pub fn request_memory(bytes: usize) -> SyscallResult<usize> {
+    syscall(Syscall::RequestMemory, bytes, 0)
 }
