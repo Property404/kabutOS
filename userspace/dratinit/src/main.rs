@@ -12,12 +12,18 @@ fn shell() {
 extern "C" fn main() {
     println!("[dratinit] starting forks!");
 
+    let mut pids = Vec::new();
+
     for _ in 0..4 {
-        if let Some(cpid) = sys::fork().unwrap() {
-            sys::wait_pid(cpid).unwrap();
+        if let Some(pid) = sys::fork().unwrap() {
+            pids.push(pid);
         } else {
             shell();
         }
+    }
+
+    for pid in pids {
+        sys::wait_pid(pid).unwrap();
     }
 
     println!("[dratinit] Entering eternal loop!");

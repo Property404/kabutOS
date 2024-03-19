@@ -81,6 +81,12 @@ fn syscall_inner(frame: &mut TrapFrame, call: usize, args: Args) -> KernelResult
         }
         Syscall::WaitPid => {
             let target_pid = Pid::try_from(args.0)?;
+
+            // Return immediately if process is stopped already
+            if scheduler::with_process(target_pid, |_| Ok(())).is_err() {
+                return Ok(SyscallResult::Success);
+            }
+
             scheduler::with_process(pid, |p| {
                 p.block(BlockCondition::OnDeathOfPid(target_pid));
                 Ok(())
