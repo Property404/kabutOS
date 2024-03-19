@@ -27,6 +27,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "gary"
+version = "0.1.0"
+dependencies = [
+ "kanto",
+]
+
+[[package]]
 name = "kanto"
 version = "0.0.0"
 dependencies = [

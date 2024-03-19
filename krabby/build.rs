@@ -19,7 +19,7 @@ fn main() -> Result<()> {
     println!("cargo:rerun-if-changed={LINKER_SCRIPT}");
 
     // Build userspace
-    for krate in ["dratinit"] {
+    for krate in ["dratinit", "gary"] {
         let (entry, file) = objcopy(build_crate(krate)?)?;
         let len = file.len();
 

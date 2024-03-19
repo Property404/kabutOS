@@ -46,6 +46,19 @@ pub fn set_current_trap_frame(frame: *const TrapFrame) {
     riscv::register::sscratch::write(frame as usize);
 }
 
+pub fn switch_to_kernel_frame() -> *const TrapFrame {
+    // Switch to kernel frame
+    let tframe = riscv::register::sscratch::read() as *const TrapFrame;
+    let tframe = unsafe { (*tframe).kernel_frame as *const TrapFrame };
+    set_current_trap_frame(tframe);
+
+    // Set page tables
+    let satp = unsafe { tframe.as_ref().unwrap().satp.try_into().unwrap() };
+    mmu::set_root_page_table(0, satp);
+
+    tframe
+}
+
 /// Trap frame used per process (or by the kernel)
 #[repr(C)]
 #[derive(Clone, Debug)]
