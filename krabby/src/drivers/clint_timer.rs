@@ -64,7 +64,7 @@ impl ClintTimerDriver {
             .property("timebase-frequency")
             .ok_or(KernelError::MissingProperty("timebase-frequency"))?
             .as_usize()
-            .ok_or(KernelError::Generic("Invalid tiembase frequency"))?;
+            .ok_or(KernelError::Generic("Invalid timebase frequency"))?;
 
         Ok(Some(Box::new(Self {
             freq,
