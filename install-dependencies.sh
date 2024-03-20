@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Install dependencies needed for KabutOS development
+# shellcheck disable=SC2086
+set -e
 
 main() {
     local -r USAGE="Usage: $(basename "${0}")"
@@ -21,21 +23,26 @@ Help:
         esac
     done
 
-    if ! command -v apt-get > /dev/null; then
-        echo "This command expects Debian or Ubuntu" >&2
-        return 1
-    fi
 
+    local packages=" git curl "
 
-    local packages=" qemu-system-riscv64 "
-    # CI doesn't need quite as much
-    if [[ -z "${ci}" ]]; then
+    # Ubuntu
+    if command -v apt-get > /dev/null; then
+        packages+=" qemu-system-riscv64 "
         packages+=" binutils-riscv64-unknown-elf "
         packages+=" gdb-multiarch "
-        packages+=" git curl "
+        sudo apt-get install -y ${packages}
+
+    # macOS
+    elif command -v brew > /dev/null; then
+        packages+=" coreutils qemu "
+        brew install ${packages}
+
+    # And fuck everyone else
+    else
+        echo "Unsupported OS" >&2
+        return 1
     fi
-    # shellcheck disable=SC2086
-    sudo apt-get install -y ${packages}
 
 
     # Install RustUp if needed
@@ -49,6 +56,9 @@ Help:
 
     # Install Rust Targets
     rustup target add riscv64gc-unknown-none-elf
+    if command -v brew > /dev/null; then
+        rustup target add x86_64-apple-darwin
+    fi
 }
 
 main "${@}"

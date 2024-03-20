@@ -14,7 +14,8 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        # Switch back to Ubuntu when 24.04 comes out
+        os: [macos-14]
 
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +46,7 @@ jobs:
         run: timeout 90 cargo run --features=test
 
       - name: Test line edit crate
-        run: cd embedded-line-edit && cargo test
+        run: cd embedded-line-edit && cargo test --target=x86_64-apple-darwin
 
       - name: Test page-alloc crate
-        run: cd page-alloc && cargo test
+        run: cd page-alloc && cargo test --target=x86_64-apple-darwin
