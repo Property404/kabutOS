@@ -31,6 +31,8 @@ pub enum ProcessState {
 pub enum BlockCondition {
     /// Waiting on the death of some PID
     OnDeathOfPid(Pid),
+    /// Waiting on uart character available
+    OnUart(InterruptId),
     /// Waiting for the delay to reach 0
     Until(Instant),
 }

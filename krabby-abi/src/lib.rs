@@ -11,6 +11,7 @@ pub use pid::Pid;
 #[repr(usize)]
 pub enum Syscall {
     PutChar = 1,
+    GetChar,
     PutString,
     Pinfo,
     Fork,

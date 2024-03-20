@@ -36,6 +36,9 @@ fn syscall_inner(frame: &mut TrapFrame, call: usize, args: Args) -> KernelResult
             print!("{ch}");
             SyscallResult::Success
         }
+        Syscall::GetChar => {
+            todo!()
+        }
         Syscall::PutString => {
             let table = frame.root_page_table();
             let mut parser = Utf8Parser::new();
