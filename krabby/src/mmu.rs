@@ -687,6 +687,7 @@ pub fn zalloc<T>(obj: T) -> PageAllocation<T> {
 
 // Deallocate address
 fn free<T: ?Sized>(address: *mut T) {
+    assert!(!address.is_null());
     let records = unsafe { ptr::addr_of_mut!(table_heap_bottom) };
     let top = unsafe { ptr::from_ref(&table_heap_top) };
     let first_page_address = records as usize + PAGE_SIZE;
