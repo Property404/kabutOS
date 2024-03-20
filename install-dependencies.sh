@@ -56,6 +56,9 @@ Help:
 
     # Install Rust Targets
     rustup target add riscv64gc-unknown-none-elf
+    if command -v brew > /dev/null; then
+        rustup target add x86_64-apple-darwin
+    fi
 }
 
 main "${@}"
