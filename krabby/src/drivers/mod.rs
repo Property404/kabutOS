@@ -10,6 +10,7 @@ use fdt::{node::FdtNode, Fdt};
 use spin::Mutex;
 pub mod clint_timer;
 pub mod ns16550;
+pub mod plic;
 pub mod sifive_uart;
 use utf8_parser::Utf8Parser;
 
@@ -22,6 +23,8 @@ pub struct Drivers {
     pub uart: DriverBox<dyn UartDriver>,
     /// The timer driver
     pub timer: DriverBox<dyn TimerDriver>,
+    /// The IC driver
+    pub ic: DriverBox<dyn InterruptControllerDriver>,
 }
 
 impl Drivers {
@@ -58,6 +61,23 @@ impl Drivers {
         KernelResult::Ok(())
     }
 
+    fn init_ic(&self, tree: &Fdt, node: &FdtNode) -> KernelResult<()> {
+        let mut driver = self.ic.lock();
+
+        // Don't reinit
+        if driver.is_some() {
+            return Ok(());
+        }
+
+        *driver = plic::PlicDriver::maybe_from_node(tree, node)?;
+
+        if let Some(_driver) = &mut *driver {
+            println!("[IC driver loaded]");
+        }
+
+        KernelResult::Ok(())
+    }
+
     pub fn init(&self, fdt: &Fdt) -> KernelResult<()> {
         let chosen = fdt.chosen();
         if let Some(stdout) = chosen.stdout() {
@@ -67,6 +87,7 @@ impl Drivers {
         for node in fdt.all_nodes() {
             self.init_uart(&node)?;
             self.init_timer(fdt, &node)?;
+            self.init_ic(fdt, &node)?;
         }
 
         Ok(())
@@ -77,7 +98,13 @@ impl Drivers {
 pub static DRIVERS: Drivers = Drivers {
     uart: Mutex::new(None),
     timer: Mutex::new(None),
+    ic: Mutex::new(None),
 };
+
+/// Interrupt controller driver
+pub trait InterruptControllerDriver: Debug + Send {
+    fn enable(&mut self, interrupt: usize);
+}
 
 /// Driver for a CPU timer
 pub trait TimerDriver: Debug + Send {
