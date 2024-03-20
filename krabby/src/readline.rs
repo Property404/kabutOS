@@ -1,14 +1,15 @@
 //! GNU Readline-like functionality
-use crate::{
-    ansi_codes::{CLEAR_LINE, CLEAR_SCREEN},
-    print, println,
-    serial::Serial,
-    KernelResult,
-};
+use crate::{print, println, serial::Serial, KernelResult};
 use core::str;
 use embedded_line_edit::{LineEditBufferWithHistoryRing, LineEditState};
 use owo_colors::OwoColorize;
 
+// ANSI code to clear line
+const CLEAR_LINE: &str = "\x1b[2K";
+// ANSI code to clear screen
+const CLEAR_SCREEN: &str = "\x1b[H\x1b[2J\x1b[3J";
+
+// Input keys
 const DELETE: char = '\x7F';
 const BACKSPACE: char = '\x08';
 const ESCAPE: char = '\x1b';

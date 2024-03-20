@@ -6,7 +6,6 @@
 extern crate alloc;
 
 mod allocator;
-pub mod ansi_codes;
 mod asm;
 pub mod console;
 pub mod cpu;
