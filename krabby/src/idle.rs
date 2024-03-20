@@ -1,5 +1,4 @@
 use crate::frame;
-#[allow(unused_imports)]
 use riscv::{asm::wfi, register::sstatus};
 
 /// Switch to idle "process" and return its PC
@@ -18,6 +17,7 @@ pub fn chill() -> usize {
 
 #[no_mangle]
 extern "C" fn just_chill_out_brah() {
-    #[allow(clippy::empty_loop)]
-    loop {}
+    loop {
+        wfi();
+    }
 }
