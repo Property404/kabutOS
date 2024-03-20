@@ -55,6 +55,7 @@ extern "C" fn main() {
             test();
             sys::exit_ok().unwrap();
         }
+        println!("[gary: success]");
     }
 
     sys::power_off().unwrap();
