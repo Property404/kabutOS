@@ -73,7 +73,7 @@ impl Drivers {
 
         if let Some(_driver) = &mut *driver {
             println!("[IC driver loaded]");
-            _driver.enable(0xa);
+            _driver.enable(InterruptId::from(0xa));
         }
 
         KernelResult::Ok(())
@@ -104,7 +104,9 @@ pub static DRIVERS: Drivers = Drivers {
 
 /// Interrupt controller driver
 pub trait InterruptControllerDriver: Debug + Send {
-    fn enable(&mut self, interrupt: usize);
+    fn enable(&mut self, interrupt: InterruptId);
+    // Get this interrupt and claim it
+    fn next(&mut self) -> Option<InterruptId>;
 }
 
 /// Driver for a CPU timer

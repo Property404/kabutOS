@@ -4,6 +4,7 @@
 use crate::{
     drivers::InterruptControllerDriver,
     mmu::{map_device, PAGE_SIZE},
+    prelude::*,
     util::*,
     KernelError, KernelResult,
 };
@@ -32,8 +33,8 @@ enum Offset {
     Enable = 0x2080,
     // Sets threshold context 1
     Threshold = 0x20_1000,
-    // Returns next interrupt or completes handling
-    Claim = 0x20_0004,
+    // Returns next interrupt or completes handling for context 1
+    Claim = 0x20_1004,
 }
 
 unsafe impl Send for PlicDriver {}
@@ -80,22 +81,37 @@ impl PlicDriver {
 }
 
 impl InterruptControllerDriver for PlicDriver {
-    fn enable(&mut self, id: usize) {
+    fn enable(&mut self, id: InterruptId) {
         let threshold = 0;
         let priority = 1;
 
         unsafe {
-            let value = self.read(Offset::Enable as usize) | (1 << id);
+            let value = self.read(Offset::Enable as usize) | (1 << u32::from(id));
             self.write(Offset::Enable as usize, value);
         }
 
         unsafe {
-            self.write(Offset::Priority as usize + id * size_of::<u32>(), priority);
+            self.write(
+                Offset::Priority as usize + usize::from(id) * size_of::<u32>(),
+                priority,
+            );
         }
 
         // Set threshold
         unsafe {
             self.write(Offset::Threshold as usize, threshold);
         }
+    }
+
+    fn next(&mut self) -> Option<InterruptId> {
+        let claim = unsafe { self.read(Offset::Claim as usize) };
+
+        if claim == 0 {
+            return None;
+        }
+
+        unsafe { self.write(Offset::Claim as usize, claim) };
+
+        Some(claim.into())
     }
 }

@@ -31,7 +31,7 @@ pub mod util;
 pub mod test;
 
 pub mod prelude {
-    pub use super::cpu::{HartId, Register};
+    pub use super::cpu::{HartId, InterruptId, Register};
     pub use super::{print, println};
     pub use super::{KernelError, KernelResult};
     pub use krabby_abi::Pid;

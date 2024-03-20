@@ -1,6 +1,7 @@
 //! Rust IRQ and exception handlers
 use crate::{
-    frame::TrapFrame, mmu::PAGE_SIZE, prelude::*, scheduler, syscalls::syscall_handler, timer,
+    drivers::DRIVERS, frame::TrapFrame, mmu::PAGE_SIZE, prelude::*, scheduler,
+    syscalls::syscall_handler, timer,
 };
 use core::{ffi::c_void, ptr};
 use owo_colors::OwoColorize;
@@ -51,13 +52,25 @@ extern "C" fn exception_handler(
         },
         Trap::Interrupt(interrupt) => {
             match interrupt {
-                Interrupt::SupervisorSoft => unsafe {
+                Interrupt::SupervisorSoft => {
                     if timer::tick().is_err() {
                         println!("[kernel: timer tick failed]");
                     };
-                    register::sip::clear_ssoft();
+                    unsafe {
+                        register::sip::clear_ssoft();
+                    }
                     pc = scheduler::switch_processes(HartId::zero());
-                },
+                }
+                Interrupt::SupervisorExternal => {
+                    let stval = register::stval::read();
+                    println!("stval: {stval}");
+                    let mut driver = DRIVERS.ic.lock();
+                    if let Some(driver) = &mut *driver {
+                        let claim = driver.next().expect("Expected claim");
+                        println!("claim: {claim}");
+                    }
+                    todo!("handle this");
+                }
                 _ => {
                     panic!("Unhandled interrupt!");
                 }

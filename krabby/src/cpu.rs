@@ -24,6 +24,28 @@ impl HartId {
     }
 }
 
+impl Display for HartId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        write!(f, "{}", self.0)
+    }
+}
+
+/// Interrupt ID type
+#[derive(Copy, From, Into, Clone, PartialEq, Eq, Debug)]
+pub struct InterruptId(u32);
+
+impl Display for InterruptId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<InterruptId> for usize {
+    fn from(other: InterruptId) -> Self {
+        other.0.try_into().expect("Expect usize to hold u32")
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 /// A RISC-V register (RVE not supported)
 pub enum Register {
