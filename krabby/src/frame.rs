@@ -43,6 +43,7 @@ pub fn set_kernel_trap_frame(hart: HartId) {
 
 /// Set the current trap frame
 pub fn set_current_trap_frame(frame: *const TrapFrame) {
+    assert!(!frame.is_null());
     riscv::register::sscratch::write(frame as usize);
 }
 
