@@ -1,10 +1,18 @@
 //! KabutOS userspace test suite
 #![no_std]
 #![no_main]
-use core::sync::atomic::{AtomicU32, Ordering};
+use core::{
+    sync::atomic::{AtomicU32, Ordering},
+    time::Duration,
+};
 use kanto::{prelude::*, sys};
 
-const TESTS: &[fn()] = &[fork_and_wait, static_vars, allocate_multiple_pages];
+const TESTS: &[fn()] = &[
+    fork_and_wait,
+    static_vars,
+    allocate_multiple_pages,
+    sleep_a_bit,
+];
 
 fn fork_and_wait() {
     let pid = sys::fork().unwrap();
@@ -30,6 +38,11 @@ fn allocate_multiple_pages() {
         vec.push((i % 5).try_into().unwrap());
     }
     assert_eq!(vec.len(), PAGE_SIZE);
+}
+
+// Make sure timer works
+fn sleep_a_bit() {
+    sys::sleep(Duration::from_millis(10)).unwrap();
 }
 
 #[no_mangle]
