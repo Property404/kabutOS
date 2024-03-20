@@ -22,7 +22,7 @@ pub fn set_kernel_trap_frame(hart: HartId) {
     }
 
     let mut frame = mmu::zalloc::<TrapFrame>(TrapFrame {
-        regs: [Default::default(); 32],
+        regs: Default::default(),
         pid: None,
         root_page_table: ptr::null_mut(),
         satp: mmu::ks_satp().expect("Failed to get SATP").into(),
