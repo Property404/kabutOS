@@ -9,11 +9,7 @@ use crate::{
     KernelError, KernelResult,
 };
 use alloc::boxed::Box;
-use core::{
-    mem::size_of,
-    ptr::{read_volatile, write_volatile},
-    time::Duration,
-};
+use core::{mem::size_of, ptr::write_volatile, time::Duration};
 use fdt::{node::FdtNode, Fdt};
 
 const NANOS_PER_SECOND: u128 = 1_000_000_000;
@@ -76,11 +72,6 @@ impl ClintTimerDriver {
         let address = self.base_address.wrapping_byte_add(offset);
         unsafe { write_volatile(address, value) }
     }
-
-    unsafe fn read(&self, offset: usize) -> u64 {
-        let address = self.base_address.wrapping_byte_add(offset);
-        unsafe { read_volatile(address) }
-    }
 }
 
 impl TimerDriver for ClintTimerDriver {
@@ -89,11 +80,11 @@ impl TimerDriver for ClintTimerDriver {
         assert!(hart < CLINT_MAX_HARTS);
 
         let cycles = duration.as_nanos() * (self.freq as u128) / NANOS_PER_SECOND;
-        let time = unsafe { self.read(CLINT_MTIME_REG) };
-        let val = time + cycles as u64;
+        let val = cycles as u64;
         let offset = CLINT_MTIMECMP_REG + hart * size_of::<u64>();
 
         unsafe {
+            self.write(CLINT_MTIME_REG, 0);
             self.write(offset, val);
         }
     }

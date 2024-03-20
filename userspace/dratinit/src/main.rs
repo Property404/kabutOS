@@ -14,7 +14,7 @@ extern "C" fn main() {
 
     let mut pids = Vec::new();
 
-    for _ in 0..4 {
+    for _ in 0..3 {
         if let Some(pid) = sys::fork().unwrap() {
             pids.push(pid);
         } else {
