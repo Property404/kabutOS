@@ -154,7 +154,7 @@ impl Sv39VirtualAddress {
         aligned::<PAGE_SIZE>(usize::from(*self))
     }
 
-    fn offset(self, offset: isize) -> KernelResult<Self> {
+    pub fn offset(self, offset: isize) -> KernelResult<Self> {
         let val: usize = self.into();
         // Saturating is OK here, because `try_from` will error out if it's actually saturated
         Self::try_from(val.saturating_add_signed(offset))

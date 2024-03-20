@@ -91,6 +91,9 @@ impl Process {
             code.num_pages() * PAGE_SIZE,
         )?;
 
+        // Skip a page for the stack guard
+        breakline = breakline.offset(PAGE_SIZE as isize)?;
+
         // Map stack
         let stack = mmu::zalloc(Default::default());
         let stack_paddr = mmu::ks_vaddr_to_paddr(stack.as_const_ptr() as usize)?;
@@ -102,6 +105,9 @@ impl Process {
             STACK_PAGES_PER_PROCESS * PAGE_SIZE,
         )?;
         let stack_top = breakline;
+
+        // Skip a page for the heap guard
+        breakline = breakline.offset(PAGE_SIZE as isize)?;
 
         // This doesn't need to be mapped - it's only accessed by the kernel
         let mut frame: PageAllocation<TrapFrame> = mmu::zalloc(TrapFrame {

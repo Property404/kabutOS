@@ -54,8 +54,9 @@ fn objcopy(path: impl AsRef<Path>) -> Result<(usize, Vec<u8>)> {
     let mut bytes: Vec<u8> = Vec::new();
 
     const PROGBITS: u32 = 0x1;
+    const NOBITS: u32 = 0x8;
     for sh in elf.section_headers().clone() {
-        if sh.sh_type != PROGBITS {
+        if sh.sh_type != PROGBITS && sh.sh_type != NOBITS {
             continue;
         }
 
@@ -72,12 +73,9 @@ fn objcopy(path: impl AsRef<Path>) -> Result<(usize, Vec<u8>)> {
         let start = *(start.get_or_insert(sh.sh_addr));
 
         let addr = sh.sh_addr.checked_sub(start).unwrap().try_into()?;
-        let size = sh.sh_size;
+        let size = usize::try_from(sh.sh_size)?;
 
         let section = elf.section_data(&sh)?.0;
-        if section.len() != usize::try_from(size)? {
-            bail!("Invalid size");
-        }
 
         if bytes.len() < addr {
             bytes.extend(iter::repeat(0).take(addr - bytes.len()));
@@ -86,6 +84,9 @@ fn objcopy(path: impl AsRef<Path>) -> Result<(usize, Vec<u8>)> {
             panic!("Outside of section!");
         }
         bytes.extend(section);
+        if size > section.len() {
+            bytes.extend(iter::repeat(0).take(size - section.len()));
+        }
     }
 
     let start = start.unwrap();

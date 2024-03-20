@@ -5,7 +5,7 @@ ENTRY(start);
 SECTIONS {
     /* Include entry point at start of binary */
     .text : ALIGN(4K) {
-        *(.text);
+        *(.text*);
     }
     .data : ALIGN(4K) {
         *(.data*);
