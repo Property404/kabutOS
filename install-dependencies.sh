@@ -34,7 +34,7 @@ Help:
         sudo apt-get install -y ${packages}
     elif command -v brew > /dev/null; then
         # shellcheck disable=SC2086
-        brew install -y ${packages}
+        brew install ${packages}
     else
         echo "Unsupported OS" >&2
         return 1
