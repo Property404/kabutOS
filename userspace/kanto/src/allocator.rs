@@ -1,10 +1,10 @@
 use crate::sys;
 use core::alloc::Layout;
+use lock_api::RawMutex;
 use talc::*;
 
 #[global_allocator]
-static ALLOCATOR: Talck<spin::Mutex<()>, UserClaimer> =
-    Talc::new(UserClaimer(Span::empty())).lock();
+static ALLOCATOR: Talck<DummyMutex, UserClaimer> = Talc::new(UserClaimer(Span::empty())).lock();
 
 struct UserClaimer(Span);
 
@@ -31,5 +31,25 @@ impl OomHandler for UserClaimer {
         }
 
         Ok(())
+    }
+}
+
+struct DummyMutex;
+
+unsafe impl RawMutex for DummyMutex {
+    type GuardMarker = lock_api::GuardNoSend;
+
+    const INIT: Self = DummyMutex;
+
+    fn lock(&self) {}
+
+    fn try_lock(&self) -> bool {
+        true
+    }
+
+    unsafe fn unlock(&self) {}
+
+    fn is_locked(&self) -> bool {
+        false
     }
 }
