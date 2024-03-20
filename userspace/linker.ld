@@ -18,7 +18,7 @@ SECTIONS {
         *(.rodata*);
     }
     /* Nothing past this point needs to exist in the binary file */
-    .bss : ALIGN(4K) {
+    .bss (NOLOAD) : ALIGN(4K) {
         *(.bss*);
         PROVIDE(global_pointer = .);
     }
