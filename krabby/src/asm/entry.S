@@ -56,6 +56,13 @@ start:
 	la gp, global_pointer
 .option pop
 
+	/* Reset satp */
+	csrw satp, zero
+
+    // Set exception handler
+    la t0, asm_exception_handler
+    csrw mtvec, t0
+
     # Have all other harts wait on interrupt
     # (but interrupts are disabled so they'll wait forever)
     csrr a0, mhartid
@@ -64,9 +71,6 @@ nothart0:
     wfi
     j nothart0
 hart0:
-
-	/* Reset satp */
-	csrw satp, zero
 
 	/* Setup stack */
 	la sp, stack_top
@@ -78,13 +82,6 @@ bss_clear:
 	sd zero, (t5)
 	addi t5, t5, 8
 	bltu t5, t6, bss_clear
-
-	la t0, boot
-	csrw mepc, t0
-
-    // Set exception handler
-    la t0, asm_exception_handler
-    csrw mtvec, t0
 
 	/* Jump to kernel! */
 	tail boot
