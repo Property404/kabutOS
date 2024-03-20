@@ -3,6 +3,22 @@
 .set TF_KERNEL_FRAME_OFFSET, 32 * REG_SIZE
 .set REG_SIZE, 8 // in bytes
 
+// mstatus register
+.set MSTATUS_SIE, (1<<1)
+.set MSTATUS_MIE, (1<<3)
+.set MSTATUS_SPIE, (1<<5)
+.set MSTATUS_MPP_SV_MODE, (0x01<<11)
+
+// mie register
+.set MIE_SSOFT, (1<<1)
+.set MIE_MTIMER, (1<<7)
+.set MIE_MEXT, (1<<11)
+
+// mip register
+.set MIP_SSOFT, (1<<1)
+.set MIP_MTIMER, (1<<7)
+.set MIP_MEXT, (1<<11)
+
 .macro switch_to_kernel_stack frame
     ld \frame, (TF_KERNEL_FRAME_OFFSET)(\frame)
     // Frame is is now kernel frame

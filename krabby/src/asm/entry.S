@@ -117,7 +117,7 @@ enter_supervisor_mode:
 
     la sp, stack_top
 
-    li        t0, (1 << 11) | (1 << 5)
+    li      t0, MSTATUS_MPP_SV_MODE
     csrw    mstatus, t0
 
     // Handle all traps in supervisor mode
@@ -134,8 +134,8 @@ enter_supervisor_mode:
     li      t1, 0x2004000
     sd      t0, 0(t1)
 
-    // Enable interrupts
-    la      t0, 0x80
+    // Enable timer interrupts
+    la      t0, MIE_MTIMER
     csrs    mie, t0
 
     mret
@@ -148,13 +148,24 @@ enter_supervisor_mode:
     mtrap:
         csrrw t6, mscratch, t6
 
+        // Check if timer interrupt
+        csrr t6, mip
+        andi t6, t6, MIP_MTIMER
+        bne x0, t6, timer_interrupt
+        j timer_interrupt_fin
+        timer_interrupt:
+        // Clear mip
+        li t6, MIP_MTIMER
+        csrc mip, t6
+
         // Set SIP
-        li t6, 0x02
+        li t6, MIP_SSOFT
         csrs mip, t6
 
         // Reset timer
         li t6, 0x0200BFF8
         sd x0, 0(t6)
+        timer_interrupt_fin:
 
         csrrw t6, mscratch, t6
         mret
