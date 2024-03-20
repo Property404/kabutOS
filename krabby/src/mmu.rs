@@ -42,7 +42,7 @@ impl PageType {
     }
 
     const fn write(self) -> bool {
-        matches!(self, Self::UserReadWrite | Self::Kernel)
+        matches!(self, Self::UserExecute | Self::UserReadWrite | Self::Kernel)
     }
 
     const fn execute(self) -> bool {
