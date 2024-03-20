@@ -1,3 +1,4 @@
+//! KabutOS userspace test suite
 #![no_std]
 #![no_main]
 use core::sync::atomic::{AtomicU32, Ordering};

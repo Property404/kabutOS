@@ -5,8 +5,10 @@ RISC-V operating system
 ## Crates
 
 * krabby - The kernel
+* krabby-abi - ABI between userspace and kernel, and common types
 * userspace/kanto - Userland library
 * userspace/dratinit - The init program (process 1)
+* userspace/gary - Userspace test suite
 * embedded-line-edit - No-std line editing library
 * page-alloc - Page-grain allocation library
 
