@@ -33,6 +33,7 @@ Help:
         # shellcheck disable=SC2086
         sudo apt-get install -y ${packages}
     elif command -v brew > /dev/null; then
+        packages+=" coreutils "
         # shellcheck disable=SC2086
         brew install ${packages}
     else
