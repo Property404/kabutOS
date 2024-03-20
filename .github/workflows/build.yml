@@ -14,7 +14,8 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        # Switch back to Ubuntu when it comes out
+        os: [macos-14]
 
     steps:
       - uses: actions/checkout@v4
