@@ -41,11 +41,6 @@ pub static BIN: [u8; 0x{len:x}] = [
 
         let generated_file_path = format!("{USERSPACE_DIR}/{krate}.rs");
         fs::write(&generated_file_path, contents.as_bytes())?;
-
-        assert!(Command::new("rustfmt")
-            .arg(generated_file_path)
-            .status()?
-            .success());
     }
 
     Ok(())
