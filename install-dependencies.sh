@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Install dependencies needed for KabutOS development
+# shellcheck disable=SC2086
+set -e
 
 main() {
     local -r USAGE="Usage: $(basename "${0}")"
@@ -22,20 +24,21 @@ Help:
     done
 
 
-    local packages=" qemu-system-riscv64 "
-    # CI doesn't need quite as much
-    if [[ -z "${ci}" ]]; then
+    local packages=" git curl "
+
+    # Ubuntu
+    if command -v apt-get > /dev/null; then
+        packages+=" qemu-system-riscv64 "
         packages+=" binutils-riscv64-unknown-elf "
         packages+=" gdb-multiarch "
-        packages+=" git curl "
-    fi
-    if command -v apt-get > /dev/null; then
-        # shellcheck disable=SC2086
         sudo apt-get install -y ${packages}
+
+    # macOS
     elif command -v brew > /dev/null; then
-        packages+=" coreutils "
-        # shellcheck disable=SC2086
+        packages+=" coreutils qemu "
         brew install ${packages}
+
+    # And fuck everyone else
     else
         echo "Unsupported OS" >&2
         return 1
