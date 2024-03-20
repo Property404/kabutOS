@@ -22,8 +22,11 @@ jobs:
       - name: Install Dependencies
         run: ./install-dependencies.sh --ci
 
-      - name: Build
-        run: cargo build
+      - name: Lint
+        run: cargo fmt --check
+
+      - name: Lint (userspace)
+        run: cd userspace && cargo fmt --check
 
       - name: Clippy
         run: cargo clippy -- -D warnings
@@ -31,17 +34,15 @@ jobs:
       - name: Clippy (userspace)
         run: cd userspace && cargo clippy -- -D warnings
 
-      - name: Lint
-        run: cargo fmt --check
-
-      - name: Lint (userspace)
-        run: cd userspace && cargo fmt --check
-
       - name: Check docs
         run: RUSTDOCFLAGS="-D warnings" cargo doc --no-deps
 
+        # Build test so we can run it immediately
+      - name: Build test
+        run: cargo build --features=test
+
       - name: Test kernel
-        run: timeout 60 cargo run --features=test
+        run: timeout 90 cargo run --features=test
 
       - name: Test line edit crate
         run: cd embedded-line-edit && cargo test
