@@ -18,8 +18,13 @@ fn main() -> Result<()> {
     println!("cargo:rustc-link-arg={LINKER_SCRIPT}");
     println!("cargo:rerun-if-changed={LINKER_SCRIPT}");
 
+    #[cfg(feature = "test")]
+    let user_programs = ["dratinit", "gary"];
+    #[cfg(not(feature = "test"))]
+    let user_programs = ["dratinit"];
+
     // Build userspace
-    for krate in ["dratinit", "gary"] {
+    for krate in user_programs {
         let (entry, file) = objcopy(build_crate(krate)?)?;
         let len = file.len();
 
