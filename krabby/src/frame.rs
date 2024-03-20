@@ -26,10 +26,10 @@ pub fn set_kernel_trap_frame(hart: HartId) {
         pid: None,
         root_page_table: ptr::null_mut(),
         satp: mmu::ks_satp().expect("Failed to get SATP").into(),
-        kernel_frame: 0xDEADBEEF,
+        kernel_frame: ptr::null(),
     });
     // Self referential
-    frame.as_mut().kernel_frame = frame.addr();
+    frame.as_mut().kernel_frame = frame.as_const_ptr();
     // Set stack and global
     frame
         .as_mut()
@@ -49,7 +49,7 @@ pub fn set_current_trap_frame(frame: *const TrapFrame) {
 pub fn switch_to_kernel_frame() -> *const TrapFrame {
     // Switch to kernel frame
     let tframe = riscv::register::sscratch::read() as *const TrapFrame;
-    let tframe = unsafe { (*tframe).kernel_frame as *const TrapFrame };
+    let tframe = unsafe { (*tframe).kernel_frame };
     set_current_trap_frame(tframe);
 
     // Set page tables
@@ -65,8 +65,8 @@ pub fn switch_to_kernel_frame() -> *const TrapFrame {
 pub struct TrapFrame {
     /// General purpose registers
     pub regs: [usize; 32],
-    /// Kernel trap frame (None for kernels)
-    pub kernel_frame: usize,
+    /// Kernel trap frame
+    pub kernel_frame: *const TrapFrame,
     /// Process ID (0 if kernel)
     pub pid: Option<Pid>,
     /// Supervisor Address Translation/Protection register

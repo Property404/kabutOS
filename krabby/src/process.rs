@@ -107,7 +107,7 @@ impl Process {
             pid: Some(pid),
             root_page_table: root_page_table.as_mut_ptr(),
             satp: mmu::ks_vaddr_to_paddr(root_page_table.as_const_ptr() as usize)?.into(),
-            kernel_frame: 0xDEADBEEF,
+            kernel_frame: ptr::null(),
         });
         // Stack grows down, so set to top
         frame.as_mut().set_stack_pointer(stack_top.into());

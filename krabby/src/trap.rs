@@ -80,7 +80,7 @@ fn unhandled_exception(trap_frame: &TrapFrame) -> ! {
     let pc = register::sepc::read();
 
     println!("{}", "UNHANDLED EXCEPTION".red());
-    println!("Kernel frame: {:08x}", trap_frame.kernel_frame);
+    println!("Kernel frame: {:p}", trap_frame.kernel_frame);
     println!("satp: {:08x}", trap_frame.satp);
     println!("sepc: {pc:08x}");
 
