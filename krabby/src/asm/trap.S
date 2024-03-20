@@ -5,6 +5,9 @@
 .type asm_exception_handler, @function
 .global asm_exception_handler
 
+.type enter_user_mode, @function
+.global enter_user_mode
+
 asm_exception_handler:
     .cfi_startproc
     // Save off registers in current trap frame
@@ -26,6 +29,11 @@ asm_exception_handler:
     
     // Branch to Rust
     call exception_handler
+
+// This is really a separate function
+// But we put it together with `asm_exception_handler`
+// for optimization
+enter_user_mode:
 
     // Restore registers and return
     csrr t6, sscratch

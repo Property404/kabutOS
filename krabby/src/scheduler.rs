@@ -7,7 +7,7 @@ use crate::{
 };
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicUsize, Ordering};
-use riscv::register::sstatus;
+use riscv::register::{sepc, sstatus};
 use spin::Mutex;
 
 // Only supporting one hart currently
@@ -17,7 +17,7 @@ const MAX_HARTS: usize = 1;
 static PROCESSES: Mutex<Vec<Process>> = Mutex::new(Vec::new());
 
 extern "C" {
-    fn run_process(addr: usize);
+    fn enter_user_mode();
 }
 
 /// Add a process to the scheduler
@@ -32,7 +32,8 @@ pub fn start_with(process: Process) {
 
     unsafe {
         sstatus::set_spp(sstatus::SPP::User);
-        run_process(pc);
+        sepc::write(pc);
+        enter_user_mode();
     }
 }
 
