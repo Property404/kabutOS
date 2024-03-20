@@ -3,7 +3,7 @@
 use core::sync::atomic::{AtomicU32, Ordering};
 use kanto::{prelude::*, sys};
 
-const TESTS: [fn(); 2] = [fork_and_wait, static_vars];
+const TESTS: &[fn()] = &[fork_and_wait, static_vars, allocate_multiple_pages];
 
 fn fork_and_wait() {
     let pid = sys::fork().unwrap();
@@ -19,6 +19,16 @@ fn fork_and_wait() {
 fn static_vars() {
     static VAL: core::sync::atomic::AtomicU32 = AtomicU32::new(40);
     VAL.fetch_add(1, Ordering::Relaxed);
+}
+
+// This makes sure the global allocator can allocate more than a single page (4K)
+fn allocate_multiple_pages() {
+    const PAGE_SIZE: usize = 0x1000;
+    let mut vec = Vec::<u8>::new();
+    for i in 0..PAGE_SIZE {
+        vec.push((i % 5).try_into().unwrap());
+    }
+    assert_eq!(vec.len(), PAGE_SIZE);
 }
 
 #[no_mangle]

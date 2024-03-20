@@ -3,20 +3,33 @@ use core::alloc::Layout;
 use talc::*;
 
 #[global_allocator]
-static ALLOCATOR: Talck<spin::Mutex<()>, UserClaimer> = Talc::new(UserClaimer).lock();
+static ALLOCATOR: Talck<spin::Mutex<()>, UserClaimer> =
+    Talc::new(UserClaimer(Span::empty())).lock();
 
-struct UserClaimer;
+struct UserClaimer(Span);
+
+fn sbrk(size: usize) -> Result<usize, ()> {
+    sys::request_memory(size).map_err(|_| ())
+}
 
 impl OomHandler for UserClaimer {
     fn handle_oom(talc: &mut Talc<Self>, layout: Layout) -> Result<(), ()> {
-        let current_breakline = sys::request_memory(0).map_err(|_| ())?;
-        let new_breakline = sys::request_memory(layout.size()).map_err(|_| ())?;
-        assert!(new_breakline > current_breakline);
-        let size = new_breakline.checked_sub(current_breakline).unwrap();
+        let base = sbrk(0)?;
+        let new_breakline = sbrk(layout.size())?;
+        let growth = new_breakline.checked_sub(base).unwrap();
 
-        unsafe {
-            talc.claim(Span::from_base_size(current_breakline as *mut u8, size))
-                .map(|_| ())
+        let old_span = talc.oom_handler.0;
+
+        if old_span.is_empty() {
+            unsafe {
+                talc.oom_handler.0 = talc.claim(Span::from_base_size(base as *mut u8, growth))?;
+            }
+        } else {
+            unsafe {
+                talc.oom_handler.0 = talc.extend(old_span, old_span.extend(0, growth));
+            }
         }
+
+        Ok(())
     }
 }
