@@ -41,7 +41,7 @@ jobs:
         run: RUSTDOCFLAGS="-D warnings" cargo doc --no-deps
 
       - name: Test kernel
-        run: cargo run --features=test
+        run: timeout 60 cargo run --features=test
 
       - name: Test line edit crate
         run: cd embedded-line-edit && cargo test
