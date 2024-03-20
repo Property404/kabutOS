@@ -37,9 +37,6 @@ SECTIONS {
         PROVIDE(global_pointer = .);
         PROVIDE(bss_end = .);
     }
-    .heap (NOLOAD) : ALIGN(4K) {
-        *(.heap*);
-    }
     .table_heap (NOLOAD) : ALIGN(4K) {
         PROVIDE(table_heap_bottom = .);
         . += 256*1024;

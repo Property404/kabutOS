@@ -1,7 +1,6 @@
 use crate::mmu::PAGE_SIZE;
 use talc::*;
 
-#[link_section = ".heap"]
 static mut ARENA: [u8; PAGE_SIZE] = [0; PAGE_SIZE];
 
 #[global_allocator]
