@@ -6,7 +6,7 @@
 .global asm_exception_handler
 
 asm_exception_handler:
-	.cfi_startproc
+    .cfi_startproc
     // Save off registers in current trap frame
     csrrw t6, sscratch, t6
     save_x1_to_x30
@@ -17,7 +17,7 @@ asm_exception_handler:
     // Set global pointer
     .option push
     .option norelax
-	la gp, global_pointer
+    la gp, global_pointer
     .option pop
 
     // Use kernel stack
@@ -33,4 +33,4 @@ asm_exception_handler:
     load_reg 31 t6
 
     sret
-	.cfi_endproc
+    .cfi_endproc

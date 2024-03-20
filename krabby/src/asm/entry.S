@@ -19,7 +19,7 @@ preinit:
 .global start
 .global enter_supervisor_mode
 start:
-	.cfi_startproc
+    .cfi_startproc
 
 
 .option push
@@ -53,11 +53,11 @@ start:
         addi t0, t0, 8
         bne t0, t1, fixup_got
 
-	la gp, global_pointer
+    la gp, global_pointer
 .option pop
 
-	/* Reset satp */
-	csrw satp, zero
+    /* Reset satp */
+    csrw satp, zero
 
     // Set exception handler
     la t0, asm_exception_handler
@@ -72,26 +72,26 @@ nothart0:
     j nothart0
 hart0:
 
-	/* Setup stack */
-	la sp, stack_top
+    /* Setup stack */
+    la sp, stack_top
 
-	/* Clear the BSS section */
-	la t5, bss_start
-	la t6, bss_end
+    /* Clear the BSS section */
+    la t5, bss_start
+    la t6, bss_end
 bss_clear:
-	sd zero, (t5)
-	addi t5, t5, 8
-	bltu t5, t6, bss_clear
+    sd zero, (t5)
+    addi t5, t5, 8
+    bltu t5, t6, bss_clear
 
-	/* Jump to kernel! */
-	tail boot
+    /* Jump to kernel! */
+    tail boot
 
-	.cfi_endproc
+    .cfi_endproc
 
 // Switch from machine mode to supervisor mode
 .option norvc
 enter_supervisor_mode:
-	.cfi_startproc
+    .cfi_startproc
 
     # Machine trap used to forward interrupts to supervisor
     # Needs to happen before fixing up GOT because we use the physical address
@@ -112,13 +112,13 @@ enter_supervisor_mode:
 
 .option push
 .option norelax
-	la gp, global_pointer
+    la gp, global_pointer
 .option pop
 
-	la sp, stack_top
+    la sp, stack_top
 
-    li		t0, (1 << 11) | (1 << 5)
-	csrw	mstatus, t0
+    li        t0, (1 << 11) | (1 << 5)
+    csrw    mstatus, t0
 
     # Handle all traps in supervisor mode
     li t0, 0xFFFFFFFF
@@ -159,6 +159,6 @@ enter_supervisor_mode:
         csrrw t6, mscratch, t6
         mret
 
-	.cfi_endproc
+    .cfi_endproc
 
 .end

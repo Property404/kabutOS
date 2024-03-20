@@ -5,7 +5,7 @@
 .global run_process
 
 run_process:
-	.cfi_startproc
+    .cfi_startproc
     // Set user context
     csrw sepc, a0
 
@@ -17,4 +17,4 @@ run_process:
     // Branch to user mode
     sret
 
-	.cfi_endproc
+    .cfi_endproc
