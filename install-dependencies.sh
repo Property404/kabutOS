@@ -21,11 +21,6 @@ Help:
         esac
     done
 
-    if ! command -v apt-get > /dev/null; then
-        echo "This command expects Debian or Ubuntu" >&2
-        return 1
-    fi
-
 
     local packages=" qemu-system-riscv64 "
     # CI doesn't need quite as much
@@ -34,8 +29,16 @@ Help:
         packages+=" gdb-multiarch "
         packages+=" git curl "
     fi
-    # shellcheck disable=SC2086
-    sudo apt-get install -y ${packages}
+    if command -v apt-get > /dev/null; then
+        # shellcheck disable=SC2086
+        sudo apt-get install -y ${packages}
+    elif command -v brew > /dev/null; then
+        # shellcheck disable=SC2086
+        brew install -y ${packages}
+    else
+        echo "Unsupported OS" >&2
+        return 1
+    fi
 
 
     # Install RustUp if needed
