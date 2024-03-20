@@ -36,4 +36,5 @@ pub fn quit_qemu() -> KernelResult<()> {
     let addr = mmu::map_device(TEST_ADDRESS, 0x1000)?;
     let handle = qemu_exit::RISCV64::new(addr as u64);
     handle.exit_success();
+    unreachable!("Failed to quit QEMU");
 }
