@@ -31,26 +31,26 @@ SECTIONS {
         *(.rodata*);
     }
     /* Nothing past this point needs to exist in the binary file */
-    .bss : ALIGN(4K) {
+    .bss (NOLOAD) : ALIGN(4K) {
         PROVIDE(bss_start = .);
         *(.bss*);
         PROVIDE(global_pointer = .);
         PROVIDE(bss_end = .);
     }
-    .heap : ALIGN(4K) {
+    .heap (NOLOAD) : ALIGN(4K) {
         *(.heap*);
     }
-    .table_heap : ALIGN(4K) {
+    .table_heap (NOLOAD) : ALIGN(4K) {
         PROVIDE(table_heap_bottom = .);
         . += 256*1024;
         PROVIDE(table_heap_top = .);
     }
     /* Stack guard should be unmapped in virtual memory */
-    .stack_guard : ALIGN(4K) {
+    .stack_guard (NOLOAD) : ALIGN(4K) {
         PROVIDE(stack_guard = .);
         . += 4096;
     }
-    .stack : ALIGN(4K) {
+    .stack (NOLOAD) : ALIGN(4K) {
         PROVIDE(stack_bottom = .);
         . += 128*1024;
         PROVIDE(stack_top = .);
