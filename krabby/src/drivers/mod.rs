@@ -73,6 +73,7 @@ impl Drivers {
 
         if let Some(_driver) = &mut *driver {
             println!("[IC driver loaded]");
+            _driver.enable(0xa);
         }
 
         KernelResult::Ok(())

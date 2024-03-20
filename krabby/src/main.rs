@@ -72,6 +72,7 @@ unsafe fn kmain() {
         // Timer interrupts are triggered using ssoft instead of stimer because we can clear ssoft
         // from supervisor mode
         riscv::register::sie::set_ssoft();
+        riscv::register::sie::set_sext();
     }
 
     // Initialize timer

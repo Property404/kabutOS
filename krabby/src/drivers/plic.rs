@@ -16,7 +16,8 @@ use fdt::{node::FdtNode, Fdt};
 
 /// PLIC IC driver
 ///
-/// https://osblog.stephenmarz.com/ch5.html
+/// <https://osblog.stephenmarz.com/ch5.html>
+/// <https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic-1.0.0.pdf>
 #[derive(Debug)]
 pub struct PlicDriver {
     base_address: *mut u32,
@@ -27,10 +28,10 @@ enum Offset {
     Priority = 0x0000,
     // List of pending ints
     Pending = 0x1000,
-    // Enable or disable int
-    Enable = 0x2000,
-    // Sets threshold
-    Threshold = 0x20_0000,
+    // Enable or disable int, context 1
+    Enable = 0x2080,
+    // Sets threshold context 1
+    Threshold = 0x20_1000,
     // Returns next interrupt or completes handling
     Claim = 0x20_0004,
 }
