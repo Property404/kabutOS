@@ -104,7 +104,7 @@ fn build_crate(krate: impl AsRef<str>) -> Result<PathBuf> {
 
         // Build
         let status = Command::new("cargo")
-            .args(["build", "--profile", &profile_arg])
+            .args(["build", "--profile", profile_arg])
             .status()?;
         if !status.success() {
             bail!("`cargo build` did not exit successfully");

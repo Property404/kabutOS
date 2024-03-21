@@ -132,6 +132,12 @@ impl Sv39PageTable {
     }
 }
 
+impl Default for Sv39PageTable {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Drop for Sv39PageTable {
     fn drop(&mut self) {
         let pmo = *(PHYSICAL_MEMORY_OFFSET.read());

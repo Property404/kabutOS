@@ -1,7 +1,6 @@
 use core::{
     arch::asm,
     fmt::{self, Display},
-    result::Result,
 };
 use derive_more::{From, Into};
 

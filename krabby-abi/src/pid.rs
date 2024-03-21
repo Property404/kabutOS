@@ -2,7 +2,6 @@ use crate::KrabbyAbiError;
 use core::{
     fmt::{self, Display},
     num::NonZeroU16,
-    result::Result,
     sync::atomic::{AtomicU16, Ordering},
 };
 

@@ -6,7 +6,6 @@ use crate::{
     mmu::{map_device, PAGE_SIZE},
     prelude::*,
     util::*,
-    KernelError, KernelResult,
 };
 use alloc::boxed::Box;
 use core::{mem::size_of, ptr::write_volatile, time::Duration};

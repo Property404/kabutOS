@@ -1,9 +1,8 @@
 //! Drivers and driver accessories
-use crate::{prelude::*, KernelResult};
+use crate::prelude::*;
 use alloc::boxed::Box;
 use core::{
     fmt::{self, Debug, Write},
-    result::Result,
     time::Duration,
 };
 use fdt::{node::FdtNode, Fdt};

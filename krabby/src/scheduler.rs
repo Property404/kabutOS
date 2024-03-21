@@ -3,7 +3,6 @@ use crate::{
     prelude::*,
     process::{BlockCondition, Process, ProcessState},
     timer::Instant,
-    KernelError, KernelResult,
 };
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicUsize, Ordering};

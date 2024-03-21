@@ -6,7 +6,6 @@ use crate::{
     scheduler,
     timer::Instant,
     util::*,
-    KernelError, KernelResult,
 };
 use core::{cmp, time::Duration};
 use krabby_abi::{ProcessError, Syscall};

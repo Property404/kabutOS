@@ -3,7 +3,6 @@ use crate::prelude::*;
 use core::{
     fmt::Error as FmtError,
     num::{ParseIntError, TryFromIntError},
-    result::Result,
     str::Utf8Error,
 };
 use derive_more::{Display, From};

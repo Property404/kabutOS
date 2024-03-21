@@ -1,7 +1,4 @@
-use core::{
-    fmt::{self, Display},
-    result::Result,
-};
+use core::fmt::{self, Display};
 
 /// Krabby-abi error type
 #[derive(Debug)]

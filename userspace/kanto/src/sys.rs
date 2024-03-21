@@ -1,5 +1,4 @@
 //! KabutOS syscalls
-use core::result::Result;
 use core::time::Duration;
 use krabby_abi::{KrabbyAbiError, Pid, ProcessResult, Syscall};
 
