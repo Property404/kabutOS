@@ -52,10 +52,7 @@ impl Drivers {
             return Ok(());
         }
         for loader in LOADERS {
-            let info = LoadInfo {
-                fdt: *fdt,
-                node,
-            };
+            let info = LoadInfo { fdt: *fdt, node };
             if let Some(dev) = loader.maybe_load(&info)? {
                 self.load(dev);
                 assert!(picked.insert(node.name));
