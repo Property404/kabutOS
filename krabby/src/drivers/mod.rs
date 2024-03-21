@@ -1,6 +1,6 @@
 //! Drivers and driver accessories
 use crate::prelude::*;
-use alloc::boxed::Box;
+use alloc::{boxed::Box, collections::BTreeSet};
 use core::{
     fmt::{self, Debug, Write},
     time::Duration,
@@ -10,10 +10,11 @@ use spin::Mutex;
 pub mod clint_timer;
 pub mod ns16550;
 pub mod plic;
-pub mod sifive_uart;
 use utf8_parser::Utf8Parser;
 
 type DriverBox<T> = Mutex<Option<Box<T>>>;
+
+static LOADERS: &[DriverLoader] = &[ns16550::LOADER, clint_timer::LOADER, plic::LOADER];
 
 /// Collection of initialized drivers
 #[derive(Debug)]
@@ -27,67 +28,53 @@ pub struct Drivers {
 }
 
 impl Drivers {
-    fn init_uart(&self, node: &FdtNode) -> KernelResult<()> {
-        let mut uart = self.uart.lock();
+    fn load(&self, res: LoadResult) {
+        match res {
+            LoadResult::Uart(dev) => {
+                (*self.uart.lock()).get_or_insert(dev);
+            }
+            LoadResult::Timer(dev) => {
+                (*self.timer.lock()).get_or_insert(dev);
+            }
+            LoadResult::InterruptController(dev) => {
+                (*self.ic.lock()).get_or_insert(dev);
+            }
+        }
+    }
 
-        // Don't reinit
-        if uart.is_some() {
+    fn init_node(
+        &self,
+        picked: &mut BTreeSet<&'static str>,
+        fdt: &'static Fdt<'static>,
+        node: FdtNode<'static, 'static>,
+    ) -> KernelResult<()> {
+        if picked.contains(node.name) {
             return Ok(());
         }
-
-        *uart = ns16550::Ns16550Driver::maybe_from_node(node)
-            .transpose()
-            .or_else(|| sifive_uart::SifiveUartDriver::maybe_from_node(node).transpose())
-            .transpose()?;
-
+        for loader in LOADERS {
+            let info = LoadInfo {
+                fdt: *fdt,
+                node,
+            };
+            if let Some(dev) = loader.maybe_load(&info)? {
+                self.load(dev);
+                assert!(picked.insert(node.name));
+            }
+        }
         Ok(())
     }
 
-    fn init_timer(&self, tree: &Fdt, node: &FdtNode) -> KernelResult<()> {
-        let mut timer = self.timer.lock();
-
-        // Don't reinit
-        if timer.is_some() {
-            return Ok(());
-        }
-
-        *timer = clint_timer::ClintTimerDriver::maybe_from_node(tree, node)?;
-
-        if let Some(_timer) = &mut *timer {
-            println!("[Timer driver loaded]");
-        }
-
-        KernelResult::Ok(())
-    }
-
-    fn init_ic(&self, tree: &Fdt, node: &FdtNode) -> KernelResult<()> {
-        let mut driver = self.ic.lock();
-
-        // Don't reinit
-        if driver.is_some() {
-            return Ok(());
-        }
-
-        *driver = plic::PlicDriver::maybe_from_node(tree, node)?;
-
-        if let Some(_driver) = &mut *driver {
-            println!("[IC driver loaded]");
-            _driver.enable(InterruptId::from(0xa));
-        }
-
-        KernelResult::Ok(())
-    }
-
-    pub fn init(&self, fdt: &Fdt) -> KernelResult<()> {
+    pub fn init(&self, fdt: &'static Fdt<'static>) -> KernelResult<()> {
+        let mut picked = BTreeSet::new();
         let chosen = fdt.chosen();
+
         if let Some(stdout) = chosen.stdout() {
-            self.init_uart(&stdout.node())?;
+            let node = stdout.node();
+            self.init_node(&mut picked, fdt, node)?;
         }
 
         for node in fdt.all_nodes() {
-            self.init_uart(&node)?;
-            self.init_timer(fdt, &node)?;
-            self.init_ic(fdt, &node)?;
+            self.init_node(&mut picked, fdt, node)?;
         }
 
         Ok(())
@@ -146,5 +133,35 @@ impl Write for dyn UartDriver {
     fn write_str(&mut self, s: &str) -> Result<(), fmt::Error> {
         self.send_str(s);
         Ok(())
+    }
+}
+
+struct LoadInfo {
+    fdt: Fdt<'static>,
+    node: FdtNode<'static, 'static>,
+}
+
+enum LoadResult {
+    Uart(Box<dyn UartDriver>),
+    InterruptController(Box<dyn InterruptControllerDriver>),
+    Timer(Box<dyn TimerDriver>),
+}
+
+#[derive(Copy, Clone)]
+struct DriverLoader {
+    compatible: &'static str,
+    /// Perform some arbitrary action with this node
+    load: fn(info: &LoadInfo) -> KernelResult<LoadResult>,
+}
+
+impl DriverLoader {
+    fn maybe_load(&self, info: &LoadInfo) -> KernelResult<Option<LoadResult>> {
+        let Some(compatible) = info.node.compatible() else {
+            return Ok(None);
+        };
+        if !compatible.all().any(|v| v == self.compatible) {
+            return Ok(None);
+        }
+        (self.load)(info).map(Some)
     }
 }

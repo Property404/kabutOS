@@ -1,12 +1,11 @@
 //! Ns16550 Driver
 use crate::{
-    drivers::UartDriver,
+    drivers::{DriverLoader, LoadInfo, LoadResult, UartDriver},
     mmu::{map_device, PAGE_SIZE},
     KernelError, KernelResult,
 };
 use alloc::boxed::Box;
 use core::ptr::{read_volatile, write_volatile};
-use fdt::node::FdtNode;
 
 #[derive(Copy, Clone)]
 enum RegisterOffsets {
@@ -28,26 +27,6 @@ pub struct Ns16550Driver {
 unsafe impl Send for Ns16550Driver {}
 
 impl Ns16550Driver {
-    const COMPATIBLE_STRING: &'static str = "ns16550a";
-
-    /// Initialize the driver
-    pub fn maybe_from_node(node: &FdtNode) -> KernelResult<Option<Box<dyn UartDriver>>> {
-        let Some(compatible) = node.compatible() else {
-            return Ok(None);
-        };
-        if compatible.first() != Self::COMPATIBLE_STRING {
-            return Ok(None);
-        }
-
-        let reg = node
-            .reg()
-            .and_then(|mut v| v.next())
-            .ok_or(KernelError::MissingProperty("reg"))?;
-        let base_address = map_device(reg.starting_address as usize, PAGE_SIZE)?;
-
-        Ok(Some(Box::new(Self::new(base_address as *mut u8))))
-    }
-
     /// Initialize the driver
     pub fn new(base_address: *mut u8) -> Self {
         let mut driver = Self { base_address };
@@ -86,3 +65,21 @@ impl UartDriver for Ns16550Driver {
         }
     }
 }
+
+fn load(info: &LoadInfo) -> KernelResult<LoadResult> {
+    let reg = info
+        .node
+        .reg()
+        .and_then(|mut v| v.next())
+        .ok_or(KernelError::MissingProperty("reg"))?;
+    let base_address = map_device(reg.starting_address as usize, PAGE_SIZE)?;
+
+    Ok(LoadResult::Uart(Box::new(Ns16550Driver::new(
+        base_address as *mut u8,
+    ))))
+}
+
+pub(super) static LOADER: DriverLoader = DriverLoader {
+    compatible: "ns16550a",
+    load,
+};
