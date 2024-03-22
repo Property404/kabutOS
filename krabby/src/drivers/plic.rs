@@ -1,4 +1,7 @@
 //! PLIC interrupt controller driver
+//!
+//! <https://osblog.stephenmarz.com/ch5.html>
+//! <https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic-1.0.0.pdf>
 // WIP
 #![allow(dead_code)]
 use crate::{
@@ -13,12 +16,8 @@ use core::{
     ptr::{read_volatile, write_volatile},
 };
 
-/// PLIC IC driver
-///
-/// <https://osblog.stephenmarz.com/ch5.html>
-/// <https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic-1.0.0.pdf>
 #[derive(Debug)]
-pub struct PlicDriver {
+struct Driver {
     phandle: u32,
     base_address: *mut u32,
 }
@@ -36,9 +35,9 @@ enum Offset {
     Claim = 0x20_1004,
 }
 
-unsafe impl Send for PlicDriver {}
+unsafe impl Send for Driver {}
 
-impl PlicDriver {
+impl Driver {
     unsafe fn write(&self, offset: usize, value: u32) {
         let address = self.base_address.wrapping_byte_add(offset);
         unsafe { write_volatile(address, value) }
@@ -50,7 +49,7 @@ impl PlicDriver {
     }
 }
 
-impl InterruptControllerDriver for PlicDriver {
+impl InterruptControllerDriver for Driver {
     fn phandle(&self) -> u32 {
         self.phandle
     }
@@ -109,7 +108,7 @@ fn load(info: &LoadContext) -> KernelResult<LoadResult> {
     let size = align_up::<PAGE_SIZE>(reg.size.unwrap_or(PAGE_SIZE));
     let base_address = map_device(base_address, size)?;
 
-    let device = PlicDriver {
+    let device = Driver {
         phandle,
         base_address: base_address as *mut u32,
     };

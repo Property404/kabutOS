@@ -1,5 +1,8 @@
 //! CLINT timer driver
 //!
+//! <https://chromitem-soc.readthedocs.io/en/latest/clint.html>
+//! <https://osblog.stephenmarz.com/ch4.html>
+//!
 //! This should reliably be on any system that supports Linux because Linux requires CLINT
 use crate::{
     drivers::{DriverLoader, LoadContext, LoadResult, TimerDriver},
@@ -16,27 +19,23 @@ const CLINT_MAX_HARTS: usize = 4094;
 const CLINT_MTIMECMP_REG: usize = 0x4000;
 const CLINT_MTIME_REG: usize = 0xbff8;
 
-/// CLINT timer driver
-///
-/// <https://chromitem-soc.readthedocs.io/en/latest/clint.html>
-/// <https://osblog.stephenmarz.com/ch4.html>
 #[derive(Debug)]
-pub struct ClintTimerDriver {
+struct Driver {
     freq: usize,
     // mtime and mtimecmp havew 64-bit precision regardless of architecture
     base_address: *mut u64,
 }
 
-unsafe impl Send for ClintTimerDriver {}
+unsafe impl Send for Driver {}
 
-impl ClintTimerDriver {
+impl Driver {
     unsafe fn write(&self, offset: usize, value: u64) {
         let address = self.base_address.wrapping_byte_add(offset);
         unsafe { write_volatile(address, value) }
     }
 }
 
-impl TimerDriver for ClintTimerDriver {
+impl TimerDriver for Driver {
     fn set_alarm(&mut self, hart: HartId, duration: Duration) {
         let hart = usize::from(hart);
         assert!(hart < CLINT_MAX_HARTS);
@@ -71,7 +70,7 @@ fn load(info: &LoadContext) -> KernelResult<LoadResult> {
         .as_usize()
         .ok_or(KernelError::Generic("Invalid timebase frequency"))?;
 
-    let device = ClintTimerDriver {
+    let device = Driver {
         freq,
         base_address: base_address as *mut u64,
     };
