@@ -2,7 +2,7 @@
 // WIP
 #![allow(dead_code)]
 use crate::{
-    drivers::{DriverLoader, InterruptControllerDriver, LoadInfo, LoadResult},
+    drivers::{DriverLoader, InterruptControllerDriver, LoadContext, LoadResult},
     mmu::{map_device, PAGE_SIZE},
     prelude::*,
     util::*,
@@ -19,6 +19,7 @@ use core::{
 /// <https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic-1.0.0.pdf>
 #[derive(Debug)]
 pub struct PlicDriver {
+    phandle: u32,
     base_address: *mut u32,
 }
 
@@ -50,6 +51,10 @@ impl PlicDriver {
 }
 
 impl InterruptControllerDriver for PlicDriver {
+    fn phandle(&self) -> u32 {
+        self.phandle
+    }
+
     fn enable(&mut self, id: InterruptId) {
         let threshold = 0;
         let priority = 1;
@@ -85,7 +90,16 @@ impl InterruptControllerDriver for PlicDriver {
     }
 }
 
-fn load(info: &LoadInfo) -> KernelResult<LoadResult> {
+fn load(info: &LoadContext) -> KernelResult<LoadResult> {
+    let phandle: u32 = info
+        .node
+        .property("phandle")
+        .ok_or(KernelError::MissingProperty("phandle"))?
+        .as_usize()
+        .ok_or(KernelError::Generic("Invalid phandle"))?
+        .try_into()
+        .expect("Expect usize to hold u32");
+
     let reg = info
         .node
         .reg()
@@ -96,6 +110,7 @@ fn load(info: &LoadInfo) -> KernelResult<LoadResult> {
     let base_address = map_device(base_address, size)?;
 
     let device = PlicDriver {
+        phandle,
         base_address: base_address as *mut u32,
     };
 

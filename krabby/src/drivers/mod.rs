@@ -1,6 +1,6 @@
 //! Drivers and driver accessories
 use crate::prelude::*;
-use alloc::{boxed::Box, collections::BTreeSet};
+use alloc::{boxed::Box, collections::BTreeSet, vec::Vec};
 use core::{
     fmt::{self, Debug, Write},
     time::Duration,
@@ -44,6 +44,7 @@ impl Drivers {
 
     fn init_node(
         &self,
+        interrupt_registrations: &mut Vec<(u32, InterruptId)>,
         picked: &mut BTreeSet<&'static str>,
         fdt: &'static Fdt<'static>,
         node: FdtNode<'static, 'static>,
@@ -52,8 +53,12 @@ impl Drivers {
             return Ok(());
         }
         for loader in LOADERS {
-            let info = LoadInfo { fdt: *fdt, node };
-            if let Some(dev) = loader.maybe_load(&info)? {
+            let mut info = LoadContext {
+                interrupt_registrations,
+                fdt: *fdt,
+                node,
+            };
+            if let Some(dev) = loader.maybe_load(&mut info)? {
                 self.load(dev);
                 assert!(picked.insert(node.name));
             }
@@ -63,15 +68,25 @@ impl Drivers {
 
     pub fn init(&self, fdt: &'static Fdt<'static>) -> KernelResult<()> {
         let mut picked = BTreeSet::new();
+        let mut interrupt_registrations = Vec::new();
         let chosen = fdt.chosen();
 
         if let Some(stdout) = chosen.stdout() {
             let node = stdout.node();
-            self.init_node(&mut picked, fdt, node)?;
+            self.init_node(&mut interrupt_registrations, &mut picked, fdt, node)?;
         }
 
         for node in fdt.all_nodes() {
-            self.init_node(&mut picked, fdt, node)?;
+            self.init_node(&mut interrupt_registrations, &mut picked, fdt, node)?;
+        }
+
+        // Register interrupts
+        if let Some(ic) = &mut *self.ic.lock() {
+            for (phandle, id) in interrupt_registrations {
+                if ic.phandle() == phandle {
+                    ic.enable(id);
+                }
+            }
         }
 
         Ok(())
@@ -87,6 +102,7 @@ pub static DRIVERS: Drivers = Drivers {
 
 /// Interrupt controller driver
 pub trait InterruptControllerDriver: Debug + Send {
+    fn phandle(&self) -> u32;
     fn enable(&mut self, interrupt: InterruptId);
     // Get this interrupt and claim it
     fn next(&mut self) -> Option<InterruptId>;
@@ -133,9 +149,16 @@ impl Write for dyn UartDriver {
     }
 }
 
-struct LoadInfo {
+struct LoadContext<'a> {
+    interrupt_registrations: &'a mut Vec<(u32, InterruptId)>,
     fdt: Fdt<'static>,
     node: FdtNode<'static, 'static>,
+}
+
+impl<'a> LoadContext<'a> {
+    fn register_interrupt(&mut self, phandle: u32, id: InterruptId) {
+        self.interrupt_registrations.push((phandle, id));
+    }
 }
 
 enum LoadResult {
@@ -148,17 +171,30 @@ enum LoadResult {
 struct DriverLoader {
     compatible: &'static str,
     /// Perform some arbitrary action with this node
-    load: fn(info: &LoadInfo) -> KernelResult<LoadResult>,
+    load: fn(info: &LoadContext) -> KernelResult<LoadResult>,
 }
 
 impl DriverLoader {
-    fn maybe_load(&self, info: &LoadInfo) -> KernelResult<Option<LoadResult>> {
+    fn maybe_load(&self, info: &mut LoadContext) -> KernelResult<Option<LoadResult>> {
         let Some(compatible) = info.node.compatible() else {
             return Ok(None);
         };
         if !compatible.all().any(|v| v == self.compatible) {
             return Ok(None);
         }
+
+        // If this has interrupts, register them
+        if let Some(interrupt_parent) = info.node.property("interrupt-parent") {
+            let interrupt_parent: u32 = interrupt_parent
+                .as_usize()
+                .ok_or(KernelError::Generic("Invalid phandle"))?
+                .try_into()
+                .expect("usize to hold u32");
+            for interrupt in info.node.interrupts().into_iter().flatten() {
+                info.register_interrupt(interrupt_parent, InterruptId::try_from(interrupt)?);
+            }
+        }
+
         (self.load)(info).map(Some)
     }
 }

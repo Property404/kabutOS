@@ -1,6 +1,6 @@
 //! Ns16550 Driver
 use crate::{
-    drivers::{DriverLoader, LoadInfo, LoadResult, UartDriver},
+    drivers::{DriverLoader, LoadContext, LoadResult, UartDriver},
     mmu::{map_device, PAGE_SIZE},
     KernelError, KernelResult,
 };
@@ -66,7 +66,7 @@ impl UartDriver for Ns16550Driver {
     }
 }
 
-fn load(info: &LoadInfo) -> KernelResult<LoadResult> {
+fn load(info: &LoadContext) -> KernelResult<LoadResult> {
     let reg = info
         .node
         .reg()

@@ -2,7 +2,7 @@
 //!
 //! This should reliably be on any system that supports Linux because Linux requires CLINT
 use crate::{
-    drivers::{DriverLoader, LoadInfo, LoadResult, TimerDriver},
+    drivers::{DriverLoader, LoadContext, LoadResult, TimerDriver},
     mmu::{map_device, PAGE_SIZE},
     prelude::*,
     util::*,
@@ -52,7 +52,7 @@ impl TimerDriver for ClintTimerDriver {
     }
 }
 
-fn load(info: &LoadInfo) -> KernelResult<LoadResult> {
+fn load(info: &LoadContext) -> KernelResult<LoadResult> {
     let reg = info
         .node
         .reg()

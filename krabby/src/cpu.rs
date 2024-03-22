@@ -1,3 +1,4 @@
+use crate::prelude::*;
 use core::{
     arch::asm,
     fmt::{self, Display},
@@ -42,6 +43,13 @@ impl Display for InterruptId {
 impl From<InterruptId> for usize {
     fn from(other: InterruptId) -> Self {
         other.0.try_into().expect("Expect usize to hold u32")
+    }
+}
+
+impl TryFrom<usize> for InterruptId {
+    type Error = KernelError;
+    fn try_from(other: usize) -> KernelResult<Self> {
+        Ok(Self(u32::try_from(other)?))
     }
 }
 
