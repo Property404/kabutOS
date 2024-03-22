@@ -39,7 +39,7 @@ SECTIONS {
     }
     .table_heap (NOLOAD) : ALIGN(4K) {
         PROVIDE(table_heap_bottom = .);
-        . += 256*1024;
+        . += 512*1024;
         PROVIDE(table_heap_top = .);
     }
     /* Stack guard should be unmapped in virtual memory */
