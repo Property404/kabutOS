@@ -32,6 +32,9 @@ pub enum KernelError {
     /// Invalid PID
     #[display("Invalid PID: {}", _0)]
     InvalidPid(usize),
+    /// Invalid Interrupt ID
+    #[display("Invalid interruptId: {}", _0)]
+    InvalidIntId(usize),
     /// Attempted to dereference null pointer
     #[display("Attempted to dereference null pointer")]
     NullPointer,

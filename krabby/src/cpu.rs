@@ -2,6 +2,7 @@ use crate::prelude::*;
 use core::{
     arch::asm,
     fmt::{self, Display},
+    num::NonZeroU32,
 };
 use derive_more::{From, Into};
 
@@ -32,7 +33,7 @@ impl Display for HartId {
 
 /// Interrupt ID type
 #[derive(Copy, From, Into, Clone, PartialEq, Eq, Debug)]
-pub struct InterruptId(u32);
+pub struct InterruptId(NonZeroU32);
 
 impl Display for InterruptId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
@@ -40,16 +41,33 @@ impl Display for InterruptId {
     }
 }
 
+impl From<InterruptId> for u32 {
+    fn from(other: InterruptId) -> Self {
+        other.0.get()
+    }
+}
+
 impl From<InterruptId> for usize {
     fn from(other: InterruptId) -> Self {
-        other.0.try_into().expect("Expect usize to hold u32")
+        u32::from(other)
+            .try_into()
+            .expect("Expect usize to hold u32")
+    }
+}
+
+impl TryFrom<u32> for InterruptId {
+    type Error = KernelError;
+    fn try_from(other: u32) -> KernelResult<Self> {
+        Ok(Self(NonZeroU32::new(other).ok_or(
+            KernelError::InvalidIntId(other.try_into().expect("usize to hold u32")),
+        )?))
     }
 }
 
 impl TryFrom<usize> for InterruptId {
     type Error = KernelError;
     fn try_from(other: usize) -> KernelResult<Self> {
-        Ok(Self(u32::try_from(other)?))
+        Self::try_from(u32::try_from(other)?)
     }
 }
 

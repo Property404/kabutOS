@@ -86,7 +86,7 @@ impl InterruptControllerDriver for PlicDriver {
 
         unsafe { self.write(Offset::Claim as usize, claim) };
 
-        Some(claim.into())
+        Some(claim.try_into().unwrap())
     }
 }
 
