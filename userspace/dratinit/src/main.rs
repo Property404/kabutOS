@@ -5,9 +5,14 @@ use kanto::{prelude::*, sys};
 
 fn shell() {
     println!("Wooh! Shell\n");
+    print!("$ ");
     loop {
         let c = sys::getc().unwrap();
-        print!("{c}");
+        if c == '\r' {
+            print!("\n$ ");
+        } else {
+            print!("{c}");
+        }
     }
 }
 
