@@ -1,6 +1,9 @@
 //! Drivers and driver accessories
 use crate::{interrupts, prelude::*, process::ProcessState, scheduler};
-use alloc::{collections::BTreeSet, sync::Arc};
+use alloc::{
+    collections::{BTreeSet, VecDeque},
+    sync::Arc,
+};
 use core::{
     fmt::{self, Debug, Write},
     time::Duration,
@@ -57,14 +60,24 @@ impl Drivers {
                 (*self.uart.write()).get_or_insert(driver.clone());
                 if let Some(int_id) = info.interrupts.first() {
                     let driver = driver.clone();
+                    // TODO: this should be a ringbuffer
+                    let uart_buffer = Arc::new(Mutex::new((Utf8Parser::new(), VecDeque::new())));
                     interrupts::register_handler(*int_id, move |int_id| {
-                        let c = {
-                            // TODO: buffer this, byte by byte
-                            driver.lock().coupling.spin_until_next_char()
-                        };
+                        // Push next chars into buffer
+                        let mut driver = driver.lock();
+                        let mut buffer = uart_buffer.lock();
+                        while let Some(byte) = driver.coupling.next_byte() {
+                            if let Some(ch) = buffer.0.push(byte)? {
+                                buffer.1.push_back(ch);
+                            }
+                        }
+
+                        // And send to process
                         scheduler::on_interrupt(int_id, |process| {
-                            process.frame.as_mut().set_return_value(&Ok(c as usize));
-                            process.state = ProcessState::Ready;
+                            if let Some(c) = buffer.1.pop_front() {
+                                process.frame.as_mut().set_return_value(&Ok(c as usize));
+                                process.state = ProcessState::Ready;
+                            }
                             Ok(())
                         })?;
                         Ok(())
