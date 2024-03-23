@@ -9,9 +9,9 @@ fn shell() {
     loop {
         let c = sys::getc().unwrap();
         if c == '\r' {
-            print!("\n$ ");
+            sys::puts("\n$ ");
         } else {
-            print!("{c}");
+            sys::putc(c);
         }
     }
 }

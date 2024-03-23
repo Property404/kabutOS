@@ -43,6 +43,16 @@ fn syscall(id: Syscall, arg0: usize, arg1: usize) -> SyscallResult<usize> {
     }
 }
 
+/// Print a char
+pub fn putc(c: char) -> SyscallResult {
+    syscall(
+        Syscall::PutChar,
+        c as usize,
+        0
+    )?;
+    Ok(())
+}
+
 /// Print a string (newline sold separately)
 pub fn puts(s: &str) -> SyscallResult {
     syscall(
