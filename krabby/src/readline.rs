@@ -42,7 +42,7 @@ impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Default
 impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Readline<BUFFER_SIZE, HISTORY_SIZE> {
     /// Read line of user input
     pub fn get_line<'a>(&'a mut self, prompt: &str) -> KernelResult<&'a str> {
-        let serial = Serial::new();
+        let serial = Serial::new()?;
         if !self.buffer.is_empty() {
             self.buffer.new_history_entry();
         }

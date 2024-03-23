@@ -5,25 +5,21 @@ use kanto::{prelude::*, sys};
 
 fn shell() {
     println!("Wooh! Shell\n");
-    sys::exit_ok().unwrap();
+    loop {
+        let c = sys::getc().unwrap();
+        print!("{c}");
+    }
 }
 
 #[no_mangle]
 extern "C" fn main() {
     println!("[dratinit] starting forks!");
 
-    let mut pids = Vec::new();
-
-    for _ in 0..3 {
-        if let Some(pid) = sys::fork().unwrap() {
-            pids.push(pid);
-        } else {
-            shell();
-        }
-    }
-
-    for pid in pids {
+    if let Some(pid) = sys::fork().unwrap() {
         sys::wait_pid(pid).unwrap();
+    } else {
+        shell();
+        sys::exit_ok().unwrap();
     }
 
     println!("[dratinit] Entering eternal loop!");

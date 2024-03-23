@@ -2,9 +2,8 @@
 use crate::{
     drivers::{DriverLoader, LoadContext, LoadResult, UartDriver},
     mmu::{map_device, PAGE_SIZE},
-    KernelError, KernelResult,
+    prelude::*,
 };
-use alloc::boxed::Box;
 use core::ptr::{read_volatile, write_volatile};
 
 #[derive(Copy, Clone)]
@@ -52,11 +51,13 @@ impl Ns16550Driver {
 }
 
 impl UartDriver for Ns16550Driver {
-    fn next_byte(&mut self) -> u8 {
+    fn next_byte(&mut self) -> Option<u8> {
         // Wait until byte is available
-        while unsafe { self.read(RegisterOffsets::LineStatusRegister) & 0x01 == 0 } {}
+        if unsafe { self.read(RegisterOffsets::LineStatusRegister) & 0x01 == 0 } {
+            return None;
+        }
         // Then read the byte
-        unsafe { self.read(RegisterOffsets::Data) }
+        Some(unsafe { self.read(RegisterOffsets::Data) })
     }
 
     fn send_byte(&mut self, byte: u8) {

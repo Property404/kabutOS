@@ -32,7 +32,7 @@ impl Display for HartId {
 }
 
 /// Interrupt ID type
-#[derive(Copy, From, Into, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, From, Into, Clone, PartialEq, Eq, Debug, PartialOrd, Ord)]
 pub struct InterruptId(NonZeroU32);
 
 impl Display for InterruptId {

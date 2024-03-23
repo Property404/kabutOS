@@ -4,7 +4,6 @@ use crate::{
     process::{BlockCondition, Process, ProcessState},
     timer::Instant,
 };
-use alloc::vec::Vec;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use riscv::register::{sepc, sstatus};
 use spin::Mutex;
@@ -52,6 +51,25 @@ pub fn with_process<T>(pid: Pid, f: impl Fn(&mut Process) -> KernelResult<T>) ->
         }
     }
     Err(KernelError::ProcessNotFound(pid))
+}
+
+pub fn on_interrupt(
+    trigger: InterruptId,
+    func: impl FnOnce(&mut Process) -> KernelResult<()>,
+) -> KernelResult {
+    let mut processes = PROCESSES.lock();
+    for process in processes.iter_mut() {
+        let ProcessState::Blocked(condition) = process.state else {
+            continue;
+        };
+        match condition {
+            BlockCondition::OnUart(id) if id == trigger => {
+                return func(process);
+            }
+            _ => {}
+        }
+    }
+    Ok(())
 }
 
 fn reap(processes: &mut Vec<Process>) {

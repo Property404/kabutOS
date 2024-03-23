@@ -10,7 +10,6 @@ use crate::{
     prelude::*,
     util::*,
 };
-use alloc::boxed::Box;
 use core::{
     mem::size_of,
     ptr::{read_volatile, write_volatile},

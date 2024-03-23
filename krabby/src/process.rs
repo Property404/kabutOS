@@ -5,7 +5,7 @@ use crate::{
     timer::Instant,
     util::*,
 };
-use alloc::{sync::Arc, vec::Vec};
+use alloc::sync::Arc;
 use core::ptr;
 use krabby_abi::ProcessResult;
 use riscv::register::sstatus;

@@ -1,24 +1,29 @@
 //! Home of the `Serial` object - used to read from serial
-use crate::{drivers::DRIVERS, KernelError, KernelResult};
+use crate::{
+    drivers::{Driver, UartDriver, DRIVERS},
+    KernelError, KernelResult,
+};
+use alloc::sync::Arc;
+use spin::Mutex;
 
-/// A cheap structure used to read from serial.
-#[derive(Copy, Clone, Default, Debug)]
-pub struct Serial {}
+/// A structure used to read from serial.
+#[derive(Clone, Debug)]
+pub struct Serial(Arc<Mutex<Driver<dyn UartDriver>>>);
 
 impl Serial {
-    /// Construct a new `Serial` object. Very cheap.
-    pub const fn new() -> Self {
-        Self {}
+    /// Construct a new `Serial` object
+    pub fn new() -> KernelResult<Self> {
+        let uart = DRIVERS.uart.read();
+        if let Some(uart) = &*uart {
+            Ok(Self(uart.clone()))
+        } else {
+            Err(KernelError::DriverUninitialized)
+        }
     }
 
     /// Read next character
     pub fn next_char(&self) -> KernelResult<char> {
-        let mut uart = DRIVERS.uart.lock();
-        if let Some(uart) = &mut *uart {
-            Ok(uart.next_char())
-        } else {
-            Err(KernelError::DriverUninitialized)
-        }
+        Ok(self.0.lock().coupling.spin_until_next_char())
     }
 }
 
@@ -29,9 +34,10 @@ macro_rules! print
 {
     ($($args:tt)+) => ({
             use core::fmt::Write;
-            let mut uart = $crate::drivers::DRIVERS.uart.lock();
-            if let Some(uart) = &mut *uart {
-                let _ = write!(uart, $($args)+);
+            let uart = $crate::drivers::DRIVERS.uart.read();
+            if let Some(uart) = &*uart{
+                let mut uart = uart.lock();
+                let _ = write!(uart.coupling, $($args)+);
             }
     });
 }
@@ -44,10 +50,11 @@ macro_rules! println
     });
     ($($args:tt)+) => ({
         use core::fmt::Write;
-        let mut uart = $crate::drivers::DRIVERS.uart.lock();
-        if let Some(uart) = &mut *uart {
-            let _ = write!(uart, $($args)+);
-            let _ = write!(uart, "\n");
+        let uart = $crate::drivers::DRIVERS.uart.read();
+        if let Some(uart) = &*uart{
+            let mut uart = uart.lock();
+            let _ = write!(uart.coupling, $($args)+);
+            let _ = write!(uart.coupling, "\n");
         }
     });
 }

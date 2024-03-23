@@ -1,4 +1,5 @@
 use crate::{
+    drivers::DRIVERS,
     frame::TrapFrame,
     mmu::{self, PAGE_SIZE},
     prelude::*,
@@ -36,7 +37,22 @@ fn syscall_inner(frame: &mut TrapFrame, call: usize, args: Args) -> KernelResult
             SyscallResult::Success
         }
         Syscall::GetChar => {
-            todo!()
+            let uart = DRIVERS.uart.read();
+            let int_id: InterruptId = if let Some(uart) = &*uart {
+                let uart = uart.lock();
+                *uart
+                    .info
+                    .interrupts
+                    .first()
+                    .ok_or(KernelError::InterruptUnavailable)?
+            } else {
+                return Err(KernelError::DriverUninitialized);
+            };
+            scheduler::with_process(pid, |p| {
+                p.block(BlockCondition::OnUart(int_id));
+                Ok(())
+            })?;
+            SyscallResult::Success
         }
         Syscall::PutString => {
             let table = frame.root_page_table();

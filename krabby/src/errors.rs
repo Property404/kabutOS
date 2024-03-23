@@ -41,6 +41,9 @@ pub enum KernelError {
     /// Driver is uninitialized
     #[display("Driver is uninitialized")]
     DriverUninitialized,
+    /// Interrupt unavailable
+    #[display("Interrupt is unavailable")]
+    InterruptUnavailable,
     /// Invalid address
     #[display("Invalid virtual address: {}", _0)]
     InvalidVirtualAddress(usize),

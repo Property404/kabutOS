@@ -10,7 +10,6 @@ use crate::{
     prelude::*,
     util::*,
 };
-use alloc::boxed::Box;
 use core::{mem::size_of, ptr::write_volatile, time::Duration};
 
 const NANOS_PER_SECOND: u128 = 1_000_000_000;

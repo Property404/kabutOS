@@ -15,6 +15,7 @@ pub mod frame;
 pub mod functions;
 pub mod globals;
 pub mod idle;
+pub mod interrupts;
 pub mod mmu;
 pub mod panic;
 pub mod process;
@@ -34,6 +35,7 @@ pub mod prelude {
     pub use super::cpu::{HartId, InterruptId, Register};
     pub use super::{print, println};
     pub use super::{KernelError, KernelResult};
+    pub use alloc::{boxed::Box, vec::Vec};
     pub use krabby_abi::Pid;
 }
 

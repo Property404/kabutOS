@@ -1,7 +1,7 @@
 //! Rust IRQ and exception handlers
 use crate::{
-    drivers::DRIVERS, frame::TrapFrame, mmu::PAGE_SIZE, prelude::*, scheduler,
-    syscalls::syscall_handler, timer,
+    frame::TrapFrame, interrupts, mmu::PAGE_SIZE, prelude::*, scheduler, syscalls::syscall_handler,
+    timer,
 };
 use core::{ffi::c_void, ptr};
 use owo_colors::OwoColorize;
@@ -50,33 +50,22 @@ extern "C" fn exception_handler(
             }
             _ => unhandled_exception(trap_frame),
         },
-        Trap::Interrupt(interrupt) => {
-            match interrupt {
-                Interrupt::SupervisorSoft => {
-                    if timer::tick().is_err() {
-                        println!("[kernel: timer tick failed]");
-                    };
-                    unsafe {
-                        register::sip::clear_ssoft();
-                    }
-                    pc = scheduler::switch_processes(HartId::zero());
+        Trap::Interrupt(interrupt) => match interrupt {
+            Interrupt::SupervisorSoft => {
+                if timer::tick().is_err() {
+                    println!("[kernel: timer tick failed]");
+                };
+                unsafe {
+                    register::sip::clear_ssoft();
                 }
-                Interrupt::SupervisorExternal => {
-                    let stval = register::stval::read();
-                    println!("stval: {stval}");
-                    let mut driver = DRIVERS.ic.lock();
-                    if let Some(driver) = &mut *driver {
-                        let claim = driver.next().expect("Expected claim");
-                        println!("claim: {claim}");
-                    }
-                    todo!("handle this");
-                }
-                _ => {
-                    panic!("Unhandled interrupt!");
-                }
+                pc = scheduler::switch_processes(HartId::zero());
+                Ok(())
             }
-            Ok(())
-        }
+            Interrupt::SupervisorExternal => interrupts::run_next_handler(),
+            _ => {
+                panic!("Unhandled interrupt!");
+            }
+        },
     };
 
     if let Err(err) = rv {

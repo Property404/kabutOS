@@ -53,6 +53,13 @@ pub fn puts(s: &str) -> SyscallResult {
     Ok(())
 }
 
+/// Get character
+pub fn getc() -> SyscallResult<char> {
+    let res = syscall(Syscall::GetChar, 0, 0)?;
+    // TODO: handle this error
+    Ok(char::from_u32(res as u32).unwrap())
+}
+
 /// Get process PID
 pub fn get_pid() -> SyscallResult<Pid> {
     Ok(syscall(Syscall::Pinfo, 0, 0)?.try_into()?)

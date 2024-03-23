@@ -1,18 +1,37 @@
 //! Drivers and driver accessories
-use crate::prelude::*;
-use alloc::{boxed::Box, collections::BTreeSet, vec::Vec};
+use crate::{interrupts, prelude::*, process::ProcessState, scheduler};
+use alloc::{collections::BTreeSet, sync::Arc};
 use core::{
     fmt::{self, Debug, Write},
     time::Duration,
 };
 use fdt::{node::FdtNode, Fdt};
-use spin::Mutex;
+use spin::{Mutex, RwLock};
 pub mod clint_timer;
 pub mod ns16550;
 pub mod plic;
 use utf8_parser::Utf8Parser;
 
-type DriverBox<T> = Mutex<Option<Box<T>>>;
+#[derive(Debug)]
+pub struct Driver<T: Send + ?Sized> {
+    pub info: DriverInfo,
+    /// Hardware coupling
+    pub coupling: Box<T>,
+}
+
+struct WrappedDriver {
+    info: DriverInfo,
+    coupling: LoadResult,
+}
+
+#[derive(Clone, Debug)]
+pub struct DriverInfo {
+    pub interrupt_parent: Option<u32>,
+    pub interrupts: Vec<InterruptId>,
+}
+
+type DriverBox2<T> = RwLock<Option<Arc<Mutex<T>>>>;
+type DriverBox<T> = Mutex<Option<T>>;
 
 static LOADERS: &[DriverLoader] = &[ns16550::LOADER, clint_timer::LOADER, plic::LOADER];
 
@@ -20,18 +39,37 @@ static LOADERS: &[DriverLoader] = &[ns16550::LOADER, clint_timer::LOADER, plic::
 #[derive(Debug)]
 pub struct Drivers {
     /// The UART driver
-    pub uart: DriverBox<dyn UartDriver>,
+    pub uart: DriverBox2<Driver<dyn UartDriver>>,
     /// The timer driver
-    pub timer: DriverBox<dyn TimerDriver>,
+    pub timer: DriverBox<Box<dyn TimerDriver>>,
     /// The IC driver
-    pub ic: DriverBox<dyn InterruptControllerDriver>,
+    pub ic: DriverBox<Box<dyn InterruptControllerDriver>>,
 }
 
 impl Drivers {
-    fn load(&self, res: LoadResult) {
-        match res {
-            LoadResult::Uart(dev) => {
-                (*self.uart.lock()).get_or_insert(dev);
+    fn load(&self, WrappedDriver { info, coupling }: WrappedDriver) {
+        match coupling {
+            LoadResult::Uart(coupling) => {
+                let driver = Arc::new(Mutex::new(Driver {
+                    info: info.clone(),
+                    coupling,
+                }));
+                (*self.uart.write()).get_or_insert(driver.clone());
+                if let Some(int_id) = info.interrupts.first() {
+                    let driver = driver.clone();
+                    interrupts::register_handler(*int_id, move |int_id| {
+                        let c = {
+                            // TODO: buffer this, byte by byte
+                            driver.lock().coupling.spin_until_next_char()
+                        };
+                        scheduler::on_interrupt(int_id, |process| {
+                            process.frame.as_mut().set_return_value(&Ok(c as usize));
+                            process.state = ProcessState::Ready;
+                            Ok(())
+                        })?;
+                        Ok(())
+                    });
+                }
             }
             LoadResult::Timer(dev) => {
                 (*self.timer.lock()).get_or_insert(dev);
@@ -53,12 +91,13 @@ impl Drivers {
             return Ok(());
         }
         for loader in LOADERS {
-            let mut info = LoadContext {
-                interrupt_registrations,
-                fdt: *fdt,
-                node,
-            };
-            if let Some(dev) = loader.maybe_load(&mut info)? {
+            let mut ctx = LoadContext { fdt: *fdt, node };
+            if let Some(dev) = loader.maybe_load(&mut ctx)? {
+                if let Some(interrupt_parent) = &dev.info.interrupt_parent {
+                    for interrupt in &dev.info.interrupts {
+                        interrupt_registrations.push((*interrupt_parent, *interrupt));
+                    }
+                }
                 self.load(dev);
                 assert!(picked.insert(node.name));
             }
@@ -95,7 +134,7 @@ impl Drivers {
 
 /// Global object that keeps track of initialized drivers
 pub static DRIVERS: Drivers = Drivers {
-    uart: Mutex::new(None),
+    uart: RwLock::new(None),
     timer: Mutex::new(None),
     ic: Mutex::new(None),
 };
@@ -116,17 +155,26 @@ pub trait TimerDriver: Debug + Send {
 /// A UART/serial driver
 pub trait UartDriver: Debug + Send {
     /// Read the next byte out of the UART
-    fn next_byte(&mut self) -> u8;
+    fn next_byte(&mut self) -> Option<u8>;
+
+    /// Read the next byte out of UART (spin blocks)
+    fn spin_until_next_byte(&mut self) -> u8 {
+        loop {
+            if let Some(byte) = self.next_byte() {
+                return byte;
+            }
+        }
+    }
 
     /// Write a byte to the UART
     fn send_byte(&mut self, byte: u8);
 
-    /// Read the next character from the UART
-    fn next_char(&mut self) -> char {
+    /// Read the next character from the UART (spins)
+    fn spin_until_next_char(&mut self) -> char {
         let mut parser = Utf8Parser::default();
         loop {
             if let Some(c) = parser
-                .push(self.next_byte())
+                .push(self.spin_until_next_byte())
                 .unwrap_or(Some(char::REPLACEMENT_CHARACTER))
             {
                 return c;
@@ -149,16 +197,9 @@ impl Write for dyn UartDriver {
     }
 }
 
-struct LoadContext<'a> {
-    interrupt_registrations: &'a mut Vec<(u32, InterruptId)>,
+struct LoadContext {
     fdt: Fdt<'static>,
     node: FdtNode<'static, 'static>,
-}
-
-impl<'a> LoadContext<'a> {
-    fn register_interrupt(&mut self, phandle: u32, id: InterruptId) {
-        self.interrupt_registrations.push((phandle, id));
-    }
 }
 
 enum LoadResult {
@@ -175,26 +216,37 @@ struct DriverLoader {
 }
 
 impl DriverLoader {
-    fn maybe_load(&self, info: &mut LoadContext) -> KernelResult<Option<LoadResult>> {
-        let Some(compatible) = info.node.compatible() else {
+    fn maybe_load(&self, ctx: &mut LoadContext) -> KernelResult<Option<WrappedDriver>> {
+        let Some(compatible) = ctx.node.compatible() else {
             return Ok(None);
         };
         if !compatible.all().any(|v| v == self.compatible) {
             return Ok(None);
         }
 
-        // If this has interrupts, register them
-        if let Some(interrupt_parent) = info.node.property("interrupt-parent") {
-            let interrupt_parent: u32 = interrupt_parent
-                .as_usize()
-                .ok_or(KernelError::Generic("Invalid phandle"))?
-                .try_into()
-                .expect("usize to hold u32");
-            for interrupt in info.node.interrupts().into_iter().flatten() {
-                info.register_interrupt(interrupt_parent, InterruptId::try_from(interrupt)?);
-            }
+        let interrupt_parent: Option<u32> = ctx
+            .node
+            .property("interrupt-parent")
+            .map(|interrupt_parent| {
+                interrupt_parent
+                    .as_usize()
+                    .ok_or(KernelError::Generic("Invalid phandle"))
+            })
+            .transpose()?
+            .map(TryInto::try_into)
+            .transpose()?;
+
+        let mut interrupts = Vec::new();
+        for interrupt in ctx.node.interrupts().into_iter().flatten() {
+            let interrupt = InterruptId::try_from(interrupt)?;
+            interrupts.push(interrupt);
         }
 
-        (self.load)(info).map(Some)
+        let info = DriverInfo {
+            interrupt_parent,
+            interrupts,
+        };
+        let coupling = (self.load)(ctx)?;
+        Ok(Some(WrappedDriver { info, coupling }))
     }
 }
