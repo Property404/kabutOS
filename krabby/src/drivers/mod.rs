@@ -74,7 +74,10 @@ impl Drivers {
 
                         // And send to process
                         scheduler::on_interrupt(int_id, |process| {
-                            if let Some(c) = buffer.1.pop_front() {
+                            let mut temp_buffer = Default::default();
+                            core::mem::swap(&mut buffer.1, &mut temp_buffer);
+                            process.stdin_buffer.extend(temp_buffer.into_iter());
+                            if let Some(c) = process.stdin_buffer.pop_front() {
                                 process.frame.as_mut().set_return_value(&Ok(c as usize));
                                 process.state = ProcessState::Ready;
                             }

@@ -37,22 +37,29 @@ fn syscall_inner(frame: &mut TrapFrame, call: usize, args: Args) -> KernelResult
             SyscallResult::Success
         }
         Syscall::GetChar => {
-            let uart = DRIVERS.uart.read();
-            let int_id: InterruptId = if let Some(uart) = &*uart {
-                let uart = uart.lock();
-                *uart
-                    .info
-                    .interrupts
-                    .first()
-                    .ok_or(KernelError::InterruptUnavailable)?
+            if let Some(ch) = scheduler::with_process(pid, |p| {
+                if let Some(c) = p.stdin_buffer.pop_front() {
+                    Ok(Some(c))
+                } else {
+                    let uart = DRIVERS.uart.read();
+                    let int_id: InterruptId = if let Some(uart) = &*uart {
+                        let uart = uart.lock();
+                        *uart
+                            .info
+                            .interrupts
+                            .first()
+                            .ok_or(KernelError::InterruptUnavailable)?
+                    } else {
+                        return Err(KernelError::DriverUninitialized);
+                    };
+                    p.block(BlockCondition::OnUart(int_id));
+                    Ok(None)
+                }
+            })? {
+                SyscallResult::Value(ch as usize)
             } else {
-                return Err(KernelError::DriverUninitialized);
-            };
-            scheduler::with_process(pid, |p| {
-                p.block(BlockCondition::OnUart(int_id));
-                Ok(())
-            })?;
-            SyscallResult::Success
+                SyscallResult::Success
+            }
         }
         Syscall::PutString => {
             let table = frame.root_page_table();

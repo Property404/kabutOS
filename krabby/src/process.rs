@@ -5,7 +5,7 @@ use crate::{
     timer::Instant,
     util::*,
 };
-use alloc::sync::Arc;
+use alloc::{collections::VecDeque, sync::Arc};
 use core::ptr;
 use krabby_abi::ProcessResult;
 use riscv::register::sstatus;
@@ -44,6 +44,8 @@ pub struct Process {
     pub state: ProcessState,
     pub pc: usize,
     pub frame: PageAllocation<TrapFrame>,
+    // TODO: Probably should be a ringbuffer
+    pub stdin_buffer: VecDeque<char>,
     // The current top of of virtual memory. Grows as heap grows
     breakline: usize,
     code: Arc<SharedAllocation<[Page<PAGE_SIZE>]>>,
@@ -136,6 +138,7 @@ impl Process {
             pid,
             state: ProcessState::Ready,
             breakline: usize::from(breakline),
+            stdin_buffer: Default::default(),
             pc,
             code,
             root_page_table,
