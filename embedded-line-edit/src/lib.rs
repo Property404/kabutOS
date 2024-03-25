@@ -10,7 +10,7 @@ use utf8_parser::{Utf8ByteType, Utf8Parser, Utf8ParserError};
 #[cfg(all(feature = "alloc", not(feature = "std")))]
 extern crate alloc;
 #[cfg(all(feature = "alloc", not(feature = "std")))]
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 
 /// Error type used for this crate
 #[derive(Copy, Clone, PartialEq, Eq, Debug, From, Display)]
@@ -478,6 +478,10 @@ pub trait LineEditBuffer: AsRef<[u8]> + AsMut<[u8]> {
 }
 
 impl<const C: usize> LineEditBuffer for [u8; C] {}
+impl<const C: usize> LineEditBuffer for &mut [u8; C] {}
+impl LineEditBuffer for &mut [u8] {}
+#[cfg(any(test, feature = "alloc"))]
+impl LineEditBuffer for Box<[u8]> {}
 
 #[cfg(any(test, feature = "alloc"))]
 impl LineEditBuffer for Vec<u8> {
