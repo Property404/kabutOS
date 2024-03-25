@@ -9,7 +9,8 @@ RISC-V operating system
 * userspace/kanto - Userland library
 * userspace/dratinit - The init program (process 1)
 * userspace/gary - Userspace test suite
-* embedded-line-edit - No-std line editing library
+* embedded-line-edit - No-std manual line editing library
+* crusty-line - No-std readline functionality
 * page-alloc - Page-grain allocation library
 
 ## Installing Dependencies
