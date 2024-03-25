@@ -47,10 +47,17 @@ pub enum LineEditError {
 /// state.shift_right(1).unwrap();
 /// assert_eq!(state.as_str().unwrap(), "Hello World!");
 /// ```
+#[derive(Copy, Clone, Debug)]
 pub struct LineEditState<T> {
     buffer: T,
     byte_ptr: usize,
     byte_length: usize,
+}
+
+impl<T: Default + LineEditBuffer> Default for LineEditState<T> {
+    fn default() -> Self {
+        Self::from_buffer(Default::default())
+    }
 }
 
 impl<T: LineEditBuffer> LineEditState<T> {
@@ -458,12 +465,6 @@ impl<T: History> LineEditState<T> {
             self.byte_ptr = size;
             size
         })
-    }
-}
-
-impl<const C: usize> Default for LineEditState<[u8; C]> {
-    fn default() -> Self {
-        LineEditState::from_buffer([0; C])
     }
 }
 
