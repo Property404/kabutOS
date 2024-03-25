@@ -32,12 +32,18 @@ impl Serial {
 #[macro_export]
 macro_rules! print
 {
-    ($($args:tt)+) => ({
+    ($($args:expr),+) => ({
+            $crate::print!([_inner (false)] $($args),+);
+    });
+    ([_inner ($newline:expr)] $($args:expr),+) => ({
             use core::fmt::Write;
             let uart = $crate::drivers::DRIVERS.uart.read();
             if let Some(uart) = &*uart{
                 let mut uart = uart.lock();
-                let _ = write!(uart.coupling, $($args)+);
+                let _ = write!(uart.coupling, $($args),+);
+                if $newline {
+                    let _ = uart.coupling.write_str("\n");
+                }
             }
     });
 }
@@ -46,15 +52,9 @@ macro_rules! print
 macro_rules! println
 {
     () => ({
-        print!("\n")
+        $crate::print!("\n")
     });
-    ($($args:tt)+) => ({
-        use core::fmt::Write;
-        let uart = $crate::drivers::DRIVERS.uart.read();
-        if let Some(uart) = &*uart{
-            let mut uart = uart.lock();
-            let _ = write!(uart.coupling, $($args)+);
-            let _ = write!(uart.coupling, "\n");
-        }
+    ($($args:expr),+) => ({
+        $crate::print!([_inner (true)] $($args),+);
     });
 }
