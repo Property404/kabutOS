@@ -43,6 +43,8 @@ static LOADERS: &[DriverLoader] = &[ns16550::LOADER, clint_timer::LOADER, plic::
 pub struct Drivers {
     /// The UART driver
     pub uart: DriverBox2<Driver<dyn UartDriver>>,
+    /// Block drivers
+    pub block: DriverBox2<Driver<dyn BlockDriver>>,
     /// The timer driver
     pub timer: DriverBox<Box<dyn TimerDriver>>,
     /// The IC driver
@@ -86,6 +88,13 @@ impl Drivers {
                         Ok(())
                     });
                 }
+            }
+            LoadResult::Block(coupling) => {
+                let driver = Arc::new(Mutex::new(Driver {
+                    info: info.clone(),
+                    coupling,
+                }));
+                (*self.block.write()).get_or_insert(driver.clone());
             }
             LoadResult::Timer(dev) => {
                 (*self.timer.lock()).get_or_insert(dev);
@@ -151,6 +160,7 @@ impl Drivers {
 /// Global object that keeps track of initialized drivers
 pub static DRIVERS: Drivers = Drivers {
     uart: RwLock::new(None),
+    block: RwLock::new(None),
     timer: Mutex::new(None),
     ic: Mutex::new(None),
 };
@@ -167,6 +177,9 @@ pub trait InterruptControllerDriver: Debug + Send {
 pub trait TimerDriver: Debug + Send {
     fn set_alarm(&mut self, hart: HartId, duration: Duration);
 }
+
+/// Block device driver (e.g. SSD/MMC)
+pub trait BlockDriver: Debug + Send {}
 
 /// A UART/serial driver
 pub trait UartDriver: Debug + Send {
@@ -220,6 +233,8 @@ struct LoadContext {
 
 enum LoadResult {
     Uart(Box<dyn UartDriver>),
+    #[allow(dead_code)] // We haven't written a block driver yet
+    Block(Box<dyn BlockDriver>),
     InterruptController(Box<dyn InterruptControllerDriver>),
     Timer(Box<dyn TimerDriver>),
 }
