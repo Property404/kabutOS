@@ -49,12 +49,16 @@ pub fn set_current_trap_frame(frame: *const TrapFrame) {
 
 /// Get the current trap frame
 pub fn get_current_trap_frame() -> *const TrapFrame {
-    riscv::register::sscratch::read() as *const TrapFrame
+    let frame = riscv::register::sscratch::read() as *const TrapFrame;
+    assert!(!frame.is_null());
+    frame
 }
 
 /// Get the current trap frame
 pub fn get_current_trap_frame_mut() -> *mut TrapFrame {
-    riscv::register::sscratch::read() as *mut TrapFrame
+    let frame = riscv::register::sscratch::read() as *mut TrapFrame;
+    assert!(!frame.is_null());
+    frame
 }
 
 pub fn switch_to_kernel_frame() -> *const TrapFrame {
