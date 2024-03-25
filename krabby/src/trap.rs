@@ -31,6 +31,8 @@ extern "C" fn exception_handler(
     let scause = register::scause::read();
     let mut pc = register::sepc::read();
 
+    frame::switch_to_kernel_frame();
+
     check_for_stack_overflow();
 
     // Exceptions are synchronous so the PC needs to move up
