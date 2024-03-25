@@ -68,7 +68,11 @@ extern "C" fn exception_handler(
                 pc = scheduler::switch_processes(HartId::zero());
                 Ok(())
             }
-            Interrupt::SupervisorExternal => interrupts::run_next_handler(),
+            Interrupt::SupervisorExternal => {
+                let res = interrupts::run_next_handler();
+                pc = scheduler::switch_processes(HartId::zero());
+                res
+            }
             _ => {
                 panic!("Unhandled interrupt!");
             }
