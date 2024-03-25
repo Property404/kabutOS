@@ -1,20 +1,8 @@
 #![no_std]
 #![no_main]
+mod shell;
 use core::time::Duration;
 use kanto::{prelude::*, sys};
-
-fn shell() {
-    println!("Wooh! Shell\n");
-    print!("$ ");
-    loop {
-        let c = sys::getc().unwrap();
-        if c == '\r' {
-            sys::puts("\n$ ").unwrap();
-        } else {
-            sys::putc(c).unwrap();
-        }
-    }
-}
 
 #[no_mangle]
 extern "C" fn main() {
@@ -23,7 +11,7 @@ extern "C" fn main() {
     if let Some(pid) = sys::fork().unwrap() {
         sys::wait_pid(pid).unwrap();
     } else {
-        shell();
+        shell::shell();
         sys::exit_ok().unwrap();
     }
 

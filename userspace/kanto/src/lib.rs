@@ -14,7 +14,7 @@ pub mod sys;
 pub mod prelude {
     //! Userspace prelude
     pub use crate::{print, println};
-    pub use alloc::{string::String, vec::Vec};
+    pub use alloc::{boxed::Box, string::String, vec::Vec};
 }
 
 pub use krabby_abi as abi;

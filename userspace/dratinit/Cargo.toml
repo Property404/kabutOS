@@ -5,4 +5,5 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
+crusty-line = { version = "0.1.0", path = "../../crusty-line" }
 kanto = { path = "../kanto" }
