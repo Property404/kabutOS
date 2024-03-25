@@ -58,3 +58,13 @@ macro_rules! println
         $crate::print!([_inner (true)] $($args),+);
     });
 }
+
+#[macro_export]
+macro_rules! warn
+{
+    ($($args:expr),+) => ({
+        use owo_colors::OwoColorize;
+        $crate::print!("{}","[warning] ".yellow());
+        $crate::println!($($args),+);
+    });
+}

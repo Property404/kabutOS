@@ -27,7 +27,7 @@ pub fn run_next_handler() -> KernelResult {
         let claim = driver.next().expect("Expected claim");
         run_handler(claim)
     } else {
-        println!("WARN: no interrupt controller");
+        warn!("No interrupt controller");
         Ok(())
     }
 }

@@ -33,7 +33,7 @@ pub mod test;
 
 pub mod prelude {
     pub use super::cpu::{HartId, InterruptId, Register};
-    pub use super::{print, println};
+    pub use super::{print, println, warn};
     pub use super::{KernelError, KernelResult};
     pub use alloc::{boxed::Box, vec::Vec};
     pub use krabby_abi::Pid;
