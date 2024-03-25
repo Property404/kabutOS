@@ -45,11 +45,7 @@ fn syscall(id: Syscall, arg0: usize, arg1: usize) -> SyscallResult<usize> {
 
 /// Print a char
 pub fn putc(c: char) -> SyscallResult {
-    syscall(
-        Syscall::PutChar,
-        c as usize,
-        0
-    )?;
+    syscall(Syscall::PutChar, c as usize, 0)?;
     Ok(())
 }
 
