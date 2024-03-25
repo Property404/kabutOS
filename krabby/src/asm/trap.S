@@ -26,7 +26,7 @@ asm_exception_handler:
     // Use kernel stack
     mv t6, s5
     switch_to_kernel_stack t6
-    
+
     // Branch to Rust
     call exception_handler
 
