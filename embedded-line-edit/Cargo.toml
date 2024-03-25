@@ -13,4 +13,5 @@ rand = "0.8.5"
 
 [features]
 default = []
-std = ["utf8-parser/std"]
+alloc = []
+std = ["utf8-parser/std", "alloc"]
