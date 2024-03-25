@@ -155,9 +155,11 @@ impl Process {
 
     /// Switch process to running
     pub fn switch(&mut self) {
-        let kernel_trap_frame = riscv::register::sscratch::read() as *const TrapFrame;
-        assert!(!kernel_trap_frame.is_null());
-        self.frame.as_mut().kernel_frame = unsafe { (*kernel_trap_frame).kernel_frame };
+        self.frame.as_mut().kernel_frame = {
+            let frame = frame::get_current_trap_frame();
+            assert!(!frame.is_null());
+            unsafe { (*frame).kernel_frame }
+        };
 
         // Set page tables
         let satp = self.frame.as_ref().satp.try_into().unwrap();

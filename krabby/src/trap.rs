@@ -1,6 +1,11 @@
 //! Rust IRQ and exception handlers
 use crate::{
-    frame::TrapFrame, interrupts, mmu::PAGE_SIZE, prelude::*, scheduler, syscalls::syscall_handler,
+    frame::{self, TrapFrame},
+    interrupts,
+    mmu::PAGE_SIZE,
+    prelude::*,
+    scheduler,
+    syscalls::syscall_handler,
     timer,
 };
 use core::{ffi::c_void, ptr};
@@ -21,7 +26,7 @@ extern "C" fn exception_handler(
     a6: usize,
     a7: usize,
 ) {
-    let trap_frame = register::sscratch::read() as *mut TrapFrame;
+    let trap_frame = frame::get_current_trap_frame_mut();
     let trap_frame = unsafe { trap_frame.as_mut().unwrap() };
     let scause = register::scause::read();
     let mut pc = register::sepc::read();
