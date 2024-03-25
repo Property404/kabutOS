@@ -20,6 +20,9 @@ pub enum KernelError {
     /// Invalid arguments to syscall
     #[display("Invalid arguments")]
     InvalidArguments,
+    /// Unexpected end of input
+    #[display("Unexpected end of input")]
+    EndOfInput,
     /// Attempted to access forbidden page
     #[display("Forbidden page")]
     ForbiddenPage,

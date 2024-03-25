@@ -1,8 +1,10 @@
 //! GNU Readline-like functionality
-use crate::{print, println, serial::Serial, KernelResult};
-use core::str;
+use crate::{KernelError, KernelResult};
+use core::{
+    fmt::{Debug, Display, Write},
+    str,
+};
 use embedded_line_edit::{LineEditBufferWithHistoryRing, LineEditState};
-use owo_colors::OwoColorize;
 
 // ANSI code to clear line
 const CLEAR_LINE: &str = "\x1b[2K";
@@ -41,23 +43,30 @@ impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Default
 
 impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Readline<BUFFER_SIZE, HISTORY_SIZE> {
     /// Read line of user input
-    pub fn get_line<'a>(&'a mut self, prompt: &str) -> KernelResult<&'a str> {
-        let serial = Serial::new()?;
+    pub fn get_line<ReaderError>(
+        &mut self,
+        prompt: impl Display,
+        mut reader: impl Iterator<Item = Result<char, ReaderError>>,
+        mut writer: impl Write,
+    ) -> KernelResult<&str>
+    where
+        ReaderError: Debug,
+        KernelError: From<ReaderError>,
+    {
         if !self.buffer.is_empty() {
             self.buffer.new_history_entry();
         }
 
-        let prompt = prompt.cyan();
-        print!("{prompt}");
+        write!(writer, "{prompt}")?;
         loop {
             // For optimization purposes
             // Set to true if we're only moving the cursor
             let mut shift_only = false;
 
-            match serial.next_char()? {
+            match next_char(&mut reader)? {
                 // <Enter> is pressed. Print a new line and return
                 '\r' => {
-                    println!();
+                    writeln!(writer)?;
                     return Ok(self.buffer.as_str()?);
                 }
 
@@ -78,7 +87,7 @@ impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Readline<BUFFER_SIZE, 
 
                 // Cancel
                 CONTROL_C => {
-                    println!();
+                    writeln!(writer)?;
                     return Ok("");
                 }
 
@@ -101,7 +110,7 @@ impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Readline<BUFFER_SIZE, 
                 }
 
                 CONTROL_L => {
-                    print!("{CLEAR_SCREEN}");
+                    write!(writer, "{CLEAR_SCREEN}")?;
                 }
 
                 CONTROL_T => {
@@ -114,9 +123,9 @@ impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Readline<BUFFER_SIZE, 
 
                 // Arrow keys
                 ESCAPE => {
-                    match serial.next_char()? {
+                    match next_char(&mut reader)? {
                         '[' => {
-                            match serial.next_char()? {
+                            match next_char(&mut reader)? {
                                 // Left arrow key: <ESC>[D
                                 'D' => {
                                     self.buffer.shift_left(1)?;
@@ -165,9 +174,9 @@ impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Readline<BUFFER_SIZE, 
                     if self.buffer.insert(c) {
                         // This should be a bit more efficient than a complete redraw
                         let tail = self.buffer.tail()?;
-                        print!("{c}{tail}");
+                        write!(writer, "{c}{tail}")?;
                         for _ in 0..tail.len() {
-                            print!("\x08");
+                            write!(writer, "\x08")?;
                         }
                     }
                     continue;
@@ -176,16 +185,26 @@ impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Readline<BUFFER_SIZE, 
 
             if shift_only {
                 // Just place the cursor correctly
-                print!("\r{prompt}{}", self.buffer.head()?);
+                write!(writer, "\r{prompt}{}", self.buffer.head()?)?;
             } else {
-                print!(
+                write!(
+                    writer,
                     "{CLEAR_LINE}\r{prompt}{}\r{prompt}{}",
                     // Write whole line
                     self.buffer.as_str()?,
                     // Then place cursor at `byte_ptr`
                     self.buffer.head()?
-                );
+                )?;
             }
         }
     }
+}
+
+fn next_char<ReaderError>(
+    reader: &mut impl Iterator<Item = Result<char, ReaderError>>,
+) -> KernelResult<char>
+where
+    KernelError: From<ReaderError>,
+{
+    reader.next().transpose()?.ok_or(KernelError::EndOfInput)
 }

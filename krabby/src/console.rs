@@ -4,17 +4,25 @@ use crate::{
     globals, println,
     process::Process,
     readline::Readline,
-    scheduler, userspace, KernelError, KernelResult,
+    scheduler,
+    serial::Serial,
+    userspace, KernelError, KernelResult,
 };
 use core::{fmt::Display, ptr};
+use owo_colors::OwoColorize;
 use schmargs::Schmargs;
 
 /// Run the kernel console
 pub fn run_console() {
     let mut readline = Readline::<64, 8>::default();
+    let prompt = "KabutOS➔ ".cyan();
+    let mut reader = Serial::new().unwrap();
+    let mut writer = Serial::new().unwrap();
 
     loop {
-        let line = readline.get_line("KabutOS➔ ").unwrap();
+        let line = readline
+            .get_line(&prompt, &mut reader, &mut writer)
+            .unwrap();
         if let Err(error) = parse_line(line) {
             println!("error: {error}");
         }

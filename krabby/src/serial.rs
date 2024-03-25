@@ -4,6 +4,7 @@ use crate::{
     KernelError, KernelResult,
 };
 use alloc::sync::Arc;
+use core::{fmt, iter};
 use spin::Mutex;
 
 /// A structure used to read from serial.
@@ -20,10 +21,19 @@ impl Serial {
             Err(KernelError::DriverUninitialized)
         }
     }
+}
 
-    /// Read next character
-    pub fn next_char(&self) -> KernelResult<char> {
-        Ok(self.0.lock().coupling.spin_until_next_char())
+impl iter::Iterator for Serial {
+    type Item = KernelResult<char>;
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(Ok(self.0.lock().coupling.spin_until_next_char()))
+    }
+}
+
+impl fmt::Write for Serial {
+    fn write_str(&mut self, s: &str) -> Result<(), fmt::Error> {
+        self.0.lock().coupling.send_str(s);
+        Ok(())
     }
 }
 
