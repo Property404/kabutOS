@@ -5,8 +5,8 @@ use core::{
     num::{ParseIntError, TryFromIntError},
     str::Utf8Error,
 };
+use crusty_line::CrustyLineError;
 use derive_more::{Display, From};
-use embedded_line_edit::LineEditError;
 use krabby_abi::KrabbyAbiError;
 use schmargs::{SchmargsError, StrippedSchmargsError};
 use utf8_parser::Utf8ParserError;
@@ -77,9 +77,6 @@ pub enum KernelError {
     /// Converted from [utf8_parser::Utf8ParserError]
     #[from]
     Utf8ParserError(Utf8ParserError),
-    /// Converted from [embedded_line_edit::LineEditError]
-    #[from]
-    LineEditError(LineEditError),
     /// Converted from [schmargs::SchmargsError] or [schmargs::StrippedSchmargsError]
     #[from]
     SchmargsError(StrippedSchmargsError),
@@ -89,6 +86,9 @@ pub enum KernelError {
     /// Converted from [krabby_abi::KrabbyAbiError]
     #[from]
     KrabbyAbiError(KrabbyAbiError),
+    /// Converted from [crusty_line::CrustyLineError]
+    #[from]
+    CrustyLineError(CrustyLineError),
 }
 
 impl From<KernelError> for usize {

@@ -15,8 +15,8 @@ unsafe_op_in_unsafe_fn = "deny"
 
 [dependencies]
 bilge = "0.2.0"
+crusty-line = { version = "0.1.0", path = "../crusty-line" }
 derive_more = { version = "1.0.0-beta.6", default-features = false, features = [ "into", "from", "display"] }
-embedded-line-edit = { path = "../embedded-line-edit", default-features = false }
 # TODO: Switch to upstream when changes are merged
 # upstream currently cannot pretty-print individual nodes
 fdt = { git = "https://github.com/Property404/fdt", rev="5abb24aed8e5ae0ca4c0ed8a2510355c92ea7b8c", features = ["pretty-printing"] }

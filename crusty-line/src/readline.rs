@@ -1,5 +1,5 @@
 //! GNU Readline-like functionality
-use crate::{KernelError, KernelResult};
+use crate::{CrustyLineError, CrustyLineResult};
 use core::{
     fmt::{Debug, Display, Write},
     str,
@@ -27,12 +27,12 @@ const CONTROL_T: char = '\x14';
 const CONTROL_W: char = '\x17';
 
 /// Readline object used to retrieve user input
-pub struct Readline<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> {
+pub struct CrustyLine<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> {
     buffer: LineEditState<LineEditBufferWithHistoryRing<[u8; BUFFER_SIZE], HISTORY_SIZE>>,
 }
 
 impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Default
-    for Readline<BUFFER_SIZE, HISTORY_SIZE>
+    for CrustyLine<BUFFER_SIZE, HISTORY_SIZE>
 {
     fn default() -> Self {
         let buffer_with_history = LineEditBufferWithHistoryRing::from_buffer([0; BUFFER_SIZE]);
@@ -41,17 +41,16 @@ impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Default
     }
 }
 
-impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Readline<BUFFER_SIZE, HISTORY_SIZE> {
+impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> CrustyLine<BUFFER_SIZE, HISTORY_SIZE> {
     /// Read line of user input
     pub fn get_line<ReaderError>(
         &mut self,
         prompt: impl Display,
         mut reader: impl Iterator<Item = Result<char, ReaderError>>,
         mut writer: impl Write,
-    ) -> KernelResult<&str>
+    ) -> CrustyLineResult<&str>
     where
         ReaderError: Debug,
-        KernelError: From<ReaderError>,
     {
         if !self.buffer.is_empty() {
             self.buffer.new_history_entry();
@@ -200,11 +199,12 @@ impl<const BUFFER_SIZE: usize, const HISTORY_SIZE: usize> Readline<BUFFER_SIZE, 
     }
 }
 
-fn next_char<ReaderError>(
+fn next_char<ReaderError: Debug>(
     reader: &mut impl Iterator<Item = Result<char, ReaderError>>,
-) -> KernelResult<char>
-where
-    KernelError: From<ReaderError>,
-{
-    reader.next().transpose()?.ok_or(KernelError::EndOfInput)
+) -> CrustyLineResult<char> {
+    reader
+        .next()
+        .transpose()
+        .map_err(|_| CrustyLineError::ReaderError)?
+        .ok_or(CrustyLineError::UnexpectedEndOfInput)
 }

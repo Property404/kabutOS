@@ -1,0 +1,7 @@
+[package]
+name = "crusty-line"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+embedded-line-edit = { version = "0.0.0", path = "../embedded-line-edit" }

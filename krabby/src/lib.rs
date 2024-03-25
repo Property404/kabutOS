@@ -19,7 +19,6 @@ pub mod interrupts;
 pub mod mmu;
 pub mod panic;
 pub mod process;
-pub mod readline;
 pub mod scheduler;
 pub mod serial;
 pub mod syscalls;

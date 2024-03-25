@@ -3,18 +3,18 @@ use crate::{
     functions::{self, GroupBytesBy},
     globals, println,
     process::Process,
-    readline::Readline,
     scheduler,
     serial::Serial,
     userspace, KernelError, KernelResult,
 };
 use core::{fmt::Display, ptr};
+use crusty_line::CrustyLine;
 use owo_colors::OwoColorize;
 use schmargs::Schmargs;
 
 /// Run the kernel console
 pub fn run_console() {
-    let mut readline = Readline::<64, 8>::default();
+    let mut readline = CrustyLine::<64, 8>::default();
     let prompt = "KabutOS➔ ".cyan();
     let mut reader = Serial::new().unwrap();
     let mut writer = Serial::new().unwrap();

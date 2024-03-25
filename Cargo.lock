@@ -56,6 +56,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7059fff8937831a9ae6f0fe4d658ffabf58f2ca96aa9dec1c889f936f705f216"
 
 [[package]]
+name = "crusty-line"
+version = "0.1.0"
+dependencies = [
+ "embedded-line-edit",
+]
+
+[[package]]
 name = "derive_more"
 version = "1.0.0-beta.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -146,9 +153,9 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "bilge",
+ "crusty-line",
  "derive_more",
  "elf",
- "embedded-line-edit",
  "fdt",
  "krabby-abi",
  "owo-colors",
