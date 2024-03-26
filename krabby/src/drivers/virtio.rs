@@ -68,7 +68,7 @@ fn load(ctx: &LoadContext) -> KernelResult<Option<LoadResult>> {
         base_address: base_address as *mut u32,
     };
 
-    let device_id = device.read(Offset::VendorId);
+    let device_id = device.read(Offset::DeviceId);
     if device_id != BLOCK_DEVICE_ID {
         return Ok(None);
     }

@@ -49,5 +49,8 @@
 !Cargo.lock
 !config
 
+# Dummy rootfs
+!dummy.ext4
+
 # Exclude build directories
 target/
