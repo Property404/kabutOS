@@ -10,6 +10,7 @@ use spin::{Mutex, RwLock};
 pub mod clint_timer;
 pub mod ns16550;
 pub mod plic;
+pub mod virtio;
 use utf8_parser::Utf8Parser;
 
 #[derive(Debug)]
@@ -33,7 +34,12 @@ pub struct DriverInfo {
 type DriverBox2<T> = RwLock<Option<Arc<Mutex<T>>>>;
 type DriverBox<T> = Mutex<Option<T>>;
 
-static LOADERS: &[DriverLoader] = &[ns16550::LOADER, clint_timer::LOADER, plic::LOADER];
+static LOADERS: &[DriverLoader] = &[
+    ns16550::LOADER,
+    clint_timer::LOADER,
+    plic::LOADER,
+    virtio::LOADER,
+];
 
 /// Collection of initialized drivers
 #[derive(Debug)]
@@ -233,7 +239,7 @@ enum LoadResult {
 struct DriverLoader {
     compatible: &'static str,
     /// Perform some arbitrary action with this node
-    load: fn(info: &LoadContext) -> KernelResult<LoadResult>,
+    load: fn(info: &LoadContext) -> KernelResult<Option<LoadResult>>,
 }
 
 impl DriverLoader {
@@ -267,7 +273,10 @@ impl DriverLoader {
             interrupt_parent,
             interrupts,
         };
-        let coupling = (self.load)(ctx)?;
-        Ok(Some(WrappedDriver { info, coupling }))
+        if let Some(coupling) = (self.load)(ctx)? {
+            Ok(Some(WrappedDriver { info, coupling }))
+        } else {
+            Ok(None)
+        }
     }
 }

@@ -50,7 +50,7 @@ impl TimerDriver for Driver {
     }
 }
 
-fn load(info: &LoadContext) -> KernelResult<LoadResult> {
+fn load(info: &LoadContext) -> KernelResult<Option<LoadResult>> {
     let reg = info
         .node
         .reg()
@@ -74,7 +74,7 @@ fn load(info: &LoadContext) -> KernelResult<LoadResult> {
         base_address: base_address as *mut u64,
     };
 
-    Ok(LoadResult::Timer(Box::new(device)))
+    Ok(Some(LoadResult::Timer(Box::new(device))))
 }
 
 pub(super) static LOADER: DriverLoader = DriverLoader {

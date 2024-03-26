@@ -67,7 +67,7 @@ impl UartDriver for Ns16550Driver {
     }
 }
 
-fn load(info: &LoadContext) -> KernelResult<LoadResult> {
+fn load(info: &LoadContext) -> KernelResult<Option<LoadResult>> {
     let reg = info
         .node
         .reg()
@@ -75,9 +75,9 @@ fn load(info: &LoadContext) -> KernelResult<LoadResult> {
         .ok_or(KernelError::MissingProperty("reg"))?;
     let base_address = map_device(reg.starting_address as usize, PAGE_SIZE)?;
 
-    Ok(LoadResult::Uart(Box::new(Ns16550Driver::new(
+    Ok(Some(LoadResult::Uart(Box::new(Ns16550Driver::new(
         base_address as *mut u8,
-    ))))
+    )))))
 }
 
 pub(super) static LOADER: DriverLoader = DriverLoader {

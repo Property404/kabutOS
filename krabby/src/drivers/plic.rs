@@ -88,7 +88,7 @@ impl InterruptControllerDriver for Driver {
     }
 }
 
-fn load(info: &LoadContext) -> KernelResult<LoadResult> {
+fn load(info: &LoadContext) -> KernelResult<Option<LoadResult>> {
     let phandle: u32 = info
         .node
         .property("phandle")
@@ -112,7 +112,7 @@ fn load(info: &LoadContext) -> KernelResult<LoadResult> {
         base_address: base_address as *mut u32,
     };
 
-    Ok(LoadResult::InterruptController(Box::new(device)))
+    Ok(Some(LoadResult::InterruptController(Box::new(device))))
 }
 
 pub(super) static LOADER: DriverLoader = DriverLoader {
