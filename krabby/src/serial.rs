@@ -47,12 +47,11 @@ macro_rules! print
     });
     ([_inner ($newline:expr)] $($args:expr),+) => ({
             use core::fmt::Write;
-            let uart = $crate::drivers::DRIVERS.uart.read();
-            if let Some(uart) = &*uart{
-                let mut uart = uart.lock();
-                let _ = write!(uart.coupling, $($args),+);
+
+            if let Ok(mut serial) = $crate::serial::Serial::new() {
+                let _ = write!(serial, $($args),+);
                 if $newline {
-                    let _ = uart.coupling.write_str("\n");
+                    let _ = serial.write_str("\n");
                 }
             }
     });
