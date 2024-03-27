@@ -17,6 +17,9 @@ pub enum KernelError {
     /// Generic error
     #[display("{}", _0)]
     Generic(&'static str),
+    /// Driver failure
+    #[display("{}", _0)]
+    DriverFailure(&'static str),
     /// Invalid arguments to syscall
     #[display("Invalid arguments")]
     InvalidArguments,

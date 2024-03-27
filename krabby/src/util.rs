@@ -38,6 +38,15 @@ pub const fn aligned<const SIZE: usize>(val: usize) -> bool {
     val & (SIZE - 1) == 0
 }
 
+/// Extra methods for `usize`
+pub trait UsizeExt {
+    fn from_u32(val: u32) -> usize {
+        val.try_into().unwrap()
+    }
+}
+
+impl UsizeExt for usize {}
+
 #[cfg(feature = "test")]
 pub fn test() {
     assert!(aligned::<1024>(0));

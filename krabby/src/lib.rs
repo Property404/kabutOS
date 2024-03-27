@@ -31,7 +31,10 @@ pub mod util;
 pub mod test;
 
 pub mod prelude {
-    pub use super::cpu::{HartId, InterruptId, Register};
+    pub use super::{
+        cpu::{HartId, InterruptId, Register},
+        util::UsizeExt,
+    };
     pub use super::{print, println, warn};
     pub use super::{KernelError, KernelResult};
     pub use alloc::{boxed::Box, vec::Vec};

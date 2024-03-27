@@ -11,5 +11,5 @@ cargo build
 riscv64-unknown-elf-objcopy -O binary ${CARGO_OUTPUT}{,.bin}
 qemu-system-riscv64 -serial mon:stdio -nographic -machine virt -bios none "${@}" \
     -drive if=none,format=raw,file=dummy.ext4,id=foo \
-    -device virtio-blk-device,scsi=off,drive=foo \
+    -device virtio-blk-device,scsi=off,drive=foo\
     -kernel "${CARGO_OUTPUT}.bin"
