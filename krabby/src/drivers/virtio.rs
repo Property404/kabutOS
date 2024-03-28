@@ -76,6 +76,7 @@ struct BlockPromise {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 enum BlockPromiseKind {
     Read,
+    Write,
 }
 
 impl VirtioBlockDriver {
@@ -105,6 +106,14 @@ impl BlockDriver for VirtioBlockDriver {
             match kind {
                 BlockPromiseKind::Read => unsafe {
                     self.inner.complete_read_blocks(
+                        token,
+                        &request,
+                        buffer.as_mut().unwrap(),
+                        &mut response,
+                    )?;
+                },
+                BlockPromiseKind::Write => unsafe {
+                    self.inner.complete_write_blocks(
                         token,
                         &request,
                         buffer.as_mut().unwrap(),
@@ -149,10 +158,34 @@ impl BlockDriver for VirtioBlockDriver {
         Ok(())
     }
 
-    fn start_write(&mut self, offset: usize, buffer: &mut [u8]) -> KernelResult<()> {
+    fn write_blocking(&mut self, offset: usize, buffer: &mut [u8]) -> KernelResult<()> {
         assert!(aligned::<SECTOR_SIZE>(offset));
         let offset = offset / SECTOR_SIZE;
+
         self.inner.write_blocks(offset, buffer)?;
+        Ok(())
+    }
+
+    fn start_write(&mut self, offset: usize, buffer: &mut [u8]) -> KernelResult<()> {
+        assert!(aligned::<SECTOR_SIZE>(offset));
+
+        let mut request = Box::default();
+        let mut response = Box::default();
+        let token = unsafe {
+            self.inner
+                .write_blocks_nb(offset, &mut request, buffer, &mut response)
+        }?;
+
+        self.promises.insert(
+            token,
+            BlockPromise {
+                kind: BlockPromiseKind::Write,
+                buffer: ptr::from_mut(buffer),
+                request,
+                response,
+            },
+        );
+
         Ok(())
     }
 }

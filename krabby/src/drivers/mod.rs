@@ -197,6 +197,8 @@ pub trait BlockDriver: Debug + Send {
 
     fn start_read(&mut self, offset: usize, buffer: &mut [u8]) -> KernelResult<()>;
 
+    fn write_blocking(&mut self, offset: usize, buffer: &mut [u8]) -> KernelResult<()>;
+
     fn start_write(&mut self, offset: usize, buffer: &mut [u8]) -> KernelResult<()>;
 }
 
