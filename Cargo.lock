@@ -165,7 +165,6 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "bilge",
- "bitflags",
  "crusty-line",
  "derive_more",
  "elf",
