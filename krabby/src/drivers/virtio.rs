@@ -129,6 +129,11 @@ impl VirtioBlockDriver {
 }
 
 impl BlockDriver for VirtioBlockDriver {
+    fn acknowledge_interrupt(&mut self) -> KernelResult<()> {
+        self.inner.ack_interrupt();
+        Ok(())
+    }
+
     fn start_read(&mut self, offset: usize, buffer: &mut [u8]) -> KernelResult<()> {
         assert!(aligned::<SECTOR_SIZE>(offset));
         let offset = offset / SECTOR_SIZE;
