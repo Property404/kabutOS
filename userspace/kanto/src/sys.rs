@@ -121,3 +121,8 @@ pub fn request_memory(bytes: usize) -> SyscallResult<usize> {
 pub fn power_off() -> SyscallResult<usize> {
     syscall(Syscall::PowerOff, 0, 0)
 }
+
+/// This can do anything
+pub fn test() -> SyscallResult<usize> {
+    syscall(Syscall::Test, 0, 0)
+}

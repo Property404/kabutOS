@@ -137,6 +137,9 @@ fn syscall_inner(frame: &mut TrapFrame, call: usize, args: Args) -> KernelResult
             crate::test::quit_qemu()?;
             unimplemented!();
         }
+        // Development test aid
+        // This does whatever I want it to do
+        Syscall::Test => SyscallResult::Success,
     };
     Ok(rv)
 }

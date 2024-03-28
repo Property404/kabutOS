@@ -1,6 +1,6 @@
 use core::fmt;
 use crusty_line::CrustyLine;
-use kanto::sys;
+use kanto::{prelude::*, sys};
 
 struct Serial;
 
@@ -23,6 +23,11 @@ pub fn shell() {
     let prompt = "$ ";
 
     loop {
-        readline.get_line(prompt, Serial, Serial).unwrap();
+        let line = readline.get_line(prompt, Serial, Serial).unwrap();
+        if line == "test" {
+            sys::test().unwrap();
+        } else {
+            println!("Unknown command: {line}");
+        }
     }
 }

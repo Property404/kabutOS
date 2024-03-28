@@ -11,5 +11,8 @@ pub enum Syscall {
     WaitPid,
     Sleep,
     RequestMemory,
+    /// Power off the device
     PowerOff,
+    /// (Development only) This can do anything
+    Test,
 }
