@@ -7,12 +7,16 @@ use crate::{
     prelude::*,
     util::*,
 };
-use core::{fmt, ptr::NonNull};
+use alloc::collections::BTreeMap;
+use core::{
+    fmt,
+    ptr::{self, NonNull},
+};
 
 use virtio_drivers::{
-    device::blk::VirtIOBlk,
+    device::blk::{BlkReq, BlkResp, VirtIOBlk},
     transport::{
-        mmio::{MmioTransport, VirtIOHeader},
+        mmio::{MmioError, MmioTransport, VirtIOHeader},
         DeviceType, Transport,
     },
     BufferDirection, Hal, PhysAddr,
@@ -50,6 +54,7 @@ unsafe impl Hal for HalImpl {
 
 struct VirtioBlockDriver {
     inner: VirtIOBlk<HalImpl, MmioTransport>,
+    promises: BTreeMap<u16, BlockPromise>,
 }
 
 impl fmt::Debug for VirtioBlockDriver {
@@ -60,30 +65,94 @@ impl fmt::Debug for VirtioBlockDriver {
 
 unsafe impl Send for VirtioBlockDriver {}
 
+#[derive(Debug)]
+struct BlockPromise {
+    kind: BlockPromiseKind,
+    buffer: *mut [u8],
+    request: Box<BlkReq>,
+    response: Box<BlkResp>,
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+enum BlockPromiseKind {
+    Read,
+}
+
 impl VirtioBlockDriver {
     fn new(transport: MmioTransport) -> KernelResult<Self> {
-        let inner = VirtIOBlk::<HalImpl, _>::new(transport).unwrap();
-        Ok(Self { inner })
+        let inner = VirtIOBlk::<HalImpl, _>::new(transport)?;
+        Ok(Self {
+            inner,
+            promises: Default::default(),
+        })
     }
 }
 
 impl BlockDriver for VirtioBlockDriver {
     fn acknowledge_interrupt(&mut self) -> KernelResult<()> {
-        self.inner.ack_interrupt();
+        assert!(self.inner.ack_interrupt());
+        let Some(token) = self.inner.peek_used() else {
+            return Ok(());
+        };
+
+        if let Some(BlockPromise {
+            kind,
+            buffer,
+            mut response,
+            request,
+        }) = self.promises.remove(&token)
+        {
+            match kind {
+                BlockPromiseKind::Read => unsafe {
+                    self.inner.complete_read_blocks(
+                        token,
+                        &request,
+                        buffer.as_mut().unwrap(),
+                        &mut response,
+                    )?;
+                },
+            }
+        } else {
+            warn!("Unexpected token in virtio block driver");
+        }
+        Ok(())
+    }
+
+    fn read_blocking(&mut self, offset: usize, buffer: &mut [u8]) -> KernelResult<()> {
+        assert!(aligned::<SECTOR_SIZE>(offset));
+        let offset = offset / SECTOR_SIZE;
+
+        self.inner.read_blocks(offset, buffer)?;
         Ok(())
     }
 
     fn start_read(&mut self, offset: usize, buffer: &mut [u8]) -> KernelResult<()> {
         assert!(aligned::<SECTOR_SIZE>(offset));
-        let offset = offset / SECTOR_SIZE;
-        self.inner.read_blocks(offset, buffer).unwrap();
+
+        let mut request = Box::default();
+        let mut response = Box::default();
+        let token = unsafe {
+            self.inner
+                .read_blocks_nb(offset, &mut request, buffer, &mut response)
+        }?;
+
+        self.promises.insert(
+            token,
+            BlockPromise {
+                kind: BlockPromiseKind::Read,
+                buffer: ptr::from_mut(buffer),
+                request,
+                response,
+            },
+        );
+
         Ok(())
     }
 
     fn start_write(&mut self, offset: usize, buffer: &mut [u8]) -> KernelResult<()> {
         assert!(aligned::<SECTOR_SIZE>(offset));
         let offset = offset / SECTOR_SIZE;
-        self.inner.write_blocks(offset, buffer).unwrap();
+        self.inner.write_blocks(offset, buffer)?;
         Ok(())
     }
 }
@@ -100,7 +169,11 @@ fn load(ctx: &LoadContext) -> KernelResult<Option<LoadResult>> {
     // We could have a RAII DeviceMapping device
     let base_address = map_device(base_address, size)? as *mut u32;
     let header = NonNull::new(base_address as *mut VirtIOHeader).unwrap();
-    let transport = unsafe { MmioTransport::new(header) }.unwrap();
+    let transport = match unsafe { MmioTransport::new(header) } {
+        Ok(transport) => transport,
+        Err(MmioError::ZeroDeviceId) => return Ok(None),
+        Err(err) => Err(err)?,
+    };
 
     let device = if transport.device_type() == DeviceType::Block {
         LoadResult::Block(Box::new(VirtioBlockDriver::new(transport)?))

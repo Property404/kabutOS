@@ -8,7 +8,7 @@ use crate::{
     timer::Instant,
     util::*,
 };
-use core::{cmp, str, time::Duration};
+use core::{cmp, time::Duration};
 use krabby_abi::{ProcessError, Syscall};
 use utf8_parser::Utf8Parser;
 
@@ -142,11 +142,11 @@ fn syscall_inner(frame: &mut TrapFrame, call: usize, args: Args) -> KernelResult
         Syscall::Test => {
             if let Some(device) = &*DRIVERS.block.read() {
                 let mut device = device.lock();
-                let mut buffer = Box::new([0u8; 512]);
+                let mut buffer = mmu::zalloc([0; 1024]);
 
                 println!("Starting read");
                 device.coupling.start_read(0, buffer.as_mut())?;
-                println!("Buffer: {}", str::from_utf8(&*buffer).unwrap());
+                buffer.leak();
             }
 
             SyscallResult::Success

@@ -10,6 +10,7 @@ use derive_more::{Display, From};
 use krabby_abi::KrabbyAbiError;
 use schmargs::{SchmargsError, StrippedSchmargsError};
 use utf8_parser::Utf8ParserError;
+use virtio_drivers::{transport::mmio::MmioError, Error as VirtioError};
 
 /// Error type for use in the Kernel
 #[derive(From, Debug, Display)]
@@ -92,6 +93,12 @@ pub enum KernelError {
     /// Converted from [crusty_line::CrustyLineError]
     #[from]
     CrustyLineError(CrustyLineError),
+    /// Converted from [virtio_drivers::Error]
+    #[from]
+    VirtioError(VirtioError),
+    /// Converted from [virtio_drivers::transport::mmio::MmioError]
+    #[from]
+    MmioError(MmioError),
 }
 
 impl From<KernelError> for usize {

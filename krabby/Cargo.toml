@@ -29,7 +29,8 @@ schmargs = { default-features = false, git = "https://github.com/Property404/sch
 spin = "0.9.8"
 talc = { version = "4.2.0", default-features = false, features = [ "lock_api" ] }
 utf8-parser = { version = "0.0.4", default-features = false }
-virtio-drivers = "0.7.1"
+# Switch to crates.io when it's fixed
+virtio-drivers = { git = "https://github.com/rcore-os/virtio-drivers", rev = "61ece509c40f32c03378a7a037ef9863ed5deba7" }
 
 [build-dependencies]
 anyhow = "1.0.80"
