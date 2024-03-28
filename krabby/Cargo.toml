@@ -30,6 +30,7 @@ schmargs = { default-features = false, git = "https://github.com/Property404/sch
 spin = "0.9.8"
 talc = { version = "4.2.0", default-features = false, features = [ "lock_api" ] }
 utf8-parser = { version = "0.0.4", default-features = false }
+virtio-drivers = "0.7.1"
 
 [build-dependencies]
 anyhow = "1.0.80"

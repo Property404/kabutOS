@@ -405,7 +405,9 @@ fn clean_page_table(table: &Sv39PageTable, pmo: isize) -> KernelResult<()> {
     for entry in table.entries {
         if entry.valid() && !entry.is_leaf() {
             let entry: usize = entry.physical_address().to_vaddr_with_pmo(pmo)?.into();
-            free(entry as *mut Sv39PageTable);
+            unsafe {
+                free(entry as *mut Sv39PageTable);
+            }
         }
     }
     Ok(())
@@ -622,7 +624,9 @@ impl<T: ?Sized> AsMut<T> for PageAllocation<T> {
 impl<T: ?Sized> Drop for PageAllocation<T> {
     fn drop(&mut self) {
         if let Some(address) = self.address {
-            free(address);
+            unsafe {
+                free(address);
+            }
         }
     }
 }
@@ -663,7 +667,9 @@ impl<T: ?Sized> SharedAllocation<T> {
 impl<T: ?Sized> Drop for SharedAllocation<T> {
     fn drop(&mut self) {
         if let Some(address) = self.address {
-            free(address as *mut T);
+            unsafe {
+                free(address as *mut T);
+            }
         }
     }
 }
@@ -691,8 +697,11 @@ pub fn zalloc<T>(obj: T) -> PageAllocation<T> {
     }
 }
 
-// Deallocate address
-fn free<T: ?Sized>(address: *mut T) {
+/// Deallocate address
+///
+/// # Safety
+/// address must be valid and allocated
+pub unsafe fn free<T: ?Sized>(address: *mut T) {
     assert!(!address.is_null());
     let records = unsafe { ptr::addr_of_mut!(table_heap_bottom) };
     let top = unsafe { ptr::from_ref(&table_heap_top) };

@@ -67,6 +67,7 @@ impl Drivers {
                     let driver = driver.clone();
                     // TODO: this should be a ringbuffer
                     let uart_buffer = Arc::new(Mutex::new((Utf8Parser::new(), VecDeque::new())));
+                    println!("Registering Uart interrupt({int_id})");
                     interrupts::register_handler(*int_id, move |int_id| {
                         // Push next chars into buffer
                         let mut driver = driver.lock();
@@ -98,6 +99,13 @@ impl Drivers {
                     coupling,
                 }));
                 (*self.block.write()).get_or_insert(driver.clone());
+                if let Some(int_id) = info.interrupts.first() {
+                    println!("Registering block driver interrupt({int_id})");
+                    interrupts::register_handler(*int_id, move |_int_id| {
+                        println!("Wow look at this interrupt");
+                        Ok(())
+                    });
+                }
             }
             LoadResult::Timer(dev) => {
                 (*self.timer.lock()).get_or_insert(dev);
@@ -151,6 +159,7 @@ impl Drivers {
         if let Some(ic) = &mut *self.ic.lock() {
             for (phandle, id) in interrupt_registrations {
                 if ic.phandle() == phandle {
+                    println!("Interrupt enabled: {id}");
                     ic.enable(id);
                 }
             }
@@ -182,7 +191,12 @@ pub trait TimerDriver: Debug + Send {
 }
 
 /// Block device driver (e.g. SSD/MMC)
-pub trait BlockDriver: Debug + Send {}
+pub trait BlockDriver: Debug + Send {
+    // TODO: should be const u8
+    fn start_read(&mut self, offset: usize, buffer: &mut [u8]) -> KernelResult<()>;
+
+    fn start_write(&mut self, offset: usize, buffer: &mut [u8]) -> KernelResult<()>;
+}
 
 /// A UART/serial driver
 pub trait UartDriver: Debug + Send {
