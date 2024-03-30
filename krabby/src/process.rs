@@ -1,13 +1,17 @@
 use crate::{
+    filesystem::FileRef,
     frame::{self, TrapFrame},
     mmu::{self, Page, PageAllocation, PageType, SharedAllocation, Sv39PageTable, PAGE_SIZE},
     prelude::*,
     timer::Instant,
     util::*,
 };
-use alloc::{collections::VecDeque, sync::Arc};
+use alloc::{
+    collections::{BTreeMap, VecDeque},
+    sync::Arc,
+};
 use core::ptr;
-use krabby_abi::ProcessResult;
+use krabby_abi::{fs::FileDescriptor, ProcessResult};
 use riscv::register::sstatus;
 
 const STACK_PAGES_PER_PROCESS: usize = 2;
@@ -46,6 +50,7 @@ pub struct Process {
     pub frame: PageAllocation<TrapFrame>,
     // TODO: Probably should be a ringbuffer
     pub stdin_buffer: VecDeque<char>,
+    pub file_descriptors: BTreeMap<FileDescriptor, FileRef>,
     // The current top of of virtual memory. Grows as heap grows
     breakline: usize,
     code: Arc<SharedAllocation<[Page<PAGE_SIZE>]>>,
@@ -139,6 +144,7 @@ impl Process {
             state: ProcessState::Ready,
             breakline: usize::from(breakline),
             stdin_buffer: Default::default(),
+            file_descriptors: Default::default(),
             pc,
             code,
             root_page_table,

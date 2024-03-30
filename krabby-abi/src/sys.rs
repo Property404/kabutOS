@@ -15,4 +15,6 @@ pub enum Syscall {
     PowerOff,
     /// (Development only) This can do anything
     Test,
+    /// Open file
+    Open,
 }

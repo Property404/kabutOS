@@ -1,4 +1,4 @@
-use super::FileSystem;
+use super::{FileRef, FileRefImpl, FileSystem};
 use crate::{
     drivers::{BlockDriver, Driver},
     prelude::*,
@@ -116,11 +116,24 @@ impl Write for Hal {
     }
 }
 
+#[derive(Debug)]
+struct Fat32FileRefImpl;
+
+impl FileRefImpl for Fat32FileRefImpl {
+    fn read_blocking(&mut self, _buffer: &mut [u8]) -> KernelResult<()> {
+        todo!()
+    }
+}
+
 pub struct Fat32FileSystem {
     fat: Fat<Hal, fatfs::NullTimeProvider, fatfs::LossyOemCpConverter>,
 }
 
 impl FileSystem for Fat32FileSystem {
+    fn open_blocking(&mut self, _path: impl AsRef<str>) -> KernelResult<FileRef> {
+        Ok(FileRef(Box::new(Fat32FileRefImpl)))
+    }
+
     fn list_blocking(&mut self, path: impl AsRef<str>) -> KernelResult<Vec<String>> {
         let dir = self.fat.root_dir().open_dir(path.as_ref()).unwrap();
         let mut vec = Vec::new();

@@ -137,6 +137,11 @@ fn syscall_inner(frame: &mut TrapFrame, call: usize, args: Args) -> KernelResult
             crate::test::quit_qemu()?;
             unimplemented!();
         }
+        Syscall::Open => {
+            let _path_ptr = args.0;
+            let _flags = args.1;
+            todo!()
+        }
         // Development test aid
         // This does whatever I want it to do
         Syscall::Test => {

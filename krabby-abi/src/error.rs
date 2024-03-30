@@ -5,13 +5,17 @@ use core::fmt::{self, Display};
 #[non_exhaustive]
 pub enum KrabbyAbiError {
     InvalidPid(usize),
+    InvalidFileDescriptor(usize),
 }
 
 impl Display for KrabbyAbiError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match self {
-            Self::InvalidPid(pid) => {
-                write!(f, "Invalid PID: {pid}")
+            Self::InvalidPid(val) => {
+                write!(f, "Invalid PID: {val}")
+            }
+            Self::InvalidFileDescriptor(val) => {
+                write!(f, "Invalid file descriptor: {val}")
             }
         }
     }
