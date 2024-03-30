@@ -1,23 +1,28 @@
 //! Error and Result type for use in this crate
 use crate::prelude::*;
 use core::{
-    fmt::Error as FmtError,
+    fmt::{Debug, Display, Error as FmtError},
     num::{ParseIntError, TryFromIntError},
     str::Utf8Error,
 };
 use crusty_line::CrustyLineError;
-use derive_more::{Display, From};
 use krabby_abi::KrabbyAbiError;
 use schmargs::{SchmargsError, StrippedSchmargsError};
 use utf8_parser::Utf8ParserError;
 use virtio_drivers::{transport::mmio::MmioError, Error as VirtioError};
 
 /// Error type for use in the Kernel
-#[derive(From, Debug, Display)]
+#[derive(derive_more::From, Debug, derive_more::Display)]
 pub enum KernelError {
     /// Generic error
     #[display("{}", _0)]
     Generic(&'static str),
+    /// Conversion error
+    #[display("Failed conversion")]
+    Conversion,
+    /// Converted filesystem error
+    #[display("Filesystem error: {}", _0)]
+    FileSystem(Box<dyn DebugDisplay>),
     /// Driver failure
     #[display("{}", _0)]
     DriverFailure(&'static str),
@@ -115,3 +120,8 @@ impl<T> From<SchmargsError<T>> for KernelError {
 
 /// Result type for use in this crate
 pub type KernelResult<T = ()> = Result<T, KernelError>;
+
+// For boxing errors
+#[doc(hidden)]
+pub trait DebugDisplay: Debug + Display {}
+impl<T> DebugDisplay for T where T: Debug + Display {}

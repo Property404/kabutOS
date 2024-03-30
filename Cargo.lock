@@ -135,6 +135,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "fatfs"
+version = "0.4.0"
+source = "git+https://github.com/rafalh/rust-fatfs?rev=1aa43f755572c6848fd981eafd11c02a4825dd62#1aa43f755572c6848fd981eafd11c02a4825dd62"
+dependencies = [
+ "bitflags",
+ "log",
+]
+
+[[package]]
 name = "fdt"
 version = "0.2.0-alpha1"
 source = "git+https://github.com/Property404/fdt?rev=5abb24aed8e5ae0ca4c0ed8a2510355c92ea7b8c#5abb24aed8e5ae0ca4c0ed8a2510355c92ea7b8c"
@@ -168,6 +177,7 @@ dependencies = [
  "crusty-line",
  "derive_more",
  "elf",
+ "fatfs",
  "fdt",
  "krabby-abi",
  "owo-colors",

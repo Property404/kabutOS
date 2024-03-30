@@ -11,6 +11,7 @@ pub mod console;
 pub mod cpu;
 pub mod drivers;
 pub mod errors;
+pub mod filesystem;
 pub mod frame;
 pub mod functions;
 pub mod globals;
@@ -37,7 +38,7 @@ pub mod prelude {
     };
     pub use super::{print, println, warn};
     pub use super::{KernelError, KernelResult};
-    pub use alloc::{boxed::Box, vec::Vec};
+    pub use alloc::{boxed::Box, string::String, vec::Vec};
     pub use krabby_abi::Pid;
 }
 

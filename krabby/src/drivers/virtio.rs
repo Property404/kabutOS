@@ -127,6 +127,14 @@ impl BlockDriver for VirtioBlockDriver {
         Ok(())
     }
 
+    fn sector_size(&mut self) -> KernelResult<usize> {
+        Ok(SECTOR_SIZE)
+    }
+
+    fn capacity(&mut self) -> KernelResult<usize> {
+        Ok(self.inner.capacity().try_into()?)
+    }
+
     fn read_blocking(&mut self, offset: usize, buffer: &mut [u8]) -> KernelResult<()> {
         assert!(aligned::<SECTOR_SIZE>(offset));
         let offset = offset / SECTOR_SIZE;

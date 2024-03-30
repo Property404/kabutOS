@@ -141,12 +141,10 @@ fn syscall_inner(frame: &mut TrapFrame, call: usize, args: Args) -> KernelResult
         // This does whatever I want it to do
         Syscall::Test => {
             if let Some(device) = &*DRIVERS.block.read() {
-                let mut device = device.lock();
-                let mut buffer = mmu::zalloc([0; 1024]);
-
-                println!("Starting read");
-                device.coupling.start_read(0, buffer.as_mut())?;
-                buffer.leak();
+                use crate::filesystem::FileSystem;
+                let mut fs = crate::filesystem::fat32::Fat32FileSystem::new(device.clone())?;
+                let items = fs.list_blocking("home")?;
+                println!("{items:?}")
             }
 
             SyscallResult::Success

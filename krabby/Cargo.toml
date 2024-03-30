@@ -17,6 +17,7 @@ unsafe_op_in_unsafe_fn = "deny"
 bilge = "0.2.0"
 crusty-line = { version = "0.1.0", path = "../crusty-line" }
 derive_more = { version = "1.0.0-beta.6", default-features = false, features = [ "into", "from", "display"] }
+fatfs = { git = "https://github.com/rafalh/rust-fatfs", rev = "1aa43f755572c6848fd981eafd11c02a4825dd62", default-features = false, features = ["alloc"] }
 # TODO: Switch to upstream when changes are merged
 # upstream currently cannot pretty-print individual nodes
 fdt = { git = "https://github.com/Property404/fdt", rev="5abb24aed8e5ae0ca4c0ed8a2510355c92ea7b8c", features = ["pretty-printing"] }

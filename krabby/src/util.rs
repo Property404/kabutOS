@@ -43,7 +43,22 @@ pub const fn aligned<const SIZE: usize>(val: usize) -> bool {
 }
 
 /// Extra methods for `usize`
-pub trait UsizeExt {
+pub trait UsizeExt: Copy + Into<usize> {
+    fn align_down(self, alignment: usize) -> usize {
+        assert!(alignment.is_power_of_two());
+        self.into() & !(alignment - 1)
+    }
+
+    fn align_next(self, alignment: usize) -> usize {
+        assert!(alignment.is_power_of_two());
+        self.align_down(alignment) + alignment
+    }
+
+    fn is_aligned_to(self, alignment: usize) -> bool {
+        assert!(alignment.is_power_of_two());
+        self.into() & (alignment - 1) == 0
+    }
+
     fn from_u32(val: u32) -> usize {
         val.try_into().unwrap()
     }

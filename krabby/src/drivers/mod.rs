@@ -193,6 +193,10 @@ pub trait TimerDriver: Debug + Send {
 pub trait BlockDriver: Debug + Send {
     fn acknowledge_interrupt(&mut self) -> KernelResult<()>;
 
+    fn capacity(&mut self) -> KernelResult<usize>;
+
+    fn sector_size(&mut self) -> KernelResult<usize>;
+
     fn read_blocking(&mut self, offset: usize, buffer: &mut [u8]) -> KernelResult<()>;
 
     fn start_read(&mut self, offset: usize, buffer: &mut [u8]) -> KernelResult<()>;
