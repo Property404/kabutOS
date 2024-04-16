@@ -7,4 +7,4 @@ edition = "2021"
 [dependencies]
 krabby-abi = { path = "../../krabby-abi" }
 lock_api = { version = "0.4.11", default-features = false }
-talc = { version = "4.3", default-features = false, features = [ "lock_api" ] }
+talc = { version = "4.4", default-features = false, features = [ "lock_api" ] }
