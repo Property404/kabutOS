@@ -29,7 +29,7 @@ riscv = { git = "https://github.com/Property404/riscv", branch="Property404/ssof
 schmargs = { default-features = false, git = "https://github.com/Property404/schmargs", rev="b919fab", features = [ "alloc" ] }
 spin = "0.9.8"
 talc = { version = "4.4", default-features = false, features = [ "lock_api" ] }
-utf8-parser = { version = "0.0.4", default-features = false }
+utf8-parser = "0.1.0"
 # Switch to crates.io when it's fixed
 virtio-drivers = { git = "https://github.com/rcore-os/virtio-drivers", rev = "61ece509c40f32c03378a7a037ef9863ed5deba7" }
 
