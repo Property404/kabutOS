@@ -449,10 +449,9 @@ impl<T: History> LineEditState<T> {
     ///
     /// # Returns the size of the new buffer, or None if no new history
     pub fn next_history_entry(&mut self) -> Option<usize> {
-        self.buffer.next(self.byte_length).map(|size| {
+        self.buffer.next(self.byte_length).inspect(|&size| {
             self.byte_length = size;
             self.byte_ptr = size;
-            size
         })
     }
 
@@ -460,10 +459,9 @@ impl<T: History> LineEditState<T> {
     ///
     /// # Returns the size of the new buffer, or None if no old history
     pub fn prev_history_entry(&mut self) -> Option<usize> {
-        self.buffer.prev(self.byte_length).map(|size| {
+        self.buffer.prev(self.byte_length).inspect(|&size| {
             self.byte_length = size;
             self.byte_ptr = size;
-            size
         })
     }
 }
